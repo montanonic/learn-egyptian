@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <title>Learn Egyptian</title>
     <script type="text/javascript" src="elm.js"></script>
+    <link rel="stylesheet" type="text/css" href="styles.css">
 </head>
 
 <body>
@@ -12,13 +13,11 @@
 </body>
 
 <script type="text/javascript">
-
-    // Start the Elm application.
     var app = Elm.Main.init({
         node: document.getElementById('myapp'),
         // TODO: also do a search of the English because we want to store one vocab PER meaning.
         // For English->Eg when there's multiple words that mean the same thing in English, when you're tested you should be asked if you can recall another word for it. Ideally though we should just have a better way to mark the english side of the vocab with a special note. We should be able to mark either EG or Eng side of vocab with a note.
-        flags: Array.from(getEgyptianWords()).map(word => JSON.parse(localStorage.getItem(word)))
+        flags: { sm2FlashcardData: Array.from(getEgyptianWords()).map(word => getLocally(word)) }
     });
 
     app.ports.storeFlashcardEntry.subscribe(function (entry) {
@@ -27,32 +26,25 @@
         // Add entry to lookup table used to load data on app init.
         const egyptianWords = getEgyptianWords();
         egyptianWords.add(egyptian);
-        localStorage.setItem('egyptian-words', JSON.stringify(Array.from(egyptianWords)));
+        storeLocally('egyptian-words', Array.from(egyptianWords));
         console.log(egyptianWords);
 
-        localStorage.setItem(egyptian, JSON.stringify(entry));
+        storeLocally(egyptian, entry);
         console.log({ egyptian, english, englishData, egyptianData });
     });
 
     /// Lists all egyptian words stored in vocab.
     function getEgyptianWords() {
-        return new Set(JSON.parse(localStorage.getItem('egyptian-words')) || []);
+        return new Set(getLocally('egyptian-words') || []);
     }
 
-    // // Create your WebSocket.
-    // var socket = new WebSocket('wss://echo.websocket.org');
+    function storeLocally(key, data) {
+        localStorage.setItem(key, JSON.stringify(data));
+    }
 
-    // // When a command goes to the `sendMessage` port, we pass the message
-    // // along to the WebSocket.
-    // app.ports.sendMessage.subscribe(function (message) {
-    //     socket.send(message);
-    // });
-
-    // // When a message comes into our WebSocket, we pass the message along
-    // // to the `messageReceiver` port.
-    // socket.addEventListener("message", function (event) {
-    //     app.ports.messageReceiver.send(event.data);
-    // });
+    function getLocally(key) {
+        return JSON.parse(localStorage.getItem(key));
+    }
 
 </script>
 

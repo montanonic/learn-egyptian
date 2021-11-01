@@ -1,0 +1,20 @@
+body {
+    background-color: rgb(11, 55, 70);
+    color: whitesmoke;
+}
+
+/* NEW LESSON VIEW */
+.new-lesson-view {
+    text-align: right;
+}
+
+.new-lesson-view textarea, .new-lesson-view input {
+    margin-left: auto;
+    display: block;
+    font-size: 20px;
+    direction: rtl;
+}
+
+.new-lesson-view p {
+    direction: rtl;
+}
