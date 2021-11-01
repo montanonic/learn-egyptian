@@ -19,28 +19,39 @@
         // For English->Eg when there's multiple words that mean the same thing in English, when you're tested you should be asked if you can recall another word for it. Ideally though we should just have a better way to mark the english side of the vocab with a special note. We should be able to mark either EG or Eng side of vocab with a note.
         flags: {
             sm2FlashcardData: Array.from(getEgyptianWords()).map(word => getLocally(word))
-            , lessons: getLessons()
+            , lessons: getLocally('allLessons') || []
         }
     });
 
-    app.ports.storeNewLesson.subscribe(function ([title, text]) {
-        storeLesson(title, text);
+    // An easier hack than dealing with lesson individually, that is also less performant.
+    app.ports.storeLessonData.subscribe(function (lessons) {
+        storeLocally('allLessons', lessons);
     });
 
-    // returns List (title, text)
-    function getLessons() {
-        const lessonTitles = getLocally('lessonTitles') || [];
-        return lessonTitles.map(title => [title, getLesson(title)])
-    }
+    // The below code is fine, but it's easier to manage entire sets of data in bulk, albeit much less performant as the size of data increases. For our early app, this is fine.
 
-    function getLesson(title) {
-        return getLocally(`lesson-${title}`);
-    }
+    // app.ports.storeNewLesson.subscribe(function ([title, text]) {
+    //     storeLesson(title, text);
+    // });
 
-    function storeLesson(title, text) {
-        storeLocally('lessonTitles', [...getLessons(), title]); // index it
-        return storeLocally(`lesson-${title}`, text);
-    }
+    // // returns List (title, text)
+    // function getLessonDict() {
+    //     const lessonTitles = getLocally('lessonTitles') || [];
+    //     return lessonTitles.map(title => [title, getLesson(title)])
+    // }
+
+    // function getLesson(title) {
+    //     return getLocally(`lesson-${title}`);
+    // }
+
+    // function getLessonTitles() {
+    //     return getLocally('lessonTitles');
+    // }
+
+    // function storeLesson(title, text) {
+    //     storeLocally('lessonTitles', [...getLessonTitles(), title]); // index it
+    //     return storeLocally(`lesson-${title}`, text);
+    // }
 
     // TODO: Bad code
     app.ports.storeFlashcardEntry.subscribe(function (entry) {

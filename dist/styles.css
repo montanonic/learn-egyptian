@@ -18,3 +18,10 @@ body {
 .new-lesson-view p {
     direction: rtl;
 }
+
+.selected-lesson-view {
+    direction: rtl;
+    font-size: 24px;
+    margin-right: 30px;
+    margin-bottom: 50vh;
+}

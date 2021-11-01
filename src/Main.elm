@@ -38,7 +38,11 @@ main =
 port storeFlashcardEntry : SM2FlashcardData -> Cmd msg
 
 
-port storeNewLesson : ( String, String ) -> Cmd msg
+
+-- port storeNewLesson : ( String, String ) -> Cmd msg
+
+
+port storeLessonData : List ( String, String ) -> Cmd msg
 
 
 {-| Only the SM2UserGrade data is needed to produce our SM2Data. This has the benefit of not storing
@@ -89,6 +93,7 @@ type alias Model =
     , newLessonText : String
     , newLessonTitle : String
     , lessons : Dict String String -- title -> text
+    , selectedLesson : Maybe String
     }
 
 
@@ -102,6 +107,7 @@ init { sm2FlashcardData, lessons } =
       , newLessonText = ""
       , newLessonTitle = ""
       , lessons = Dict.fromList lessons
+      , selectedLesson = Nothing
       }
     , Cmd.none
     )
@@ -123,6 +129,9 @@ type Msg
     | ChangeNewLessonText String
     | ChangeNewLessonTitle String
     | CreateNewLesson
+    | UpdateLesson ( String, String )
+    | SelectLesson String
+    | DeselectLesson -- useful in this development design at least, not a good long-term design
 
 
 
@@ -174,14 +183,49 @@ update msg model =
             pure { model | newLessonTitle = title }
 
         CreateNewLesson ->
-            ( { model | newLessonText = "", newLessonTitle = "", lessons = Dict.insert model.newLessonTitle model.newLessonText model.lessons }
-            , storeNewLesson ( model.newLessonTitle, model.newLessonText )
-            )
+            impure
+                { model | newLessonText = "", newLessonTitle = "", lessons = Dict.insert model.newLessonTitle model.newLessonText model.lessons }
+                (.lessons >> Dict.toList >> storeLessonData)
+
+        UpdateLesson ( existingTitle, newTitle ) ->
+            let
+                processTitleChange : Model -> Model
+                processTitleChange m =
+                    if existingTitle /= newTitle then
+                        { m
+                            | lessons = Dict.remove existingTitle m.lessons
+                            , selectedLesson = Just newTitle
+                        }
+
+                    else
+                        m
+            in
+            impure
+                ({ model | lessons = Dict.insert newTitle model.newLessonText model.lessons } |> processTitleChange)
+                (.lessons >> Dict.toList >> storeLessonData)
+
+        SelectLesson title ->
+            pure
+                { model
+                    | selectedLesson = Just title
+                    , newLessonText =
+                        Dict.get title model.lessons
+                            |> Maybe.withDefault ""
+                    , newLessonTitle = title
+                }
+
+        DeselectLesson ->
+            pure { model | selectedLesson = Nothing, newLessonText = "", newLessonTitle = "" }
 
 
 pure : Model -> ( Model, Cmd Msg )
 pure model =
     ( model, Cmd.none )
+
+
+impure : Model -> (Model -> Cmd Msg) -> ( Model, Cmd Msg )
+impure model effect =
+    ( model, effect model )
 
 
 {-| The process for in-place transliterating latin characters into corresponding arabic characters.
@@ -360,8 +404,14 @@ view : Model -> Html Msg
 view model =
     div []
         [ h2 [] [ text "Learn Egyptian" ]
-        , newLessonView model
+        , newAndEditLessonView model
         , lessonsView model
+        , case model.selectedLesson of
+            Nothing ->
+                span [] []
+
+            Just title ->
+                selectedLessonView model title
         ]
 
 
@@ -387,6 +437,45 @@ newLessonView model =
         ]
 
 
+{-| Covers creating lessons and editing them.
+-}
+newAndEditLessonView : Model -> Html Msg
+newAndEditLessonView model =
+    let
+        buttonDisabled =
+            case model.selectedLesson of
+                Nothing ->
+                    (model.newLessonText == "")
+                        || (model.newLessonTitle == "")
+                        -- don't allow creation if it conflicts with an existing lesson
+                        || (Dict.get model.newLessonTitle model.lessons /= Nothing)
+
+                {- disable the button if all fields stayed the same, or if a new title conflicts -}
+                Just title ->
+                    (Dict.get title model.lessons == Just model.newLessonText)
+                        && (title == model.newLessonTitle || Dict.get model.newLessonTitle model.lessons /= Nothing)
+    in
+    div [ class "new-lesson-view" ]
+        [ case model.selectedLesson of
+            Nothing ->
+                label [] [ text "Make a new lesson" ]
+
+            Just _ ->
+                div []
+                    [ button [ onClick DeselectLesson ] [ text "Deselect Lesson" ]
+                    , label [] [ text <| "Edit lesson" ]
+                    ]
+        , input [ placeholder "title", value model.newLessonTitle, onInput ChangeNewLessonTitle ] []
+        , textarea [ rows 15, cols 60, onInput ChangeNewLessonText, value model.newLessonText ] []
+        , case model.selectedLesson of
+            Nothing ->
+                button [ onClick CreateNewLesson, disabled buttonDisabled ] [ text "Create Lesson" ]
+
+            Just title ->
+                button [ onClick <| UpdateLesson ( title, model.newLessonTitle ), disabled buttonDisabled ] [ text "Update Lesson" ]
+        ]
+
+
 lessonsView : Model -> Html Msg
 lessonsView model =
     div [ class "lessons-view" ]
@@ -394,16 +483,32 @@ lessonsView model =
         , div [ style "display" "flex" ]
             (model.lessons
                 |> Dict.keys
-                |> List.map (\title -> button [] [ text title ])
+                |> List.map (\title -> button [ onClick <| SelectLesson title ] [ text title ])
             )
+        ]
+
+
+selectedLessonView : Model -> String -> Html Msg
+selectedLessonView model title =
+    let
+        lessonText =
+            Dict.get title model.lessons |> Maybe.withDefault ""
+    in
+    div [ class "selected-lesson-view" ]
+        [ h2 [] [ text <| "Title: " ++ title ]
+        , displayWords model lessonText
         ]
 
 
 {-| This is how we embellish our words with all of the nice app functionality.
 -}
-displayWords : Model -> Html Msg
-displayWords model =
-    div [] []
+displayWords : Model -> String -> Html Msg
+displayWords _ lessonText =
+    div []
+        (lessonText
+            |> String.split "\n"
+            |> List.map (\line -> p [] [ text line ])
+        )
 
 
 oldView : Model -> Html Msg
