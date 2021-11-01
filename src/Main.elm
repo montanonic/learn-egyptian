@@ -18,7 +18,7 @@ import Utils exposing (slidingWindow)
 
 
 type alias Flags =
-    { sm2FlashcardData : List SM2FlashcardData }
+    { sm2FlashcardData : List SM2FlashcardData, lessons : List ( String, String ) }
 
 
 main : Program Flags Model Msg
@@ -36,6 +36,9 @@ main =
 
 
 port storeFlashcardEntry : SM2FlashcardData -> Cmd msg
+
+
+port storeNewLesson : ( String, String ) -> Cmd msg
 
 
 {-| Only the SM2UserGrade data is needed to produce our SM2Data. This has the benefit of not storing
@@ -89,8 +92,8 @@ type alias Model =
     }
 
 
-init : { sm2FlashcardData : List SM2FlashcardData } -> ( Model, Cmd Msg )
-init { sm2FlashcardData } =
+init : Flags -> ( Model, Cmd Msg )
+init { sm2FlashcardData, lessons } =
     ( { draft = ""
       , mainWords = []
       , sm2FlashcardData = sm2FlashcardData
@@ -98,7 +101,7 @@ init { sm2FlashcardData } =
       , flashcardEnglishInput = ""
       , newLessonText = ""
       , newLessonTitle = ""
-      , lessons = Dict.empty
+      , lessons = Dict.fromList lessons
       }
     , Cmd.none
     )
@@ -171,7 +174,9 @@ update msg model =
             pure { model | newLessonTitle = title }
 
         CreateNewLesson ->
-            pure { model | newLessonText = "", newLessonTitle = "", lessons = Dict.insert model.newLessonTitle model.newLessonText model.lessons }
+            ( { model | newLessonText = "", newLessonTitle = "", lessons = Dict.insert model.newLessonTitle model.newLessonText model.lessons }
+            , storeNewLesson ( model.newLessonTitle, model.newLessonText )
+            )
 
 
 pure : Model -> ( Model, Cmd Msg )
@@ -354,8 +359,9 @@ twoLatinCharToArabicDict =
 view : Model -> Html Msg
 view model =
     div []
-        [ h1 [] [ text "Hey" ]
+        [ h2 [] [ text "Learn Egyptian" ]
         , newLessonView model
+        , lessonsView model
         ]
 
 
@@ -368,15 +374,27 @@ newLessonView model =
                 || (Dict.get model.newLessonTitle model.lessons /= Nothing)
     in
     div [ class "new-lesson-view" ]
-        [ label [] [ text "Create new lesson" ]
+        [ label [] [ text "Make a new lesson" ]
         , input [ placeholder "title", value model.newLessonTitle, onInput ChangeNewLessonTitle ] []
         , textarea [ rows 15, cols 60, onInput ChangeNewLessonText, value model.newLessonText ] []
-        , button [ onClick CreateNewLesson ] [ text "Create Lesson" ]
+        , button [ onClick CreateNewLesson, disabled creationDisabled ] [ text "Create Lesson" ]
         , h3 [] [ text "Preview:" ]
         , div []
             (model.newLessonText
                 |> String.split "\n"
                 |> List.map (\line -> p [] [ text line ])
+            )
+        ]
+
+
+lessonsView : Model -> Html Msg
+lessonsView model =
+    div [ class "lessons-view" ]
+        [ h3 [] [ text "select a lesson" ]
+        , div [ style "display" "flex" ]
+            (model.lessons
+                |> Dict.keys
+                |> List.map (\title -> button [] [ text title ])
             )
         ]
 
