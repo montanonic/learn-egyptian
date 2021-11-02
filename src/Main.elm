@@ -504,10 +504,24 @@ selectedLessonView model title =
 -}
 displayWords : Model -> String -> Html Msg
 displayWords _ lessonText =
-    div []
+    let
+        renderLine line =
+            p [] (lineIntoWords line)
+
+        lineIntoWords line =
+            String.split " " line
+                |> List.filter (\word -> word /= "")
+                |> List.map
+                    (\word ->
+                        span
+                            [ class "word" ]
+                            [ text word ]
+                    )
+    in
+    div [ class "displayed-words" ]
         (lessonText
             |> String.split "\n"
-            |> List.map (\line -> p [] [ text line ])
+            |> List.map renderLine
         )
 
 

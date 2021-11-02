@@ -10,6 +10,10 @@
 
 <body>
     <div id="myapp"></div>
+    <audio controls src="audio/Babel - Family Lesson 1.wav">
+        Your browser does not support the
+        <code>audio</code> element.
+    </audio>
 </body>
 
 <script type="text/javascript">
@@ -22,7 +26,6 @@
             , lessons: getLocally('allLessons') || []
         }
     });
-
     // An easier hack than dealing with lesson individually, that is also less performant.
     app.ports.storeLessonData.subscribe(function (lessons) {
         storeLocally('allLessons', lessons);

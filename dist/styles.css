@@ -25,3 +25,19 @@ body {
     margin-right: 30px;
     margin-bottom: 50vh;
 }
+
+/* word display styles */
+
+.displayed-words .word {
+    margin-right: 8px;
+    background-color: violet;
+    padding: 6px;
+    transition: all 200ms;
+    cursor: pointer;
+}
+
+.displayed-words .word:hover {
+    background-color: rgba(238, 130, 238, 0.616);
+    padding: 10px;
+    transition: all 200ms;
+}
