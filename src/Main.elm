@@ -6,7 +6,9 @@ import Dict.Extra as DictE
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Http
 import Json.Decode as D
+import Json.Encode as E
 import List.Extra as ListE
 import Maybe.Extra as MaybeE
 import Set exposing (Set)
@@ -36,10 +38,6 @@ main =
 
 
 port storeFlashcardEntry : SM2FlashcardData -> Cmd msg
-
-
-
--- port storeNewLesson : ( String, String ) -> Cmd msg
 
 
 port storeLessonData : List ( String, String ) -> Cmd msg
@@ -132,6 +130,7 @@ type Msg
     | UpdateLesson ( String, String )
     | SelectLesson String
     | DeselectLesson -- useful in this development design at least, not a good long-term design
+    | BackendAudioUpdated (Result Http.Error String)
 
 
 
@@ -187,6 +186,9 @@ update msg model =
                 { model | newLessonText = "", newLessonTitle = "", lessons = Dict.insert model.newLessonTitle model.newLessonText model.lessons }
                 (.lessons >> Dict.toList >> storeLessonData)
 
+        {- BUG: When lesson title changes, the ordering of model updates leads to the active lesson
+           being deselected. This is more of a problem with our conflation of viewing a lesson and editing a lesson, the sturucture isn't very well-conceived.
+        -}
         UpdateLesson ( existingTitle, newTitle ) ->
             let
                 processTitleChange : Model -> Model
@@ -199,10 +201,36 @@ update msg model =
 
                     else
                         m
+
+                newModel =
+                    { model | lessons = Dict.insert newTitle model.newLessonText model.lessons }
+                        |> processTitleChange
+
+                {- audios are tied to lessons only by title, so when the title changes we need to change the file too -}
+                updateAudioName =
+                    if existingTitle /= newTitle then
+                        Http.post
+                            { url = "http://localhost:3000/updateAudioName"
+                            , body =
+                                Http.jsonBody <|
+                                    E.object
+                                        [ ( "old", E.string existingTitle )
+                                        , ( "new", E.string newTitle )
+                                        ]
+                            , expect = Http.expectString BackendAudioUpdated
+                            }
+
+                    else
+                        Cmd.none
             in
-            impure
-                ({ model | lessons = Dict.insert newTitle model.newLessonText model.lessons } |> processTitleChange)
-                (.lessons >> Dict.toList >> storeLessonData)
+            ( newModel, Cmd.batch [ newModel.lessons |> Dict.toList |> storeLessonData, updateAudioName ] )
+
+        BackendAudioUpdated response ->
+            let
+                _ =
+                    Debug.log "BackendAudioUpdated" response
+            in
+            pure model
 
         SelectLesson title ->
             pure
@@ -496,6 +524,7 @@ selectedLessonView model title =
     in
     div [ class "selected-lesson-view" ]
         [ h2 [] [ text <| "Title: " ++ title ]
+        , audio [ controls True, src <| "http://localhost:3000/audio/" ++ title ++ ".wav" ] []
         , displayWords model lessonText
         ]
 
