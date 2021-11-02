@@ -22,7 +22,10 @@ import Utils exposing (slidingWindow)
 
 
 type alias Flags =
-    { sm2FlashcardData : List SM2FlashcardData, lessons : List ( String, String ) }
+    { sm2FlashcardData : List SM2FlashcardData
+    , lessons : List ( String, String )
+    , words : List ( String, Word )
+    }
 
 
 main : Program Flags Model Msg
@@ -77,7 +80,7 @@ type alias SM2UserGrade =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     {- TODO: improve deselection of words ; currently it's too broad and even clicking on the word edit interface deselects it. -}
     -- if not (String.isEmpty model.selectedWord) then
     --     Browser.Events.onMouseDown (D.succeed DeselectWord)
@@ -103,6 +106,7 @@ type alias Model =
     , selectedLesson : Maybe String
     , selectedWord : String
     , words : Dict String Word
+    , newWordDefinition : String
     }
 
 
@@ -112,16 +116,17 @@ type alias Word =
     { word : String
     , definitions : List String
     , notes : String
+    , tags : List String
     }
 
 
-makeWord : String -> Word
-makeWord word =
-    { word = word, definitions = [ "" ], notes = "" }
+makeWord : String -> String -> Word
+makeWord word definition =
+    { word = word, definitions = [ definition ], notes = "", tags = [] }
 
 
 init : Flags -> ( Model, Cmd Msg )
-init { sm2FlashcardData, lessons } =
+init { sm2FlashcardData, lessons, words } =
     ( { draft = ""
       , mainWords = []
       , sm2FlashcardData = sm2FlashcardData
@@ -132,7 +137,8 @@ init { sm2FlashcardData, lessons } =
       , lessons = Dict.fromList lessons
       , selectedLesson = Nothing
       , selectedWord = ""
-      , words = Dict.empty
+      , words = Dict.fromList words
+      , newWordDefinition = ""
       }
     , Cmd.none
     )
@@ -163,6 +169,8 @@ type Msg
     | EditSelectedWordDefinition Int String
     | EditSelectedWordNotes String
     | DeselectWord
+    | SaveSelectedNewWord
+    | EditSelectedNewWordDefinition String
 
 
 
@@ -283,8 +291,39 @@ update msg model =
         DeselectWord ->
             pure { model | selectedWord = "" }
 
-        _ ->
-            pure model
+        EditSelectedWordDefinition defNumber definition ->
+            impure
+                { model
+                    | words =
+                        Dict.update model.selectedWord
+                            (Maybe.map (\word -> { word | definitions = ListE.setAt defNumber definition word.definitions }))
+                            model.words
+                }
+                (.words >> Dict.toList >> storeWords)
+
+        {- TODO: This really should have debouncing on storing the word because it's an expensive op. -}
+        EditSelectedWordNotes notes ->
+            impure
+                { model
+                    | words =
+                        Dict.update model.selectedWord
+                            (Maybe.map (\word -> { word | notes = notes }))
+                            model.words
+                }
+                (.words >> Dict.toList >> storeWords)
+
+        EditSelectedNewWordDefinition definition ->
+            pure { model | newWordDefinition = definition }
+
+        SaveSelectedNewWord ->
+            impure
+                { model
+                    | words =
+                        Dict.insert model.selectedWord
+                            (makeWord model.selectedWord model.newWordDefinition)
+                            model.words
+                }
+                (.words >> Dict.toList >> storeWords)
 
 
 pure : Model -> ( Model, Cmd Msg )
@@ -582,17 +621,36 @@ selectedWordEdit model =
         --         "visible"
         --     )
         ]
-        (case Dict.get model.selectedWord model.words of
-            Just word ->
-                List.indexedMap
-                    (\i def -> input [ style "display" "block", value def, onInput <| EditSelectedWordDefinition i, placeholder ("Definition #" ++ String.fromInt i) ] [])
-                    word.definitions
-                    ++ [ textarea [ cols 20, rows 10, onInput EditSelectedWordNotes, value word.notes ] [] ]
+        (if String.isEmpty model.selectedWord then
+            [ p [] [ text "Select a word to view options" ] ]
 
-            Nothing ->
-                [ input [ style "display" "block" ] []
-                , textarea [ cols 20, rows 10 ] []
-                ]
+         else
+            let
+                textareaAttrs =
+                    [ cols 20, rows 10 ]
+            in
+            case Dict.get model.selectedWord model.words of
+                Just word ->
+                    List.indexedMap
+                        (\i def ->
+                            input
+                                [ placeholder ("Definition #" ++ String.fromInt i)
+                                , value def
+                                , onInput <| EditSelectedWordDefinition i
+                                ]
+                                []
+                        )
+                        word.definitions
+                        ++ [ textarea
+                                (textareaAttrs ++ [ onInput EditSelectedWordNotes, value word.notes ])
+                                []
+                           ]
+
+                Nothing ->
+                    [ input [ placeholder "add a definition", onInput EditSelectedNewWordDefinition, value model.newWordDefinition ] []
+                    , button [ onClick SaveSelectedNewWord, disabled (String.isEmpty model.newWordDefinition) ]
+                        [ text "Save New Word" ]
+                    ]
         )
 
 

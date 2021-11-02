@@ -18,15 +18,24 @@
         // TODO: also do a search of the English because we want to store one vocab PER meaning.
         // For English->Eg when there's multiple words that mean the same thing in English, when you're tested you should be asked if you can recall another word for it. Ideally though we should just have a better way to mark the english side of the vocab with a special note. We should be able to mark either EG or Eng side of vocab with a note.
         flags: {
-            sm2FlashcardData: Array.from(getEgyptianWords()).map(word => getLocally(word))
-            , lessons: getLocally('allLessons') || []
+            sm2FlashcardData: Array.from(getEgyptianWords()).map(word => getLocally(word)),
+            lessons: getLocally('allLessons') || [],
+            words: getAllWords()
         }
     });
 
     // An easier hack than dealing with lesson individually, that is also less performant.
-    app.ports.storeLessonData.subscribe(function (lessons) {
+    app.ports.storeLessonData.subscribe(function(lessons) {
         storeLocally('allLessons', lessons);
     });
+
+    app.ports.storeWords.subscribe(function(words) {
+        storeLocally('words', words);
+    });
+
+    function getAllWords() {
+        return getLocally('words') || [];
+    }
 
     // The below code is fine, but it's easier to manage entire sets of data in bulk, albeit much less performant as the size of data increases. For our early app, this is fine.
 
@@ -54,8 +63,13 @@
     // }
 
     // TODO: Bad code
-    app.ports.storeFlashcardEntry.subscribe(function (entry) {
-        const { egyptian, english, englishData, egyptianData } = entry;
+    app.ports.storeFlashcardEntry.subscribe(function(entry) {
+        const {
+            egyptian,
+            english,
+            englishData,
+            egyptianData
+        } = entry;
 
         // Add entry to lookup table used to load data on app init.
         const egyptianWords = getEgyptianWords();
@@ -64,7 +78,12 @@
         console.log(egyptianWords);
 
         storeLocally(`word-${egyptian}`, entry);
-        console.log({ egyptian, english, englishData, egyptianData });
+        console.log({
+            egyptian,
+            english,
+            englishData,
+            egyptianData
+        });
     });
 
     /// Lists all egyptian words stored in vocab.
@@ -79,7 +98,6 @@
     function getLocally(key) {
         return JSON.parse(localStorage.getItem(key));
     }
-
 </script>
 
 </html>
