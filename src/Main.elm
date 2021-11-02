@@ -566,8 +566,7 @@ selectedLessonView model title =
     div [ class "selected-lesson-view" ]
         [ h2 [] [ text <| "Title: " ++ title ]
         , audio [ controls False, src <| "http://localhost:3000/audio/" ++ title ++ ".wav" ] []
-        , selectedWordEdit model
-        , displayWords model lessonText
+        , div [ class "lesson-words-and-lookup" ] [ selectedWordEdit model, displayWords model lessonText ]
         ]
 
 
@@ -575,13 +574,13 @@ selectedWordEdit : Model -> Html Msg
 selectedWordEdit model =
     div
         [ class "selected-word-edit"
-        , style "visibility"
-            (if String.isEmpty model.selectedWord then
-                "hidden"
 
-             else
-                "visible"
-            )
+        -- , style "visibility"
+        --     (if String.isEmpty model.selectedWord then
+        --         "hidden"
+        --      else
+        --         "visible"
+        --     )
         ]
         (case Dict.get model.selectedWord model.words of
             Just word ->
