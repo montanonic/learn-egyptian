@@ -11,6 +11,7 @@ import Json.Decode as D
 import Json.Encode as E
 import List.Extra as ListE
 import Maybe.Extra as MaybeE
+import Regex
 import Set exposing (Set)
 import Utils exposing (slidingWindow)
 
@@ -92,6 +93,7 @@ type alias Model =
     , newLessonTitle : String
     , lessons : Dict String String -- title -> text
     , selectedLesson : Maybe String
+    , selectedWord : String
     }
 
 
@@ -106,6 +108,7 @@ init { sm2FlashcardData, lessons } =
       , newLessonTitle = ""
       , lessons = Dict.fromList lessons
       , selectedLesson = Nothing
+      , selectedWord = ""
       }
     , Cmd.none
     )
@@ -124,6 +127,7 @@ type Msg
     | StoreSM2FlashcardEntry { egyptian : String, english : String }
     | FlashcardEgyptianInput String
     | FlashcardEnglishInput String
+      -- Lesson stuff
     | ChangeNewLessonText String
     | ChangeNewLessonTitle String
     | CreateNewLesson
@@ -131,6 +135,7 @@ type Msg
     | SelectLesson String
     | DeselectLesson -- useful in this development design at least, not a good long-term design
     | BackendAudioUpdated (Result Http.Error String)
+    | SelectWord String
 
 
 
@@ -244,6 +249,9 @@ update msg model =
 
         DeselectLesson ->
             pure { model | selectedLesson = Nothing, newLessonText = "", newLessonTitle = "" }
+
+        SelectWord word ->
+            pure { model | selectedWord = word }
 
 
 pure : Model -> ( Model, Cmd Msg )
@@ -532,7 +540,7 @@ selectedLessonView model title =
 {-| This is how we embellish our words with all of the nice app functionality.
 -}
 displayWords : Model -> String -> Html Msg
-displayWords _ lessonText =
+displayWords model lessonText =
     let
         renderLine line =
             p [] (lineIntoWords line)
@@ -540,12 +548,68 @@ displayWords _ lessonText =
         lineIntoWords line =
             String.split " " line
                 |> List.filter (\word -> word /= "")
-                |> List.map
-                    (\word ->
-                        span
-                            [ class "word" ]
-                            [ text word ]
+                |> List.map displayWord
+
+        {- here we want to separate out punctuation from a word, so this function may output several spans, some words, some not. in the future we can even split off things like prefixes and suffixes here. -}
+        displayWord : String -> Html Msg
+        displayWord word =
+            let
+                rxString =
+                    "*():.?؟\\-"
+
+                regex =
+                    Maybe.withDefault Regex.never <|
+                        -- match all punctuation, then everything else
+                        Regex.fromString ("([" ++ rxString ++ "]*)" ++ "([^" ++ rxString ++ "]*)")
+            in
+            {- TODO: this could be refactored into two separate functions, one for producing a data
+               object that clearly delineates non-word segments from word segments, and then another
+               function to render the word properly. The importance of separating word from non-word as
+               pure data is so that we can apply further processing to the words themselves, like
+               adding/removing tashkyl, in a cleaner way than just inlining all of that in here.
+            -}
+            span [] <|
+                List.map
+                    (\match ->
+                        case match.submatches of
+                            [ mnonWordChars, mwordChars ] ->
+                                span []
+                                    ((case mnonWordChars of
+                                        Just nonWordChars ->
+                                            [ span [] [ text nonWordChars ] ]
+
+                                        Nothing ->
+                                            []
+                                     )
+                                        ++ (case mwordChars of
+                                                Just wordChars ->
+                                                    [ span
+                                                        [ classList [ ( "word", True ), ( "selected", model.selectedWord == wordChars ) ]
+                                                        , onClick <| SelectWord wordChars
+                                                        ]
+                                                        [ text wordChars ]
+                                                    ]
+
+                                                Nothing ->
+                                                    []
+                                           )
+                                    )
+
+                            _ ->
+                                span [] []
                     )
+                    (Regex.find regex word)
+
+        -- span []
+        --     (List.map
+        --         (\segment ->
+        --             if Regex.contains invalidWordCharRegex segment then
+        --                 span [] [ text segment ]
+        --             else
+        --                 span [ class "word" ] [ text segment ]
+        --         )
+        --         (Regex.split invalidWordCharRegex word)
+        --     )
     in
     div [ class "displayed-words" ]
         (lessonText
