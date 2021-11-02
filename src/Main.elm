@@ -45,6 +45,9 @@ port storeFlashcardEntry : SM2FlashcardData -> Cmd msg
 port storeLessonData : List ( String, String ) -> Cmd msg
 
 
+port storeWords : List ( String, Word ) -> Cmd msg
+
+
 {-| Only the SM2UserGrade data is needed to produce our SM2Data. This has the benefit of not storing
 redundant data in exchange for CPU time. This benefit is worth it because having the full history of
 responses and being able to recreate the full history of SM2Data allows for arbitrary analysis.
@@ -75,11 +78,11 @@ type alias SM2UserGrade =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if not (String.isEmpty model.selectedWord) then
-        Browser.Events.onMouseDown (D.succeed DeselectWord)
-
-    else
-        Sub.none
+    {- TODO: improve deselection of words ; currently it's too broad and even clicking on the word edit interface deselects it. -}
+    -- if not (String.isEmpty model.selectedWord) then
+    --     Browser.Events.onMouseDown (D.succeed DeselectWord)
+    -- else
+    Sub.none
 
 
 
@@ -99,7 +102,22 @@ type alias Model =
     , lessons : Dict String String -- title -> text
     , selectedLesson : Maybe String
     , selectedWord : String
+    , words : Dict String Word
     }
+
+
+{-| Data for a known word.
+-}
+type alias Word =
+    { word : String
+    , definitions : List String
+    , notes : String
+    }
+
+
+makeWord : String -> Word
+makeWord word =
+    { word = word, definitions = [ "" ], notes = "" }
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -114,6 +132,7 @@ init { sm2FlashcardData, lessons } =
       , lessons = Dict.fromList lessons
       , selectedLesson = Nothing
       , selectedWord = ""
+      , words = Dict.empty
       }
     , Cmd.none
     )
@@ -141,6 +160,8 @@ type Msg
     | DeselectLesson -- useful in this development design at least, not a good long-term design
     | BackendAudioUpdated (Result Http.Error String)
     | SelectWord String
+    | EditSelectedWordDefinition Int String
+    | EditSelectedWordNotes String
     | DeselectWord
 
 
@@ -261,6 +282,9 @@ update msg model =
 
         DeselectWord ->
             pure { model | selectedWord = "" }
+
+        _ ->
+            pure model
 
 
 pure : Model -> ( Model, Cmd Msg )
@@ -541,9 +565,36 @@ selectedLessonView model title =
     in
     div [ class "selected-lesson-view" ]
         [ h2 [] [ text <| "Title: " ++ title ]
-        , audio [ controls True, src <| "http://localhost:3000/audio/" ++ title ++ ".wav" ] []
+        , audio [ controls False, src <| "http://localhost:3000/audio/" ++ title ++ ".wav" ] []
+        , selectedWordEdit model
         , displayWords model lessonText
         ]
+
+
+selectedWordEdit : Model -> Html Msg
+selectedWordEdit model =
+    div
+        [ class "selected-word-edit"
+        , style "visibility"
+            (if String.isEmpty model.selectedWord then
+                "hidden"
+
+             else
+                "visible"
+            )
+        ]
+        (case Dict.get model.selectedWord model.words of
+            Just word ->
+                List.indexedMap
+                    (\i def -> input [ style "display" "block", value def, onInput <| EditSelectedWordDefinition i, placeholder ("Definition #" ++ String.fromInt i) ] [])
+                    word.definitions
+                    ++ [ textarea [ cols 20, rows 10, onInput EditSelectedWordNotes, value word.notes ] [] ]
+
+            Nothing ->
+                [ input [ style "display" "block" ] []
+                , textarea [ cols 20, rows 10 ] []
+                ]
+        )
 
 
 {-| This is how we embellish our words with all of the nice app functionality.
@@ -585,7 +636,7 @@ displayWords model lessonText =
                                 span []
                                     ((case mnonWordChars of
                                         Just nonWordChars ->
-                                            [ span [] [ text nonWordChars ] ]
+                                            [ span [ class "non-word" ] [ text nonWordChars ] ]
 
                                         Nothing ->
                                             []
@@ -594,7 +645,13 @@ displayWords model lessonText =
                                                 Just wordChars ->
                                                     [ span
                                                         [ classList [ ( "word", True ), ( "selected", model.selectedWord == wordChars ) ]
-                                                        , onClick <| SelectWord wordChars
+                                                        , onClick
+                                                            (if model.selectedWord == wordChars then
+                                                                DeselectWord
+
+                                                             else
+                                                                SelectWord wordChars
+                                                            )
                                                         ]
                                                         [ text wordChars ]
                                                     ]
@@ -608,17 +665,6 @@ displayWords model lessonText =
                                 span [] []
                     )
                     (Regex.find regex word)
-
-        -- span []
-        --     (List.map
-        --         (\segment ->
-        --             if Regex.contains invalidWordCharRegex segment then
-        --                 span [] [ text segment ]
-        --             else
-        --                 span [ class "word" ] [ text segment ]
-        --         )
-        --         (Regex.split invalidWordCharRegex word)
-        --     )
     in
     div [ class "displayed-words" ]
         (lessonText
