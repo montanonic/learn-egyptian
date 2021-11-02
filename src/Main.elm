@@ -1,6 +1,7 @@
 port module Main exposing (..)
 
 import Browser
+import Browser.Events
 import Dict exposing (Dict)
 import Dict.Extra as DictE
 import Html exposing (..)
@@ -73,8 +74,12 @@ type alias SM2UserGrade =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
+subscriptions model =
+    if not (String.isEmpty model.selectedWord) then
+        Browser.Events.onMouseDown (D.succeed DeselectWord)
+
+    else
+        Sub.none
 
 
 
@@ -136,6 +141,7 @@ type Msg
     | DeselectLesson -- useful in this development design at least, not a good long-term design
     | BackendAudioUpdated (Result Http.Error String)
     | SelectWord String
+    | DeselectWord
 
 
 
@@ -252,6 +258,9 @@ update msg model =
 
         SelectWord word ->
             pure { model | selectedWord = word }
+
+        DeselectWord ->
+            pure { model | selectedWord = "" }
 
 
 pure : Model -> ( Model, Cmd Msg )
