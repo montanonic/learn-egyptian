@@ -41,6 +41,7 @@
         lessons: 'allLessons',
         lessonTranslations: 'lessonTranslations',
         words: 'words',
+        phrases: 'phrases',
         backupNumber: 'backupNumber'
     };
 
@@ -83,6 +84,10 @@
 
     app.ports.storeWords.subscribe(function(words) {
         storeLocally(localKeys.words, words);
+    });
+
+    app.ports.storePhrases.subscribe(function(phrases) {
+        storeLocally(localKeys.phrases, phrases);
     });
 
     // The below code is fine, but it's easier to manage entire sets of data in bulk, albeit much less performant as the size of data increases. For our early app, this is fine.

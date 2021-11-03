@@ -26,6 +26,7 @@ type alias Flags =
     , lessons : List ( String, String )
     , lessonTranslations : List ( String, String )
     , words : List ( String, Word )
+    , phrases : List ( List String, Phrase )
     }
 
 
@@ -53,6 +54,9 @@ port storeLessonData : List ( String, String ) -> Cmd msg
 
 
 port storeWords : List ( String, Word ) -> Cmd msg
+
+
+port storePhrases : List ( String, Phrase ) -> Cmd msg
 
 
 port saveLocalStorageToClipboard : () -> Cmd msg
@@ -87,9 +91,10 @@ type alias Model =
     , newLessonTitle : String
     , lessons : Dict String String -- title -> text
     , lessonTranslations : Dict String String -- title -> translation
-    , selectedLesson : Maybe String
+    , selectedLesson : String
     , selectedWord : String
     , words : Dict String Word
+    , phrases : Dict (List String) Phrase
     , newWordDefinition : String
     }
 
@@ -104,13 +109,27 @@ type alias Word =
     }
 
 
+{-| A phrase is a collection of words, and can have its own definition, notes, tags, etc.
+
+I'm going to only support single definitions on these for now, since I haven't even implemented
+multi-def for words.
+
+-}
+type alias Phrase =
+    { words : List String
+    , definition : String
+    , notes : String
+    , tags : List String
+    }
+
+
 makeWord : String -> String -> Word
 makeWord word definition =
     { word = word, definitions = [ definition ], notes = "", tags = [] }
 
 
 init : Flags -> ( Model, Cmd Msg )
-init { sm2FlashcardData, lessons, words, lessonTranslations } =
+init { sm2FlashcardData, lessons, words, phrases, lessonTranslations } =
     ( { draft = ""
       , mainWords = []
       , sm2FlashcardData = sm2FlashcardData
@@ -120,9 +139,10 @@ init { sm2FlashcardData, lessons, words, lessonTranslations } =
       , newLessonTitle = ""
       , lessons = Dict.fromList lessons
       , lessonTranslations = Dict.fromList lessonTranslations
-      , selectedLesson = Nothing
+      , selectedLesson = ""
       , selectedWord = ""
       , words = Dict.fromList words
+      , phrases = Dict.fromList phrases
       , newWordDefinition = ""
       }
     , Cmd.none
@@ -228,7 +248,7 @@ update msg model =
                     if existingTitle /= newTitle then
                         { m
                             | lessons = Dict.remove existingTitle m.lessons
-                            , selectedLesson = Just newTitle
+                            , selectedLesson = newTitle
                         }
 
                     else
@@ -267,7 +287,7 @@ update msg model =
         SelectLesson title ->
             pure
                 { model
-                    | selectedLesson = Just title
+                    | selectedLesson = title
                     , newLessonText =
                         Dict.get title model.lessons
                             |> Maybe.withDefault ""
@@ -275,7 +295,7 @@ update msg model =
                 }
 
         DeselectLesson ->
-            pure { model | selectedLesson = Nothing, newLessonText = "", newLessonTitle = "" }
+            pure { model | selectedLesson = "", newLessonText = "", newLessonTitle = "" }
 
         SelectWord word ->
             pure { model | selectedWord = word }
@@ -319,10 +339,10 @@ update msg model =
                 (.words >> Dict.toList >> storeWords)
 
         AddTranslationToSelectedLesson ->
-            pure { model | lessonTranslations = Dict.insert (Maybe.withDefault "" model.selectedLesson) "" model.lessonTranslations }
+            pure { model | lessonTranslations = Dict.insert model.selectedLesson "" model.lessonTranslations }
 
         EditTranslationOfSelectedLesson newTranslation ->
-            impure { model | lessonTranslations = Dict.insert (Maybe.withDefault "" model.selectedLesson) newTranslation model.lessonTranslations } (.lessonTranslations >> Dict.toList >> storeLessonTranslations)
+            impure { model | lessonTranslations = Dict.insert model.selectedLesson newTranslation model.lessonTranslations } (.lessonTranslations >> Dict.toList >> storeLessonTranslations)
 
 
 pure : Model -> ( Model, Cmd Msg )
@@ -514,12 +534,11 @@ view model =
         , button [ onClick SaveDataModelToClipboard ] [ text "Save Data Model to Clipboard (4MB limit)" ]
         , newAndEditLessonView model
         , lessonsView model
-        , case model.selectedLesson of
-            Nothing ->
-                span [] []
+        , if String.isEmpty model.selectedLesson then
+            span [] []
 
-            Just title ->
-                selectedLessonView model title
+          else
+            selectedLessonView model model.selectedLesson
         ]
 
 
@@ -551,36 +570,33 @@ newAndEditLessonView : Model -> Html Msg
 newAndEditLessonView model =
     let
         buttonDisabled =
-            case model.selectedLesson of
-                Nothing ->
-                    (model.newLessonText == "")
-                        || (model.newLessonTitle == "")
-                        -- don't allow creation if it conflicts with an existing lesson
-                        || (Dict.get model.newLessonTitle model.lessons /= Nothing)
-
+            if String.isEmpty model.selectedLesson then
+                (model.newLessonText == "")
+                    || (model.newLessonTitle == "")
+                    -- don't allow creation if it conflicts with an existing lesson
+                    || (Dict.get model.newLessonTitle model.lessons /= Nothing)
                 {- disable the button if all fields stayed the same, or if a new title conflicts -}
-                Just title ->
-                    (Dict.get title model.lessons == Just model.newLessonText)
-                        && (title == model.newLessonTitle || Dict.get model.newLessonTitle model.lessons /= Nothing)
+
+            else
+                (Dict.get model.selectedLesson model.lessons == Just model.newLessonText)
+                    && (model.selectedLesson == model.newLessonTitle || Dict.get model.newLessonTitle model.lessons /= Nothing)
     in
     div [ class "new-lesson-view" ]
-        [ case model.selectedLesson of
-            Nothing ->
-                label [] [ text "Make a new lesson" ]
+        [ if String.isEmpty model.selectedLesson then
+            label [] [ text "Make a new lesson" ]
 
-            Just _ ->
-                div []
-                    [ button [ onClick DeselectLesson ] [ text "Deselect Lesson" ]
-                    , label [] [ text <| "Edit lesson" ]
-                    ]
+          else
+            div []
+                [ button [ onClick DeselectLesson ] [ text "Deselect Lesson" ]
+                , label [] [ text <| "Edit lesson" ]
+                ]
         , input [ placeholder "title", value model.newLessonTitle, onInput ChangeNewLessonTitle ] []
         , textarea [ rows 15, cols 60, onInput ChangeNewLessonText, value model.newLessonText ] []
-        , case model.selectedLesson of
-            Nothing ->
-                button [ onClick CreateNewLesson, disabled buttonDisabled ] [ text "Create Lesson" ]
+        , if String.isEmpty model.selectedLesson then
+            button [ onClick CreateNewLesson, disabled buttonDisabled ] [ text "Create Lesson" ]
 
-            Just title ->
-                button [ onClick <| UpdateLesson ( title, model.newLessonTitle ), disabled buttonDisabled ] [ text "Update Lesson" ]
+          else
+            button [ onClick <| UpdateLesson ( model.selectedLesson, model.newLessonTitle ), disabled buttonDisabled ] [ text "Update Lesson" ]
         ]
 
 
@@ -613,7 +629,7 @@ selectedLessonView model title =
 lessonTranslationBox : Model -> Html Msg
 lessonTranslationBox model =
     div [ class "lesson-translation-box" ]
-        [ case Maybe.andThen (\x -> Dict.get x model.lessonTranslations) model.selectedLesson of
+        [ case Dict.get model.selectedLesson model.lessonTranslations of
             Nothing ->
                 button [ onClick AddTranslationToSelectedLesson ] [ text "Add Translation" ]
 
@@ -625,23 +641,11 @@ lessonTranslationBox model =
 selectedWordEdit : Model -> Html Msg
 selectedWordEdit model =
     div
-        [ class "selected-word-edit"
-
-        -- , style "visibility"
-        --     (if String.isEmpty model.selectedWord then
-        --         "hidden"
-        --      else
-        --         "visible"
-        --     )
-        ]
+        [ class "selected-word-edit" ]
         (if String.isEmpty model.selectedWord then
             [ p [] [ text "Select a word to view options" ] ]
 
          else
-            let
-                textareaAttrs =
-                    [ cols 20, rows 10 ]
-            in
             case Dict.get model.selectedWord model.words of
                 Just word ->
                     p [ class "primary-definition" ] [ text <| Maybe.withDefault "" <| List.head word.definitions ]
@@ -656,7 +660,7 @@ selectedWordEdit model =
                             )
                             word.definitions
                         ++ [ textarea
-                                (textareaAttrs ++ [ onInput EditSelectedWordNotes, value word.notes ])
+                                [ cols 20, rows 10, onInput EditSelectedWordNotes, value word.notes ]
                                 []
                            ]
 
