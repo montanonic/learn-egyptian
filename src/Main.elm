@@ -314,6 +314,7 @@ update msg model =
                         Dict.insert model.selectedWord
                             (makeWord model.selectedWord model.newWordDefinition)
                             model.words
+                    , newWordDefinition = ""
                 }
                 (.words >> Dict.toList >> storeWords)
 
@@ -587,6 +588,7 @@ lessonsView : Model -> Html Msg
 lessonsView model =
     div [ class "lessons-view" ]
         [ h3 [] [ text "select a lesson" ]
+        , h5 [] [ text <| "currently learning " ++ String.fromInt (Dict.size model.words) ++ " words!" ]
         , div [ style "display" "flex" ]
             (model.lessons
                 |> Dict.keys
@@ -616,7 +618,7 @@ lessonTranslationBox model =
                 button [ onClick AddTranslationToSelectedLesson ] [ text "Add Translation" ]
 
             Just translation ->
-                textarea [ value translation, onInput EditTranslationOfSelectedLesson ] []
+                textarea [ rows 30, value translation, onInput EditTranslationOfSelectedLesson ] []
         ]
 
 
@@ -688,7 +690,7 @@ displayWords model lessonText =
         displayWord word =
             let
                 rxString =
-                    "*():.?؟\\-"
+                    "*():.?؟,=\\-"
 
                 regex =
                     Maybe.withDefault Regex.never <|

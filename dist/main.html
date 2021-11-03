@@ -34,6 +34,9 @@
     // locally stored fields to different keys. We can update that whenever. For now, the values in
     // this object are the literal field names in our localstorage. The keys are the names we use in
     // our model (if the data is used in the model that is, otherwise it doesn't matter).
+    //
+    // Oh, the different key names *is* useful: for doing migrations we can safely keep the old data
+    // and just reference a new localstorage entry.
     const localKeys = {
         lessons: 'allLessons',
         lessonTranslations: 'lessonTranslations',
