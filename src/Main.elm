@@ -646,74 +646,115 @@ selectedWordEdit model =
 displayWords : Model -> String -> Html Msg
 displayWords model lessonText =
     let
-        renderLine line =
-            p [] (lineIntoWords line)
+        {- turns the blob of lesson text into a list of lines of data with no leading whitespace
+           and only uniform spacing (excepting tabs, I don't think that is handled)
+        -}
+        splitIntoCleanLines text =
+            String.split "\n" text
+                |> List.map String.trim
+                |> List.map uniformSpacing
 
-        lineIntoWords line =
+        {- Condenses multiple spaces in a row into a single space. -}
+        uniformSpacing line =
             String.split " " line
-                |> List.filter (\word -> word /= "")
-                |> List.map displayWord
+                -- multiple spaces in a row will stay after the split as empty string entries, where the number of entries is (#of-spaces - 1). so this step ensures empty strings are removed so we have cleaner data to work with.
+                |> List.filter (not << String.isEmpty)
+                |> String.join " "
 
-        {- here we want to separate out punctuation from a word, so this function may output several spans, some words, some not. in the future we can even split off things like prefixes and suffixes here. -}
-        displayWord : String -> Html Msg
-        displayWord word =
+        _ =
+            Debug.log "markWordCharsFromNonWordChars" <| markWordCharsFromNonWordChars (splitIntoCleanLines lessonText |> List.head |> Maybe.withDefault "")
+
+        {- without altering the spacing of the underlying text, list off words vs. non-words. it
+           expects a line of text and doesn't support paragraphs simply because line spacing needs
+           more manual handling in the HTML layout itself. So while I guess we could detect newlines
+           here, it would muddle this code, and frankly it's easier to handle it outside.
+
+           output is a list of ("word", theWordString) | ("non-word", theNonWordString)
+
+           the importance of separating word from non-word as pure data is multitude, and allows us
+           to do things like apply further processing to the words themselves by adding/removing
+           tashkyl.
+        -}
+        markWordCharsFromNonWordChars lineOfText =
             let
                 rxString =
-                    "*():.?؟,=\\-"
+                    " *():.?؟,=\\-"
 
-                regex =
+                nonWordDetectorRx =
                     Maybe.withDefault Regex.never <|
                         -- match all punctuation, then everything else
                         Regex.fromString ("([" ++ rxString ++ "]*)" ++ "([^" ++ rxString ++ "]*)")
             in
-            {- TODO: this could be refactored into two separate functions, one for producing a data
-               object that clearly delineates non-word segments from word segments, and then another
-               function to render the word properly. The importance of separating word from non-word as
-               pure data is so that we can apply further processing to the words themselves, like
-               adding/removing tashkyl, in a cleaner way than just inlining all of that in here.
-            -}
-            span [] <|
-                List.map
-                    (\match ->
-                        case match.submatches of
-                            [ mnonWordChars, mwordChars ] ->
-                                span []
-                                    ((case mnonWordChars of
-                                        Just nonWordChars ->
-                                            [ span [ class "non-word" ] [ text nonWordChars ] ]
+            List.concatMap
+                (\match ->
+                    {- our rx yields two groups, thus two submatches. the first submatch will only
+                       be non-word chars, the second will always be word chars. of course, either
+                       might be empty for any given match because Kleene-* yielding 0 results is
+                       still a successful match. remember the rx tries to match everything it can,
+                       then stops, but Elm regex is global so after the rx stops matching, it will
+                       retry again at the point it's currently at. this is why we get multiple
+                       matches for each text (hence the outer iteration), and then the inner
+                       matching is for each *instance* of the rx matching, of which two subgroups
+                       are matched.
+                    -}
+                    case match.submatches of
+                        [ mnonWordChars, mwordChars ] ->
+                            (case mnonWordChars of
+                                Just nonWordChars ->
+                                    [ ( "non-word", nonWordChars ) ]
+
+                                Nothing ->
+                                    []
+                            )
+                                ++ (case mwordChars of
+                                        Just wordChars ->
+                                            [ ( "word", wordChars ) ]
 
                                         Nothing ->
                                             []
-                                     )
-                                        ++ (case mwordChars of
-                                                Just wordChars ->
-                                                    [ span
-                                                        [ classList [ ( "word", True ), ( "selected", model.selectedWop == wordChars ), ( "known", Dict.member wordChars model.wops ) ]
-                                                        , onClick
-                                                            (if model.selectedWop == wordChars then
-                                                                DeselectWOP
+                                   )
 
-                                                             else
-                                                                SelectWord wordChars
-                                                            )
-                                                        ]
-                                                        [ text wordChars ]
-                                                    ]
-
-                                                Nothing ->
-                                                    []
-                                           )
-                                    )
-
-                            _ ->
-                                span [] []
-                    )
-                    (Regex.find regex word)
+                        _ ->
+                            []
+                 -- this branch shouldn't ever be reached anyways
+                )
+                (Regex.find nonWordDetectorRx lineOfText)
     in
     div [ class "displayed-words" ]
-        (lessonText
-            |> String.split "\n"
-            |> List.map renderLine
+        (splitIntoCleanLines lessonText
+            |> List.map
+                (\line ->
+                    p []
+                        (markWordCharsFromNonWordChars line
+                            |> List.map
+                                (\chunk ->
+                                    case chunk of
+                                        ( "word", word ) ->
+                                            span
+                                                [ classList
+                                                    [ ( "word", True )
+                                                    , ( "selected", model.selectedWop == word )
+                                                    , ( "known", Dict.member word model.wops )
+                                                    ]
+                                                , onClick
+                                                    (if model.selectedWop == word then
+                                                        DeselectWOP
+
+                                                     else
+                                                        SelectWord word
+                                                    )
+                                                ]
+                                                [ text word ]
+
+                                        ( "non-word", nonWord ) ->
+                                            span [ class "non-word" ] [ text nonWord ]
+
+                                        _ ->
+                                            -- shouldn't ever get here
+                                            div [] []
+                                )
+                        )
+                )
         )
 
 

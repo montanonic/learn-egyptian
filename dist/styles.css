@@ -50,6 +50,8 @@ body {
     flex-wrap: wrap;
     margin-top: 0;
     margin-bottom: 10px;
+    /* this is necessary for commmas to appear in the correct spot */
+    align-items: end;
 }
 
 .displayed-words .word,
