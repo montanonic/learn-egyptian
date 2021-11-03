@@ -1,7 +1,6 @@
 port module Main exposing (..)
 
 import Browser
-import Browser.Events
 import Dict exposing (Dict)
 import Dict.Extra as DictE
 import Html exposing (..)
@@ -49,6 +48,9 @@ port storeLessonData : List ( String, String ) -> Cmd msg
 
 
 port storeWords : List ( String, Word ) -> Cmd msg
+
+
+port saveLocalStorageToClipboard : () -> Cmd msg
 
 
 {-| Only the SM2UserGrade data is needed to produce our SM2Data. This has the benefit of not storing
@@ -149,7 +151,8 @@ init { sm2FlashcardData, lessons, words } =
 
 
 type Msg
-    = DraftChanged String
+    = SaveDataModelToClipboard
+    | DraftChanged String
     | MainWordEntered
     | MainWordUp Int
     | MainWordDown Int
@@ -183,6 +186,9 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        SaveDataModelToClipboard ->
+            ( model, saveLocalStorageToClipboard () )
+
         DraftChanged draft ->
             ( { model | draft = process draft }
             , Cmd.none
@@ -512,6 +518,7 @@ view : Model -> Html Msg
 view model =
     div []
         [ h2 [] [ text "Learn Egyptian" ]
+        , button [ onClick SaveDataModelToClipboard ] [ text "Save Data Model to Clipboard (4MB limit)" ]
         , newAndEditLessonView model
         , lessonsView model
         , case model.selectedLesson of
@@ -631,16 +638,17 @@ selectedWordEdit model =
             in
             case Dict.get model.selectedWord model.words of
                 Just word ->
-                    List.indexedMap
-                        (\i def ->
-                            input
-                                [ placeholder ("Definition #" ++ String.fromInt i)
-                                , value def
-                                , onInput <| EditSelectedWordDefinition i
-                                ]
-                                []
-                        )
-                        word.definitions
+                    p [ class "primary-definition" ] [ text <| Maybe.withDefault "" <| List.head word.definitions ]
+                        :: List.indexedMap
+                            (\i def ->
+                                input
+                                    [ placeholder ("Definition #" ++ String.fromInt i)
+                                    , value def
+                                    , onInput <| EditSelectedWordDefinition i
+                                    ]
+                                    []
+                            )
+                            word.definitions
                         ++ [ textarea
                                 (textareaAttrs ++ [ onInput EditSelectedWordNotes, value word.notes ])
                                 []
@@ -701,7 +709,7 @@ displayWords model lessonText =
                                         ++ (case mwordChars of
                                                 Just wordChars ->
                                                     [ span
-                                                        [ classList [ ( "word", True ), ( "selected", model.selectedWord == wordChars ) ]
+                                                        [ classList [ ( "word", True ), ( "selected", model.selectedWord == wordChars ), ( "known", Dict.member wordChars model.words ) ]
                                                         , onClick
                                                             (if model.selectedWord == wordChars then
                                                                 DeselectWord
