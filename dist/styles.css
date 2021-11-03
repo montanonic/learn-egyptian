@@ -83,12 +83,14 @@ body {
     transition: all 300ms, color 100ms;
 }
 
-.selected-word-edit {
+.selected-word-edit-and-lesson-translation {
     direction: ltr;
     background-color: rgb(16, 73, 92);
     margin: 8px 4px;
     border-radius: 10px;
     text-align: center;
+    display: grid;
+    grid-template-rows: 8fr 7fr;
 }
 
 .selected-word-edit input {
@@ -109,7 +111,8 @@ body {
 }
 
 .lesson-translation-box {
-    margin-top: 40px;
-    background-color: rgb(149, 204, 174);
-    padding: 40px 0;
+    background-color: rgb(20, 67, 83);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }

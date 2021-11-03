@@ -606,7 +606,7 @@ selectedLessonView model title =
     div [ class "selected-lesson-view" ]
         [ h2 [] [ text <| "Title: " ++ title ]
         , audio [ controls False, src <| "http://localhost:3000/audio/" ++ title ++ ".wav" ] []
-        , div [ class "lesson-words-and-lookup" ] [ selectedWordEdit model, displayWords model lessonText ]
+        , div [ class "lesson-words-and-lookup" ] [ div [ class "selected-word-edit-and-lesson-translation" ] [ selectedWordEdit model, lessonTranslationBox model ], displayWords model lessonText ]
         ]
 
 
@@ -618,7 +618,7 @@ lessonTranslationBox model =
                 button [ onClick AddTranslationToSelectedLesson ] [ text "Add Translation" ]
 
             Just translation ->
-                textarea [ rows 30, value translation, onInput EditTranslationOfSelectedLesson ] []
+                textarea [ rows 15, cols 20, value translation, onInput EditTranslationOfSelectedLesson ] []
         ]
 
 
@@ -635,9 +635,7 @@ selectedWordEdit model =
         --     )
         ]
         (if String.isEmpty model.selectedWord then
-            [ p [] [ text "Select a word to view options" ]
-            , lessonTranslationBox model
-            ]
+            [ p [] [ text "Select a word to view options" ] ]
 
          else
             let
@@ -660,14 +658,11 @@ selectedWordEdit model =
                         ++ [ textarea
                                 (textareaAttrs ++ [ onInput EditSelectedWordNotes, value word.notes ])
                                 []
-                           , lessonTranslationBox model
                            ]
 
                 Nothing ->
                     [ input [ placeholder "add a definition", onInput EditSelectedNewWordDefinition, value model.newWordDefinition ] []
-                    , button [ onClick SaveSelectedNewWord, disabled (String.isEmpty model.newWordDefinition) ]
-                        [ text "Save New Word" ]
-                    , lessonTranslationBox model
+                    , button [ onClick SaveSelectedNewWord, disabled (String.isEmpty model.newWordDefinition) ] [ text "Save New Word" ]
                     ]
         )
 
