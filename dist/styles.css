@@ -107,3 +107,9 @@ body {
     grid-template-columns: 1fr 3fr;
     border: solid rgb(23, 109, 95);
 }
+
+.lesson-translation-box {
+    margin-top: 40px;
+    background-color: rgb(149, 204, 174);
+    padding: 40px 0;
+}

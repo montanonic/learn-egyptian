@@ -36,6 +36,7 @@
     // our model (if the data is used in the model that is, otherwise it doesn't matter).
     const localKeys = {
         lessons: 'allLessons',
+        lessonTranslations: 'lessonTranslations',
         words: 'words',
         backupNumber: 'backupNumber'
     };
@@ -66,6 +67,10 @@
         var backupNumber = getLocally(localKeys.backupNumber) || 1;
         saveAs(blob, `learn_egyptian_backup_${backupNumber}`);
         storeLocally(localKeys.backupNumber, backupNumber + 1);
+    });
+
+    app.ports.storeLessonTranslations.subscribe(function(lessonTranslations) {
+        storeLocally(localKeys.lessonTranslations, lessonTranslations);
     });
 
     // An easier hack than dealing with lesson individually, that is also less performant.

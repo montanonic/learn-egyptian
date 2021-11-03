@@ -12,6 +12,7 @@ import Json.Encode as E
 import List.Extra as ListE
 import Maybe.Extra as MaybeE
 import Regex
+import SM2Flashcards exposing (SM2FlashcardData)
 import Set exposing (Set)
 import Utils exposing (slidingWindow)
 
@@ -23,6 +24,7 @@ import Utils exposing (slidingWindow)
 type alias Flags =
     { sm2FlashcardData : List SM2FlashcardData
     , lessons : List ( String, String )
+    , lessonTranslations : List ( String, String )
     , words : List ( String, Word )
     }
 
@@ -44,6 +46,9 @@ main =
 port storeFlashcardEntry : SM2FlashcardData -> Cmd msg
 
 
+port storeLessonTranslations : List ( String, String ) -> Cmd msg
+
+
 port storeLessonData : List ( String, String ) -> Cmd msg
 
 
@@ -51,30 +56,6 @@ port storeWords : List ( String, Word ) -> Cmd msg
 
 
 port saveLocalStorageToClipboard : () -> Cmd msg
-
-
-{-| Only the SM2UserGrade data is needed to produce our SM2Data. This has the benefit of not storing
-redundant data in exchange for CPU time. This benefit is worth it because having the full history of
-responses and being able to recreate the full history of SM2Data allows for arbitrary analysis.
-However, the following cost is incurred: the learner can no longer customize when they review their card. What if a mistake was made? Well I guess we could just go back and change the user response (always displaying "last response" somewhere in the UI and letting them edit it ("did you enter this by mistake? click to edit your last response")).
--}
-type alias SM2FlashcardData =
-    { egyptian : String, english : String, englishData : List SM2UserGrade, egyptianData : List SM2UserGrade }
-
-
-{-| Technically, all that is needed is the algorithm and the user grade and everything else can be calculated, because we know the initial value. It is, in functional programming parlence, a scan operation. Perhaps then that is how we should actually store the data? Just as a list of user grades? Fun.
-
-Thus the SM2Data record is fully derived from successive applications of the algorithm on our list of user data.
-
--}
-type alias SM2Data =
-    { correctAnswersInARow : Int, easeFactor : Float, daysUntilNextReview : Int }
-
-
-{-| Ranges from 0 to 5. Not validated: design UI accordingly. Stores the time of grading
--}
-type alias SM2UserGrade =
-    Int
 
 
 
@@ -105,6 +86,7 @@ type alias Model =
     , newLessonText : String
     , newLessonTitle : String
     , lessons : Dict String String -- title -> text
+    , lessonTranslations : Dict String String -- title -> translation
     , selectedLesson : Maybe String
     , selectedWord : String
     , words : Dict String Word
@@ -128,7 +110,7 @@ makeWord word definition =
 
 
 init : Flags -> ( Model, Cmd Msg )
-init { sm2FlashcardData, lessons, words } =
+init { sm2FlashcardData, lessons, words, lessonTranslations } =
     ( { draft = ""
       , mainWords = []
       , sm2FlashcardData = sm2FlashcardData
@@ -137,6 +119,7 @@ init { sm2FlashcardData, lessons, words } =
       , newLessonText = ""
       , newLessonTitle = ""
       , lessons = Dict.fromList lessons
+      , lessonTranslations = Dict.fromList lessonTranslations
       , selectedLesson = Nothing
       , selectedWord = ""
       , words = Dict.fromList words
@@ -152,6 +135,7 @@ init { sm2FlashcardData, lessons, words } =
 
 type Msg
     = SaveDataModelToClipboard
+      -- Flashcard stuff, currently not used *at all*, and needs to be repurposed.
     | DraftChanged String
     | MainWordEntered
     | MainWordUp Int
@@ -174,6 +158,8 @@ type Msg
     | DeselectWord
     | SaveSelectedNewWord
     | EditSelectedNewWordDefinition String
+    | AddTranslationToSelectedLesson
+    | EditTranslationOfSelectedLesson String
 
 
 
@@ -330,6 +316,12 @@ update msg model =
                             model.words
                 }
                 (.words >> Dict.toList >> storeWords)
+
+        AddTranslationToSelectedLesson ->
+            pure { model | lessonTranslations = Dict.insert (Maybe.withDefault "" model.selectedLesson) "" model.lessonTranslations }
+
+        EditTranslationOfSelectedLesson newTranslation ->
+            impure { model | lessonTranslations = Dict.insert (Maybe.withDefault "" model.selectedLesson) newTranslation model.lessonTranslations } (.lessonTranslations >> Dict.toList >> storeLessonTranslations)
 
 
 pure : Model -> ( Model, Cmd Msg )
@@ -616,6 +608,18 @@ selectedLessonView model title =
         ]
 
 
+lessonTranslationBox : Model -> Html Msg
+lessonTranslationBox model =
+    div [ class "lesson-translation-box" ]
+        [ case Maybe.andThen (\x -> Dict.get x model.lessonTranslations) model.selectedLesson of
+            Nothing ->
+                button [ onClick AddTranslationToSelectedLesson ] [ text "Add Translation" ]
+
+            Just translation ->
+                textarea [ value translation, onInput EditTranslationOfSelectedLesson ] []
+        ]
+
+
 selectedWordEdit : Model -> Html Msg
 selectedWordEdit model =
     div
@@ -629,7 +633,9 @@ selectedWordEdit model =
         --     )
         ]
         (if String.isEmpty model.selectedWord then
-            [ p [] [ text "Select a word to view options" ] ]
+            [ p [] [ text "Select a word to view options" ]
+            , lessonTranslationBox model
+            ]
 
          else
             let
@@ -652,12 +658,14 @@ selectedWordEdit model =
                         ++ [ textarea
                                 (textareaAttrs ++ [ onInput EditSelectedWordNotes, value word.notes ])
                                 []
+                           , lessonTranslationBox model
                            ]
 
                 Nothing ->
                     [ input [ placeholder "add a definition", onInput EditSelectedNewWordDefinition, value model.newWordDefinition ] []
                     , button [ onClick SaveSelectedNewWord, disabled (String.isEmpty model.newWordDefinition) ]
                         [ text "Save New Word" ]
+                    , lessonTranslationBox model
                     ]
         )
 
