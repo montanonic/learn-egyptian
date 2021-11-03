@@ -38,6 +38,14 @@ type alias WOP =
     }
 
 
+{-| If you give this an empty list everything will break :). I could install a Nonempty list package
+for this, but I think it's slightly overkill for now.
+-}
+makeWOP : List String -> String -> WOP
+makeWOP wordOrPhrase definition =
+    { wordOrPhrase = wordOrPhrase, definitions = [ definition ], notes = "", tags = [] }
+
+
 setDefinition : Int -> String -> WOP -> WOP
 setDefinition defNumber definition wop =
     { wop | definitions = ListE.setAt defNumber definition wop.definitions }
@@ -53,7 +61,19 @@ string with the spaces in between.
 -}
 key : WOP -> String
 key { wordOrPhrase } =
+    wordOrPhraseToKey wordOrPhrase
+
+
+wordOrPhraseToKey : List String -> String
+wordOrPhraseToKey wordOrPhrase =
     String.join " " wordOrPhrase
+
+
+{-| Does the given WOP key correspond to a phrase?
+-}
+keyIsPhrase : String -> Bool
+keyIsPhrase key_ =
+    List.length (String.split " " key_) > 1
 
 
 isWord : WOP -> Bool

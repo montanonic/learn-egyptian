@@ -15,6 +15,7 @@ import Regex
 import SM2Flashcards exposing (SM2FlashcardData)
 import Set exposing (Set)
 import Utils exposing (slidingWindow)
+import WordOrPhrase as WOP exposing (WOP)
 
 
 
@@ -25,8 +26,7 @@ type alias Flags =
     { sm2FlashcardData : List SM2FlashcardData
     , lessons : List ( String, String )
     , lessonTranslations : List ( String, String )
-    , words : List ( String, Word )
-    , phrases : List ( List String, Phrase )
+    , wops : List ( String, WOP )
     }
 
 
@@ -53,10 +53,7 @@ port storeLessonTranslations : List ( String, String ) -> Cmd msg
 port storeLessonData : List ( String, String ) -> Cmd msg
 
 
-port storeWords : List ( String, Word ) -> Cmd msg
-
-
-port storePhrases : List ( String, Phrase ) -> Cmd msg
+port storeWops : List ( String, WOP ) -> Cmd msg
 
 
 port saveLocalStorageToClipboard : () -> Cmd msg
@@ -69,7 +66,7 @@ port saveLocalStorageToClipboard : () -> Cmd msg
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     {- TODO: improve deselection of words ; currently it's too broad and even clicking on the word edit interface deselects it. -}
-    -- if not (String.isEmpty model.selectedWord) then
+    -- if not (String.isEmpty model.selectedWop) then
     --     Browser.Events.onMouseDown (D.succeed DeselectWord)
     -- else
     Sub.none
@@ -92,44 +89,14 @@ type alias Model =
     , lessons : Dict String String -- title -> text
     , lessonTranslations : Dict String String -- title -> translation
     , selectedLesson : String
-    , selectedWord : String
-    , words : Dict String Word
-    , phrases : Dict (List String) Phrase
-    , newWordDefinition : String
+    , selectedWop : String -- just the key (AKA the stringified word or phrase), for lookup in the wops Dict
+    , wops : Dict String WOP
+    , newWopDefinition : String
     }
-
-
-{-| Data for a known word.
--}
-type alias Word =
-    { word : String
-    , definitions : List String
-    , notes : String
-    , tags : List String
-    }
-
-
-{-| A phrase is a collection of words, and can have its own definition, notes, tags, etc.
-
-I'm going to only support single definitions on these for now, since I haven't even implemented
-multi-def for words.
-
--}
-type alias Phrase =
-    { words : List String
-    , definition : String
-    , notes : String
-    , tags : List String
-    }
-
-
-makeWord : String -> String -> Word
-makeWord word definition =
-    { word = word, definitions = [ definition ], notes = "", tags = [] }
 
 
 init : Flags -> ( Model, Cmd Msg )
-init { sm2FlashcardData, lessons, words, phrases, lessonTranslations } =
+init { sm2FlashcardData, lessons, wops, lessonTranslations } =
     ( { draft = ""
       , mainWords = []
       , sm2FlashcardData = sm2FlashcardData
@@ -140,10 +107,9 @@ init { sm2FlashcardData, lessons, words, phrases, lessonTranslations } =
       , lessons = Dict.fromList lessons
       , lessonTranslations = Dict.fromList lessonTranslations
       , selectedLesson = ""
-      , selectedWord = ""
-      , words = Dict.fromList words
-      , phrases = Dict.fromList phrases
-      , newWordDefinition = ""
+      , selectedWop = ""
+      , wops = Dict.fromList wops
+      , newWopDefinition = ""
       }
     , Cmd.none
     )
@@ -173,11 +139,12 @@ type Msg
     | DeselectLesson -- useful in this development design at least, not a good long-term design
     | BackendAudioUpdated (Result Http.Error String)
     | SelectWord String
-    | EditSelectedWordDefinition Int String
-    | EditSelectedWordNotes String
-    | DeselectWord
-    | SaveSelectedNewWord
-    | EditSelectedNewWordDefinition String
+    | EditSelectedWOPDefinition Int String
+    | EditSelectedWOPNotes String
+    | DeselectWOP
+    | SaveSelectedNewWord -- the creation procedure for words vs phrases is currently different even though they use the same data structure
+    | SaveSelectedNewPhrase
+    | EditSelectedNewWOPDefinition String
     | AddTranslationToSelectedLesson
     | EditTranslationOfSelectedLesson String
 
@@ -298,45 +265,48 @@ update msg model =
             pure { model | selectedLesson = "", newLessonText = "", newLessonTitle = "" }
 
         SelectWord word ->
-            pure { model | selectedWord = word }
+            pure { model | selectedWop = word }
 
-        DeselectWord ->
-            pure { model | selectedWord = "" }
+        DeselectWOP ->
+            pure { model | selectedWop = "" }
 
-        EditSelectedWordDefinition defNumber definition ->
+        EditSelectedWOPDefinition defNumber definition ->
             impure
                 { model
-                    | words =
-                        Dict.update model.selectedWord
-                            (Maybe.map (\word -> { word | definitions = ListE.setAt defNumber definition word.definitions }))
-                            model.words
+                    | wops =
+                        Dict.update model.selectedWop
+                            (Maybe.map (WOP.setDefinition defNumber definition))
+                            model.wops
                 }
-                (.words >> Dict.toList >> storeWords)
+                (.wops >> Dict.toList >> storeWops)
 
         {- TODO: This really should have debouncing on storing the word because it's an expensive op. -}
-        EditSelectedWordNotes notes ->
+        EditSelectedWOPNotes notes ->
             impure
                 { model
-                    | words =
-                        Dict.update model.selectedWord
-                            (Maybe.map (\word -> { word | notes = notes }))
-                            model.words
+                    | wops =
+                        Dict.update model.selectedWop
+                            (Maybe.map (WOP.setNotes notes))
+                            model.wops
                 }
-                (.words >> Dict.toList >> storeWords)
+                (.wops >> Dict.toList >> storeWops)
 
-        EditSelectedNewWordDefinition definition ->
-            pure { model | newWordDefinition = definition }
+        EditSelectedNewWOPDefinition definition ->
+            pure { model | newWopDefinition = definition }
 
         SaveSelectedNewWord ->
             impure
                 { model
-                    | words =
-                        Dict.insert model.selectedWord
-                            (makeWord model.selectedWord model.newWordDefinition)
-                            model.words
-                    , newWordDefinition = ""
+                    | wops =
+                        Dict.insert model.selectedWop
+                            (WOP.makeWOP [ model.selectedWop ] model.newWopDefinition)
+                            model.wops
+                    , newWopDefinition = ""
                 }
-                (.words >> Dict.toList >> storeWords)
+                (.wops >> Dict.toList >> storeWops)
+
+        SaveSelectedNewPhrase ->
+            Debug.todo ""
 
         AddTranslationToSelectedLesson ->
             pure { model | lessonTranslations = Dict.insert model.selectedLesson "" model.lessonTranslations }
@@ -604,7 +574,7 @@ lessonsView : Model -> Html Msg
 lessonsView model =
     div [ class "lessons-view" ]
         [ h3 [] [ text "select a lesson" ]
-        , h5 [] [ text <| "currently learning " ++ String.fromInt (Dict.size model.words) ++ " words!" ]
+        , h5 [] [ text <| "currently learning " ++ String.fromInt (Dict.size model.wops) ++ " words!" ]
         , div [ style "display" "flex" ]
             (model.lessons
                 |> Dict.keys
@@ -642,11 +612,11 @@ selectedWordEdit : Model -> Html Msg
 selectedWordEdit model =
     div
         [ class "selected-word-edit" ]
-        (if String.isEmpty model.selectedWord then
+        (if String.isEmpty model.selectedWop then
             [ p [] [ text "Select a word to view options" ] ]
 
          else
-            case Dict.get model.selectedWord model.words of
+            case Dict.get model.selectedWop model.wops of
                 Just word ->
                     p [ class "primary-definition" ] [ text <| Maybe.withDefault "" <| List.head word.definitions ]
                         :: List.indexedMap
@@ -654,19 +624,19 @@ selectedWordEdit model =
                                 input
                                     [ placeholder ("Definition #" ++ String.fromInt i)
                                     , value def
-                                    , onInput <| EditSelectedWordDefinition i
+                                    , onInput <| EditSelectedWOPDefinition i
                                     ]
                                     []
                             )
                             word.definitions
                         ++ [ textarea
-                                [ cols 20, rows 10, onInput EditSelectedWordNotes, value word.notes ]
+                                [ cols 20, rows 10, onInput EditSelectedWOPNotes, value word.notes ]
                                 []
                            ]
 
                 Nothing ->
-                    [ input [ placeholder "add a definition", onInput EditSelectedNewWordDefinition, value model.newWordDefinition ] []
-                    , button [ onClick SaveSelectedNewWord, disabled (String.isEmpty model.newWordDefinition) ] [ text "Save New Word" ]
+                    [ input [ placeholder "add a definition", onInput EditSelectedNewWOPDefinition, value model.newWopDefinition ] []
+                    , button [ onClick SaveSelectedNewWord, disabled (String.isEmpty model.newWopDefinition) ] [ text "Save New Word" ]
                     ]
         )
 
@@ -718,10 +688,10 @@ displayWords model lessonText =
                                         ++ (case mwordChars of
                                                 Just wordChars ->
                                                     [ span
-                                                        [ classList [ ( "word", True ), ( "selected", model.selectedWord == wordChars ), ( "known", Dict.member wordChars model.words ) ]
+                                                        [ classList [ ( "word", True ), ( "selected", model.selectedWop == wordChars ), ( "known", Dict.member wordChars model.wops ) ]
                                                         , onClick
-                                                            (if model.selectedWord == wordChars then
-                                                                DeselectWord
+                                                            (if model.selectedWop == wordChars then
+                                                                DeselectWOP
 
                                                              else
                                                                 SelectWord wordChars

@@ -40,8 +40,7 @@
     const localKeys = {
         lessons: 'allLessons',
         lessonTranslations: 'lessonTranslations',
-        words: 'words',
-        phrases: 'phrases',
+        wops: 'wops',
         backupNumber: 'backupNumber'
     };
 
@@ -82,11 +81,7 @@
         storeLocally(localKeys.lessons, lessons);
     });
 
-    app.ports.storeWords.subscribe(function(words) {
-        storeLocally(localKeys.words, words);
-    });
-
-    app.ports.storePhrases.subscribe(function(phrases) {
+    app.ports.storeWops.subscribe(function(phrases) {
         storeLocally(localKeys.phrases, phrases);
     });
 
