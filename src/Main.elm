@@ -144,8 +144,7 @@ type Msg
     | EditSelectedWOPDefinition Int String
     | EditSelectedWOPNotes String
     | DeselectWOP
-    | SaveSelectedNewWord -- the creation procedure for words vs phrases is currently different even though they use the same data structure
-    | SaveSelectedNewPhrase
+    | SaveSelectedNewWOP
     | EditSelectedNewWOPDefinition String
     | AddTranslationToSelectedLesson
     | EditTranslationOfSelectedLesson String
@@ -298,7 +297,7 @@ update msg model =
         EditSelectedNewWOPDefinition definition ->
             pure { model | newWopDefinition = definition }
 
-        SaveSelectedNewWord ->
+        SaveSelectedNewWOP ->
             let
                 wopKeyList =
                     if WOP.keyIsPhrase model.selectedWop then
@@ -306,6 +305,9 @@ update msg model =
 
                     else
                         [ model.selectedWop ]
+
+                _ =
+                    Debug.log "model.selectedWop and WOP.makeWOP" ( model.selectedWop, WOP.makeWOP wopKeyList model.newWopDefinition )
             in
             impure
                 { model
@@ -316,9 +318,6 @@ update msg model =
                     , newWopDefinition = ""
                 }
                 (.wops >> Dict.toList >> storeWops)
-
-        SaveSelectedNewPhrase ->
-            Debug.todo ""
 
         AddTranslationToSelectedLesson ->
             pure { model | lessonTranslations = Dict.insert model.selectedLesson "" model.lessonTranslations }
@@ -359,7 +358,6 @@ update msg model =
                             |> List.take (larger - smaller + 1)
                             -- we need to filter AFTER the list manipulations because spaces alter the original indices of our words... things could be better, but this is the way it is with the code as it is.
                             |> List.filter (\wordOrNonWord -> wordOrNonWord /= DisplayNonWord " ")
-                            |> Debug.log "wordsAndNonWordsInPhraseSegment"
 
                     {- in this final step, we want to ensure there are no non-words present (remember, spaces, which are fine, have already been removed) -}
                     canConstructPhrase =
@@ -390,7 +388,6 @@ update msg model =
                                                     ""
                                         )
                                     |> String.join " "
-                                    |> Debug.log "selectedWopPHRASE"
                         }
 
                 else
@@ -723,7 +720,7 @@ selectedWordEdit model =
                 Nothing ->
                     [ p [ class "primary-definition" ] [ text <| model.selectedWop ]
                     , input [ placeholder "add a definition", onInput EditSelectedNewWOPDefinition, value model.newWopDefinition ] []
-                    , button [ onClick SaveSelectedNewWord, disabled (String.isEmpty model.newWopDefinition) ] [ text "Save New Word" ]
+                    , button [ onClick SaveSelectedNewWOP, disabled (String.isEmpty model.newWopDefinition) ] [ text "Save New Word" ]
                     ]
         )
 

@@ -81,8 +81,8 @@
         storeLocally(localKeys.lessons, lessons);
     });
 
-    app.ports.storeWops.subscribe(function(phrases) {
-        storeLocally(localKeys.phrases, phrases);
+    app.ports.storeWops.subscribe(function(wops) {
+        storeLocally(localKeys.wops, wops);
     });
 
     // The below code is fine, but it's easier to manage entire sets of data in bulk, albeit much less performant as the size of data increases. For our early app, this is fine.
