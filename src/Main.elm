@@ -92,6 +92,7 @@ type alias Model =
     , selectedWop : String -- just the key (AKA the stringified word or phrase), for lookup in the wops Dict
     , wops : Dict String WOP
     , newWopDefinition : String
+    , mouseDownWord : ( Int, Int, String ) -- line index (which line), word index (which word within line)
     }
 
 
@@ -110,6 +111,7 @@ init { sm2FlashcardData, lessons, wops, lessonTranslations } =
       , selectedWop = ""
       , wops = Dict.fromList wops
       , newWopDefinition = ""
+      , mouseDownWord = ( 0, 0, "" )
       }
     , Cmd.none
     )
@@ -147,6 +149,8 @@ type Msg
     | EditSelectedNewWOPDefinition String
     | AddTranslationToSelectedLesson
     | EditTranslationOfSelectedLesson String
+    | MouseDownOnWord Int Int String -- used to start phrase creation
+    | OpenPhraseCreationUI Int Int String
 
 
 
@@ -295,11 +299,19 @@ update msg model =
             pure { model | newWopDefinition = definition }
 
         SaveSelectedNewWord ->
+            let
+                wopKeyList =
+                    if WOP.keyIsPhrase model.selectedWop then
+                        String.split " " model.selectedWop
+
+                    else
+                        [ model.selectedWop ]
+            in
             impure
                 { model
                     | wops =
                         Dict.insert model.selectedWop
-                            (WOP.makeWOP [ model.selectedWop ] model.newWopDefinition)
+                            (WOP.makeWOP wopKeyList model.newWopDefinition)
                             model.wops
                     , newWopDefinition = ""
                 }
@@ -313,6 +325,79 @@ update msg model =
 
         EditTranslationOfSelectedLesson newTranslation ->
             impure { model | lessonTranslations = Dict.insert model.selectedLesson newTranslation model.lessonTranslations } (.lessonTranslations >> Dict.toList >> storeLessonTranslations)
+
+        MouseDownOnWord lineIndex wordIndex word ->
+            pure { model | mouseDownWord = ( lineIndex, wordIndex, word ) }
+
+        OpenPhraseCreationUI lineIndexEnd wordIndexEnd _ ->
+            let
+                ( lineIndexStart, wordIndexStart, _ ) =
+                    model.mouseDownWord
+            in
+            if (wordIndexEnd /= wordIndexStart) && (lineIndexEnd == lineIndexStart) then
+                {- in this branch we've guaranteed the start and end words are different (well, technically the word might be repeated but they're separate instances). also the line of text is the same (it seems like a bad idea to create a phrase across sentence boundaries...). thus we construct a phrase from the words in between. -}
+                let
+                    selectedLessonText =
+                        Dict.get model.selectedLesson model.lessons |> Maybe.withDefault ""
+
+                    line =
+                        ListE.getAt lineIndexEnd (splitIntoCleanLines selectedLessonText)
+                            |> Maybe.withDefault ""
+
+                    {- so we can get all the words from the start word to the end word, but we also want to ensure there's nothing in-between (except spaces, which we'll filter out (inelegantly) here) -}
+                    wordsAndNonWordsInPhraseSegment =
+                        let
+                            {- this ensures that we can select in the reverse direction just as well -}
+                            smaller =
+                                Basics.min wordIndexStart wordIndexEnd
+
+                            larger =
+                                Basics.max wordIndexStart wordIndexEnd
+                        in
+                        markWordCharsFromNonWordChars line
+                            |> List.drop smaller
+                            |> List.take (larger - smaller + 1)
+                            -- we need to filter AFTER the list manipulations because spaces alter the original indices of our words... things could be better, but this is the way it is with the code as it is.
+                            |> List.filter (\wordOrNonWord -> wordOrNonWord /= DisplayNonWord " ")
+                            |> Debug.log "wordsAndNonWordsInPhraseSegment"
+
+                    {- in this final step, we want to ensure there are no non-words present (remember, spaces, which are fine, have already been removed) -}
+                    canConstructPhrase =
+                        List.all
+                            (\wordOrNonWord ->
+                                case wordOrNonWord of
+                                    DisplayNonWord _ ->
+                                        False
+
+                                    -- even a single non-word here should prevent us from constructing the phrase
+                                    _ ->
+                                        True
+                            )
+                            wordsAndNonWordsInPhraseSegment
+                in
+                if canConstructPhrase then
+                    pure
+                        { model
+                            | selectedWop =
+                                wordsAndNonWordsInPhraseSegment
+                                    |> List.map
+                                        (\word ->
+                                            case word of
+                                                DisplayWord w ->
+                                                    w
+
+                                                _ ->
+                                                    ""
+                                        )
+                                    |> String.join " "
+                                    |> Debug.log "selectedWopPHRASE"
+                        }
+
+                else
+                    pure model
+
+            else
+                pure model
 
 
 pure : Model -> ( Model, Cmd Msg )
@@ -591,6 +676,7 @@ selectedLessonView model title =
     in
     div [ class "selected-lesson-view" ]
         [ h2 [] [ text <| "Title: " ++ title ]
+        , button [ style "margin-left" "80%" ] [ text "create phrase" ]
         , audio [ controls False, src <| "http://localhost:3000/audio/" ++ title ++ ".wav" ] []
         , div [ class "lesson-words-and-lookup" ] [ div [ class "selected-word-edit-and-lesson-translation" ] [ selectedWordEdit model, lessonTranslationBox model ], displayWords model lessonText ]
         ]
@@ -641,95 +727,110 @@ selectedWordEdit model =
         )
 
 
-{-| This is how we embellish our words with all of the nice app functionality.
--}
-displayWords : Model -> String -> Html Msg
-displayWords model lessonText =
-    let
-        {- turns the blob of lesson text into a list of lines of data with no leading whitespace
-           and only uniform spacing (excepting tabs, I don't think that is handled)
-        -}
-        splitIntoCleanLines text =
-            String.split "\n" text
-                |> List.map String.trim
-                |> List.map uniformSpacing
+{-| These are the different categories of meaning that our interactive word view has, each rendered
+differently.
 
+TODO: Maybe rename this to WordOrNonWord and create a second `WordDisplayTypes` that introduces
+phrases. Cleaner?
+
+-}
+type WordDisplayTypes
+    = DisplayWord String
+    | DisplayNonWord String
+    | DisplayPhrase (List String) -- each string in a phrase is considered a word
+
+
+{-| turns the blob of text into a list of lines of data with no leading whitespace
+and only uniform spacing (excepting tabs, I don't think that is handled)
+-}
+splitIntoCleanLines : String -> List String
+splitIntoCleanLines text =
+    let
         {- Condenses multiple spaces in a row into a single space. -}
         uniformSpacing line =
             String.split " " line
                 -- multiple spaces in a row will stay after the split as empty string entries, where the number of entries is (#of-spaces - 1). so this step ensures empty strings are removed so we have cleaner data to work with.
                 |> List.filter (not << String.isEmpty)
                 |> String.join " "
+    in
+    String.split "\n" text
+        |> List.map String.trim
+        |> List.map uniformSpacing
 
-        _ =
-            Debug.log "markWordCharsFromNonWordChars" <| markWordCharsFromNonWordChars (splitIntoCleanLines lessonText |> List.head |> Maybe.withDefault "")
 
-        {- without altering the spacing of the underlying text, list off words vs. non-words. it
-           expects a line of text and doesn't support paragraphs simply because line spacing needs
-           more manual handling in the HTML layout itself. So while I guess we could detect newlines
-           here, it would muddle this code, and frankly it's easier to handle it outside.
+{-| without altering the spacing of the underlying text, list off words vs. non-words. it
+expects a line of text and doesn't support paragraphs simply because line spacing needs
+more manual handling in the HTML layout itself. So while I guess we could detect newlines
+here, it would muddle this code, and frankly it's easier to handle it outside.
 
-           output is a list of ("word", theWordString) | ("non-word", theNonWordString)
+output is a list of ("word", theWordString) | ("non-word", theNonWordString)
 
-           the importance of separating word from non-word as pure data is multitude, and allows us
-           to do things like apply further processing to the words themselves by adding/removing
-           tashkyl.
-        -}
-        markWordCharsFromNonWordChars lineOfText =
-            let
-                rxString =
-                    " *():.?؟,=\\-"
+the importance of separating word from non-word as pure data is multitude, and allows us
+to do things like apply further processing to the words themselves by adding/removing
+tashkyl.
 
-                nonWordDetectorRx =
-                    Maybe.withDefault Regex.never <|
-                        -- match all punctuation, then everything else
-                        Regex.fromString ("([" ++ rxString ++ "]*)" ++ "([^" ++ rxString ++ "]*)")
-            in
-            List.concatMap
-                (\match ->
-                    {- our rx yields two groups, thus two submatches. the first submatch will only
-                       be non-word chars, the second will always be word chars. of course, either
-                       might be empty for any given match because Kleene-* yielding 0 results is
-                       still a successful match. remember the rx tries to match everything it can,
-                       then stops, but Elm regex is global so after the rx stops matching, it will
-                       retry again at the point it's currently at. this is why we get multiple
-                       matches for each text (hence the outer iteration), and then the inner
-                       matching is for each *instance* of the rx matching, of which two subgroups
-                       are matched.
-                    -}
-                    case match.submatches of
-                        [ mnonWordChars, mwordChars ] ->
-                            (case mnonWordChars of
-                                Just nonWordChars ->
-                                    [ ( "non-word", nonWordChars ) ]
+-}
+markWordCharsFromNonWordChars : String -> List WordDisplayTypes
+markWordCharsFromNonWordChars lineOfText =
+    let
+        rxString =
+            " *():.?؟,=\\-"
+
+        nonWordDetectorRx =
+            Maybe.withDefault Regex.never <|
+                -- match all punctuation, then everything else
+                Regex.fromString ("([" ++ rxString ++ "]*)" ++ "([^" ++ rxString ++ "]*)")
+    in
+    List.concatMap
+        (\match ->
+            {- our rx yields two groups, thus two submatches. the first submatch will only
+               be non-word chars, the second will always be word chars. of course, either
+               might be empty for any given match because Kleene-* yielding 0 results is
+               still a successful match. remember the rx tries to match everything it can,
+               then stops, but Elm regex is global so after the rx stops matching, it will
+               retry again at the point it's currently at. this is why we get multiple
+               matches for each text (hence the outer iteration), and then the inner
+               matching is for each *instance* of the rx matching, of which two subgroups
+               are matched.
+            -}
+            case match.submatches of
+                [ mnonWordChars, mwordChars ] ->
+                    (case mnonWordChars of
+                        Just nonWordChars ->
+                            [ DisplayNonWord nonWordChars ]
+
+                        Nothing ->
+                            []
+                    )
+                        ++ (case mwordChars of
+                                Just wordChars ->
+                                    [ DisplayWord wordChars ]
 
                                 Nothing ->
                                     []
-                            )
-                                ++ (case mwordChars of
-                                        Just wordChars ->
-                                            [ ( "word", wordChars ) ]
+                           )
 
-                                        Nothing ->
-                                            []
-                                   )
+                _ ->
+                    -- this branch shouldn't ever be reached anyways
+                    []
+        )
+        (Regex.find nonWordDetectorRx lineOfText)
 
-                        _ ->
-                            []
-                 -- this branch shouldn't ever be reached anyways
-                )
-                (Regex.find nonWordDetectorRx lineOfText)
-    in
+
+{-| This is how we embellish our words with all of the nice app functionality.
+-}
+displayWords : Model -> String -> Html Msg
+displayWords model lessonText =
     div [ class "displayed-words" ]
         (splitIntoCleanLines lessonText
-            |> List.map
-                (\line ->
+            |> List.indexedMap
+                (\li line ->
                     p []
                         (markWordCharsFromNonWordChars line
-                            |> List.map
-                                (\chunk ->
+                            |> List.indexedMap
+                                (\wi chunk ->
                                     case chunk of
-                                        ( "word", word ) ->
+                                        DisplayWord word ->
                                             span
                                                 [ classList
                                                     [ ( "word", True )
@@ -743,14 +844,15 @@ displayWords model lessonText =
                                                      else
                                                         SelectWord word
                                                     )
+                                                , onMouseDown (MouseDownOnWord li wi word)
+                                                , onMouseUp (OpenPhraseCreationUI li wi word)
                                                 ]
                                                 [ text word ]
 
-                                        ( "non-word", nonWord ) ->
+                                        DisplayNonWord nonWord ->
                                             span [ class "non-word" ] [ text nonWord ]
 
-                                        _ ->
-                                            -- shouldn't ever get here
+                                        DisplayPhrase _ ->
                                             div [] []
                                 )
                         )

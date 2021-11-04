@@ -1,5 +1,6 @@
 module WordOrPhrase exposing (..)
 
+import Dict exposing (Dict)
 import List.Extra as ListE
 
 
@@ -84,3 +85,18 @@ isWord { wordOrPhrase } =
 isPhrase : WOP -> Bool
 isPhrase { wordOrPhrase } =
     List.length wordOrPhrase > 1
+
+
+{-| Returns the keys for all of the currently stored phrases.
+-}
+allPhrases : Dict String WOP -> List String
+allPhrases dict =
+    Dict.keys dict
+        |> List.filterMap
+            (\k ->
+                if (List.length <| String.split " " k) == 1 then
+                    Nothing
+
+                else
+                    Just k
+            )
