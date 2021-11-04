@@ -704,7 +704,7 @@ selectedWordEdit model =
          else
             case Dict.get model.selectedWop model.wops of
                 Just word ->
-                    p [ class "primary-definition" ] [ text <| Maybe.withDefault "" <| List.head word.definitions ]
+                    p [ class "primary-definition" ] [ text <| model.selectedWop ++ " = ", text <| Maybe.withDefault "" <| List.head word.definitions ]
                         :: List.indexedMap
                             (\i def ->
                                 input
@@ -721,7 +721,8 @@ selectedWordEdit model =
                            ]
 
                 Nothing ->
-                    [ input [ placeholder "add a definition", onInput EditSelectedNewWOPDefinition, value model.newWopDefinition ] []
+                    [ p [ class "primary-definition" ] [ text <| model.selectedWop ]
+                    , input [ placeholder "add a definition", onInput EditSelectedNewWOPDefinition, value model.newWopDefinition ] []
                     , button [ onClick SaveSelectedNewWord, disabled (String.isEmpty model.newWopDefinition) ] [ text "Save New Word" ]
                     ]
         )
