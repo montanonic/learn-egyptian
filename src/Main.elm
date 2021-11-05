@@ -673,7 +673,6 @@ selectedLessonView model title =
     in
     div [ class "selected-lesson-view" ]
         [ h2 [] [ text <| "Title: " ++ title ]
-        , button [ style "margin-left" "80%" ] [ text "create phrase" ]
         , audio [ controls False, src <| "http://localhost:3000/audio/" ++ title ++ ".wav" ] []
         , div [ class "lesson-words-and-lookup" ] [ div [ class "selected-word-edit-and-lesson-translation" ] [ selectedWordEdit model, lessonTranslationBox model ], displayWords model lessonText ]
         ]
@@ -735,7 +734,8 @@ phrases. Cleaner?
 type WordDisplayTypes
     = DisplayWord String
     | DisplayNonWord String
-    | DisplayPhrase (List String) -- each string in a phrase is considered a word
+    | DisplayWordOfPhrase String -- temporary hack stand-in that just marks words that are part of a phrase differently, without actually showing the phrase connected
+    | DisplayPhrase (List ( String, Int )) -- each string in a phrase is considered a word, we keep the original indices because a Phrase is processed by replacing DisplayWords that are part of a phrase with just the DisplayPhrase construct. Hmmmmmmmmm, come to think of it, this totally fucks everything O_O, cuz our code depended on using DisplayWord. I'll sleep on this one.
 
 
 {-| turns the blob of text into a list of lines of data with no leading whitespace
@@ -815,40 +815,162 @@ markWordCharsFromNonWordChars lineOfText =
         (Regex.find nonWordDetectorRx lineOfText)
 
 
+{-| This step should follow `markWordCharsFromNonWordChars`. It will mark words that belong to a
+phrase as such. In the display code, we can still render those words as normal, but in addition
+place them in a span that applies phrase styling to the whole unit.;
+
+This almost works correctly for UI purposes but there's one significant snafu: it completely fucks with normal indexing. Now of course we can just store the original indexes in the phrase itself, and, well, I guess that will work for now.
+
+According to my debug log this doesn't even seem to be working right now.
+
+-}
+markPhrases : List ( String, Int ) -> List WordDisplayTypes -> List WordDisplayTypes
+markPhrases allPhrasesWithLengths list =
+    let
+        phraseSet =
+            Set.fromList (List.map Tuple.first allPhrasesWithLengths)
+
+        wordsWithIndices : List ( String, Int )
+        wordsWithIndices =
+            list
+                |> List.indexedMap (\i x -> ( i, x ))
+                |> List.filterMap
+                    (\( i, wordOrNonWord ) ->
+                        case wordOrNonWord of
+                            DisplayWord word ->
+                                Just ( word, i )
+
+                            _ ->
+                                Nothing
+                    )
+
+        sortedLengths =
+            allPhrasesWithLengths
+                |> List.map Tuple.second
+                |> List.sort
+
+        {- sliding windows of length n let us find possible matches to phrases -}
+        wordGroupsOfLength n =
+            ListE.groupsOfWithStep n 1 wordsWithIndices
+
+        {- returns a list of indexed-phrases (needed for UI rendering, I could prob figure out
+           something cleaner) along with their start and end indices
+        -}
+        matchingPhrases : List ( List ( String, Int ), ( Int, Int ) )
+        matchingPhrases =
+            sortedLengths
+                |> List.concatMap
+                    (\phraseSize ->
+                        wordGroupsOfLength phraseSize
+                            |> List.filterMap
+                                (\possiblePhraseMatch ->
+                                    let
+                                        phrase =
+                                            possiblePhraseMatch |> List.map Tuple.first |> String.join " "
+                                    in
+                                    if Set.member phrase phraseSet then
+                                        Just
+                                            ( possiblePhraseMatch
+                                            , possiblePhraseMatch
+                                                |> List.map Tuple.second
+                                                |> (\l -> ( List.head l |> Maybe.withDefault 0, ListE.last l |> Maybe.withDefault 0 ))
+                                            )
+
+                                    else
+                                        Nothing
+                                )
+                    )
+                |> List.sortBy (\( _, ( startI, _ ) ) -> startI)
+
+        -- |> Debug.log "matchingPhrases"
+        {- now we have a list containing our phrase and the start and end indices of it, we can use
+           this data to alter the original data set by replacing all the values in the range of
+           those indices with the phrase data structure
+        -}
+        -- _ =
+        --     Debug.log "FOLLLLLDRRRR" (List.foldr (\x acc -> x :: acc) [] (List.map Tuple.first wordsWithIndices))
+        {- HACK: short term solution is mark phrase words differently: -}
+        wordToPhraseWord wdt =
+            case wdt of
+                DisplayWord word ->
+                    DisplayWordOfPhrase word
+
+                _ ->
+                    wdt
+    in
+    List.foldr
+        (\( i, wordOrNonWord ) ( ls, mnextMatchingPhrase, restPhrases ) ->
+            case mnextMatchingPhrase of
+                Just ( phrase, ( startI, endI ) ) ->
+                    if i >= startI && i < endI then
+                        -- HACK: short term solution is mark these words differently:
+                        ( wordToPhraseWord wordOrNonWord :: ls, mnextMatchingPhrase, restPhrases )
+                        -- -- once we're in range, start matching the phrase (removing words until we replace them all with a phrase)
+                        -- ( ls, mnextMatchingPhrase, restPhrases )
+
+                    else if i == endI then
+                        -- HACK: short term solution is mark these words differently:
+                        ( wordToPhraseWord wordOrNonWord :: ls, List.head restPhrases, List.tail restPhrases |> Maybe.withDefault [] )
+                        --     ( DisplayPhrase phrase :: ls, List.head restPhrases, List.tail restPhrases |> Maybe.withDefault [] )
+
+                    else
+                        ( wordOrNonWord :: ls, mnextMatchingPhrase, restPhrases )
+
+                Nothing ->
+                    -- all done matching
+                    ( wordOrNonWord :: ls, Nothing, [] )
+        )
+        ( [], List.head matchingPhrases, List.tail matchingPhrases |> Maybe.withDefault [] )
+        (List.indexedMap (\i x -> ( i, x )) list)
+        |> (\( x, _, _ ) -> x)
+
+
 {-| This is how we embellish our words with all of the nice app functionality.
 -}
 displayWords : Model -> String -> Html Msg
 displayWords model lessonText =
+    let
+        {- li = lineIndex, wi = wordIndex, partOfPhrase = HACK short term solution -}
+        displayWord word li wi partOfPhrase =
+            span
+                [ classList
+                    [ ( "word", True )
+                    , ( "selected", model.selectedWop == word )
+                    , ( "known", Dict.member word model.wops )
+                    , ( "part-of-phrase", partOfPhrase )
+                    ]
+                , onClick
+                    (if model.selectedWop == word then
+                        DeselectWOP
+
+                     else
+                        SelectWord word
+                    )
+                , onMouseDown (MouseDownOnWord li wi word)
+                , onMouseUp (OpenPhraseCreationUI li wi word)
+                ]
+                [ text word ]
+    in
     div [ class "displayed-words" ]
         (splitIntoCleanLines lessonText
             |> List.indexedMap
                 (\li line ->
                     p []
                         (markWordCharsFromNonWordChars line
+                            |> markPhrases (WOP.allPhrases model.wops)
+                            |> Debug.log "markedPhrases data!"
+                            -- |> always (markWordCharsFromNonWordChars line)
                             |> List.indexedMap
                                 (\wi chunk ->
                                     case chunk of
                                         DisplayWord word ->
-                                            span
-                                                [ classList
-                                                    [ ( "word", True )
-                                                    , ( "selected", model.selectedWop == word )
-                                                    , ( "known", Dict.member word model.wops )
-                                                    ]
-                                                , onClick
-                                                    (if model.selectedWop == word then
-                                                        DeselectWOP
-
-                                                     else
-                                                        SelectWord word
-                                                    )
-                                                , onMouseDown (MouseDownOnWord li wi word)
-                                                , onMouseUp (OpenPhraseCreationUI li wi word)
-                                                ]
-                                                [ text word ]
+                                            displayWord word li wi False
 
                                         DisplayNonWord nonWord ->
                                             span [ class "non-word" ] [ text nonWord ]
+
+                                        DisplayWordOfPhrase word ->
+                                            displayWord word li wi True
 
                                         DisplayPhrase _ ->
                                             div [] []

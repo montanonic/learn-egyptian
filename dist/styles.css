@@ -73,6 +73,13 @@ body {
     transition: all 300ms, color 100ms;
 }
 
+
+/* HACK: temporary styling fix */
+
+.displayed-words .word.part-of-phrase {
+    outline: solid 1px rgb(196, 161, 98);
+}
+
 .displayed-words .word.known {
     background-color: rgb(149, 204, 174);
 }

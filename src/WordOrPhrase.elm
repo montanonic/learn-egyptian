@@ -87,16 +87,21 @@ isPhrase { wordOrPhrase } =
     List.length wordOrPhrase > 1
 
 
-{-| Returns the keys for all of the currently stored phrases.
+{-| Returns the keys for all of the currently stored phrases, along with their length information
+since this is helpful for looking up phrases of the correct length.
 -}
-allPhrases : Dict String WOP -> List String
+allPhrases : Dict String WOP -> List ( String, Int )
 allPhrases dict =
     Dict.keys dict
         |> List.filterMap
             (\k ->
-                if (List.length <| String.split " " k) == 1 then
+                let
+                    length =
+                        List.length <| String.split " " k
+                in
+                if length == 1 then
                     Nothing
 
                 else
-                    Just k
+                    Just ( k, length )
             )
