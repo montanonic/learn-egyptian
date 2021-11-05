@@ -36,7 +36,27 @@ type alias WOP =
     , definitions : List String
     , notes : String
     , tags : List String
+    , familiarityLevel : Int -- currently 1 through 4
     }
+
+
+displayFamiliarityLevel : Int -> String
+displayFamiliarityLevel familiarityLevel =
+    case familiarityLevel of
+        1 ->
+            "New"
+
+        2 ->
+            "Recognized"
+
+        3 ->
+            "Familiar"
+
+        4 ->
+            "Learned"
+
+        _ ->
+            ""
 
 
 {-| If you give this an empty list everything will break :). I could install a Nonempty list package
@@ -44,7 +64,7 @@ for this, but I think it's slightly overkill for now.
 -}
 makeWOP : List String -> String -> WOP
 makeWOP wordOrPhrase definition =
-    { wordOrPhrase = wordOrPhrase, definitions = [ definition ], notes = "", tags = [] }
+    { wordOrPhrase = wordOrPhrase, definitions = [ definition ], notes = "", tags = [], familiarityLevel = 1 }
 
 
 setDefinition : Int -> String -> WOP -> WOP
@@ -55,6 +75,15 @@ setDefinition defNumber definition wop =
 setNotes : String -> WOP -> WOP
 setNotes notes wop =
     { wop | notes = notes }
+
+
+setFamiliarityLevel : Int -> WOP -> Maybe WOP
+setFamiliarityLevel level wop =
+    if level >= 1 && level <= 4 then
+        Just { wop | familiarityLevel = level }
+
+    else
+        Nothing
 
 
 {-| For a word the key is just the word, and for a phrase like "لو سمحت", the key will be that whole

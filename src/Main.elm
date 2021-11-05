@@ -143,6 +143,7 @@ type Msg
     | SelectWord String
     | EditSelectedWOPDefinition Int String
     | EditSelectedWOPNotes String
+    | SetSelectedWOPFamiliarityLevel Int
     | DeselectWOP
     | SaveSelectedNewWOP
     | EditSelectedNewWOPDefinition String
@@ -290,6 +291,16 @@ update msg model =
                     | wops =
                         Dict.update model.selectedWop
                             (Maybe.map (WOP.setNotes notes))
+                            model.wops
+                }
+                (.wops >> Dict.toList >> storeWops)
+
+        SetSelectedWOPFamiliarityLevel familiarityLevel ->
+            impure
+                { model
+                    | wops =
+                        Dict.update model.selectedWop
+                            (Maybe.andThen (WOP.setFamiliarityLevel familiarityLevel))
                             model.wops
                 }
                 (.wops >> Dict.toList >> storeWops)
@@ -699,8 +710,8 @@ selectedWordEdit model =
 
          else
             case Dict.get model.selectedWop model.wops of
-                Just word ->
-                    p [ class "primary-definition" ] [ text <| model.selectedWop ++ " = ", text <| Maybe.withDefault "" <| List.head word.definitions ]
+                Just wop ->
+                    p [ class "primary-definition" ] [ text <| model.selectedWop ++ " = ", text <| Maybe.withDefault "" <| List.head wop.definitions ]
                         :: List.indexedMap
                             (\i def ->
                                 input
@@ -710,10 +721,23 @@ selectedWordEdit model =
                                     ]
                                     []
                             )
-                            word.definitions
+                            wop.definitions
                         ++ [ textarea
-                                [ cols 20, rows 10, onInput EditSelectedWOPNotes, value word.notes ]
+                                [ cols 20, rows 10, onInput EditSelectedWOPNotes, value wop.notes ]
                                 []
+                           , div [ class "familiarity-level-selector" ]
+                                (List.map
+                                    (\n ->
+                                        button
+                                            [ classList [ ( "selected", wop.familiarityLevel == n ) ]
+                                            , class <| String.toLower <| WOP.displayFamiliarityLevel n
+                                            , onClick <| SetSelectedWOPFamiliarityLevel n
+                                            , title <| WOP.displayFamiliarityLevel n
+                                            ]
+                                            [ text <| String.fromInt n ]
+                                    )
+                                    [ 1, 2, 3, 4 ]
+                                )
                            ]
 
                 Nothing ->
@@ -930,15 +954,22 @@ markPhrases allPhrasesWithLengths list =
 displayWords : Model -> String -> Html Msg
 displayWords model lessonText =
     let
+        getFamiliarityLevel wopKey =
+            Dict.get wopKey model.wops
+                |> Maybe.map (\wop -> wop.familiarityLevel)
+                -- this default shouldn't hit, so I pick an intentionally bad value
+                |> Maybe.withDefault 0
+
         {- li = lineIndex, wi = wordIndex, partOfPhrase = HACK short term solution -}
         displayWord word li wi partOfPhrase =
             span
                 [ classList
                     [ ( "word", True )
                     , ( "selected", model.selectedWop == word )
-                    , ( "known", Dict.member word model.wops )
+                    , ( "in-dict", Dict.member word model.wops )
                     , ( "part-of-phrase", partOfPhrase )
                     ]
+                , class <| String.toLower <| WOP.displayFamiliarityLevel (getFamiliarityLevel word)
                 , onClick
                     (if model.selectedWop == word then
                         DeselectWOP
@@ -958,7 +989,7 @@ displayWords model lessonText =
                     p []
                         (markWordCharsFromNonWordChars line
                             |> markPhrases (WOP.allPhrases model.wops)
-                            |> Debug.log "markedPhrases data!"
+                            -- |> Debug.log "markedPhrases data!"
                             -- |> always (markWordCharsFromNonWordChars line)
                             |> List.indexedMap
                                 (\wi chunk ->
