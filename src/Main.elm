@@ -654,7 +654,7 @@ newAndEditLessonView model =
                 , label [] [ text <| "Edit lesson" ]
                 ]
         , input [ placeholder "title", value model.newLessonTitle, onInput ChangeNewLessonTitle ] []
-        , textarea [ rows 15, cols 60, onInput ChangeNewLessonText, value model.newLessonText ] []
+        , div [ class "textarea-container" ] [ textarea [ rows 15, cols 60, onInput ChangeNewLessonText, value model.newLessonText ] [] ]
         , if String.isEmpty model.selectedLesson then
             button [ onClick CreateNewLesson, disabled buttonDisabled ] [ text "Create Lesson" ]
 
@@ -668,7 +668,7 @@ lessonsView model =
     div [ class "lessons-view" ]
         [ h3 [] [ text "select a lesson" ]
         , h5 [] [ text <| "currently learning " ++ String.fromInt (Dict.size model.wops) ++ " words!" ]
-        , div [ style "display" "flex" ]
+        , div [ class "lesson-selector" ]
             (model.lessons
                 |> Dict.keys
                 |> List.map (\title -> button [ onClick <| SelectLesson title ] [ text title ])
@@ -684,7 +684,7 @@ selectedLessonView model title =
     in
     div [ class "selected-lesson-view" ]
         [ h2 [] [ text <| "Title: " ++ title ]
-        , audio [ controls False, src <| "http://localhost:3000/audio/" ++ title ++ ".wav" ] []
+        , audio [ controls True, src <| "http://localhost:3000/audio/" ++ title ++ ".wav" ] []
         , div [ class "lesson-words-and-lookup" ] [ div [ class "selected-word-edit-and-lesson-translation" ] [ selectedWordEdit model, lessonTranslationBox model ], displayWords model lessonText ]
         ]
 
@@ -796,7 +796,7 @@ markWordCharsFromNonWordChars : String -> List WordDisplayTypes
 markWordCharsFromNonWordChars lineOfText =
     let
         rxString =
-            " *():.?؟,=\\-"
+            " *():.?؟,،=\\-"
 
         nonWordDetectorRx =
             Maybe.withDefault Regex.never <|

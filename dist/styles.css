@@ -6,8 +6,8 @@
     --main-bg-color: rgb(11, 55, 70);
     --primary-text-color: whitesmoke;
     --new-word-bg: rgb(149, 204, 174);
-    --recognized-word-bg: rgb(94, 144, 132);
-    --familiar-word-bg: rgb(39, 85, 91);
+    --recognized-word-bg: rgb(110, 161, 144);
+    --familiar-word-bg: rgb(31, 76, 85);
     --familiar-word-color: rgb(241, 235, 235);
     /* --recognized-word-bg: rgb(121, 174, 153);
     --familiar-word-bg: rgb(94, 144, 132); */
@@ -27,7 +27,10 @@ body {
     text-align: right;
 }
 
-.new-lesson-view textarea,
+.new-lesson-view .textarea-container {
+    direction: rtl;
+}
+
 .new-lesson-view input {
     margin-left: auto;
     display: block;
@@ -36,11 +39,17 @@ body {
 
 .new-lesson-view textarea {
     direction: rtl;
+    font-size: 20px;
 }
 
 .selected-lesson-view {
     margin-bottom: 50vh;
     max-width: 1400px;
+}
+
+.lesson-selector {
+    display: flex;
+    flex-wrap: wrap;
 }
 
 .displayed-words {
