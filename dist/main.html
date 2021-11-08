@@ -6,7 +6,9 @@
     <title>Learn Egyptian</title>
     <script type="text/javascript" src="elm.js"></script>
     <link rel="stylesheet" type="text/css" href="styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js" integrity="sha512-Qlv6VSKh1gDKGoJbnyA5RMXYcvnpIqhO++MhIM2fStMcGT9i2T//tSwYFlcyoRRDcDZ+TYHpH8azBBCyhpSeqw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"
+        integrity="sha512-Qlv6VSKh1gDKGoJbnyA5RMXYcvnpIqhO++MhIM2fStMcGT9i2T//tSwYFlcyoRRDcDZ+TYHpH8azBBCyhpSeqw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 
 <body>
@@ -63,7 +65,7 @@
         }
     });
 
-    app.ports.saveLocalStorageToClipboard.subscribe(function() {
+    app.ports.saveLocalStorageToClipboard.subscribe(function () {
         var blob = new Blob([JSON.stringify(getAllLocalData())], {
             type: "application/json;charset=utf-8"
         });
@@ -72,17 +74,38 @@
         storeLocally(localKeys.backupNumber, backupNumber + 1);
     });
 
-    app.ports.storeLessonTranslations.subscribe(function(lessonTranslations) {
+    app.ports.storeLessonTranslations.subscribe(function (lessonTranslations) {
         storeLocally(localKeys.lessonTranslations, lessonTranslations);
     });
 
     // An easier hack than dealing with lesson individually, that is also less performant.
-    app.ports.storeLessonData.subscribe(function(lessons) {
+    app.ports.storeLessonData.subscribe(function (lessons) {
         storeLocally(localKeys.lessons, lessons);
     });
 
-    app.ports.storeWops.subscribe(function(wops) {
+    app.ports.storeWops.subscribe(function (wops) {
         storeLocally(localKeys.wops, wops);
+    });
+
+    app.ports.autofocusId.subscribe(function (id) {
+        // try 10 times in .5 seconds to autofocus. until the new DOM element renders you won't be
+        // able to focus it, which is this is needed.
+        let loopCount = 0;
+        let loop = () => setTimeout(() => {
+            loopCount += 1;
+
+            if (loopCount == 10) {
+                return
+            }
+
+            let elem = document.getElementById(id);
+            if (elem) {
+                elem.focus();
+            } else {
+                loop();
+            }
+        }, 50);
+        loop();
     });
 
     // The below code is fine, but it's easier to manage entire sets of data in bulk, albeit much less performant as the size of data increases. For our early app, this is fine.
@@ -111,7 +134,7 @@
     // }
 
     // TODO: Bad code
-    app.ports.storeFlashcardEntry.subscribe(function(entry) {
+    app.ports.storeFlashcardEntry.subscribe(function (entry) {
         const {
             egyptian,
             english,

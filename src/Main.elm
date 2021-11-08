@@ -59,6 +59,11 @@ port storeWops : List ( String, WOP ) -> Cmd msg
 port saveLocalStorageToClipboard : () -> Cmd msg
 
 
+{-| Focus on the html element with the given id.
+-}
+port autofocusId : String -> Cmd msg
+
+
 
 -- SUBSCRIPTIONS
 
@@ -275,7 +280,16 @@ update msg model =
             pure { model | selectedLesson = "", newLessonText = "", newLessonTitle = "" }
 
         SelectWord word ->
-            pure { model | selectedWop = word }
+            impure { model | selectedWop = word }
+                (\{ selectedWop } ->
+                    -- autofocus the definition field if the word is not known
+                    case WOP.get selectedWop model.wops of
+                        Just _ ->
+                            Cmd.none
+
+                        Nothing ->
+                            autofocusId "newWopDefinition"
+                )
 
         DeselectWOP ->
             pure { model | selectedWop = "" }
@@ -593,6 +607,30 @@ twoLatinCharToArabicDict =
 
 
 
+{- lesson and word audio -}
+{- what if mousing over the period, question-mark, and exclamation-mark punctuation highlighted it
+   in green with cursor:pointer, and clicking it played the audio of the sentence? or maybe pressing
+   'p' on the start word and releasing it on the end word (or the inverse) will play audio between
+   those sections. perhaps double-clicking a word could play audio from it up to the end of the
+   sentence?
+
+    so lots of options for an audio UI.
+
+    now what about associating words with audio so that when clicked on they play it? I'll want a
+    long bar UI of the track audio, and then maybe a smaller UI for the 5 seconds before and after
+    the current point in the overall audio. this zoomed in view is where you can scrub left and
+    right to get to the exact word boundary.
+
+    though that will fundamentally be less reliable than sentence boundaries. okay, so let's figure
+    out this one. so I start the audio, and bam, the first sentence is said. now maybe I'm holding
+    the mouse to play audio, and releasing it stops it. then I have a nice UI bar for scrubbing back
+    and forth in time to get the end just right. a 1-second loop where the goal is to have the end
+    of it be the end of the finished word? maybe it's 1 second but the audio is half speed.
+
+    so I mark the boundary, by clicking, and there's scrub buttons for jumping left or right by
+    100ms or 10ms. but those could apply to either the overarching audio or to the sentence boundary
+    marker.
+-}
 -- VIEW
 
 
@@ -748,7 +786,7 @@ selectedWordEdit model =
 
                 Nothing ->
                     [ p [ class "primary-definition" ] [ text <| model.selectedWop ]
-                    , input [ placeholder "add a definition", onInput EditSelectedNewWOPDefinition, value model.newWopDefinition ] []
+                    , input [ id "newWopDefinition", placeholder "add a definition", onInput EditSelectedNewWOPDefinition, value model.newWopDefinition ] []
                     , button [ onClick SaveSelectedNewWOP, disabled (String.isEmpty model.newWopDefinition) ] [ text "Save New Word" ]
                     ]
         )
