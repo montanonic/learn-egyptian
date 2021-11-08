@@ -1,7 +1,9 @@
 module WordOrPhrase exposing (..)
 
 import Dict exposing (Dict)
+import Dict.Extra as DictE
 import List.Extra as ListE
+import Set exposing (Set)
 
 
 
@@ -134,3 +136,80 @@ allPhrases dict =
                 else
                     Just ( k, length )
             )
+
+
+
+-- TASHKYL
+{- phase 1 for our greater support of Egyptian is to have our word lookup dictionary use non-tashkyl
+   lookups. when there's a hit, then if the source word has tashkyl we check for a match. if a match
+   can't be found we simply mark it as an unknown word as usual, and if more than one match is
+   found, we give the learner a little menu to switch between them easily. the currently selected
+   one in the menu should stay selected when that word is encountered elsewhere, as a sensible
+   default. of course the best solution is to store what the selected instance of the word is at
+   every independent location, but that solution can be evolved into over time.
+
+   but IMO, my phase 1 just needs to remove the tashkyl. I'm not likely to hit a meaningful
+   edge-case yet. enta/enty is like the only one, but it really doesn't matter cuz it's just like
+   obvious.
+
+   shaddah is also commonly used, so we're going to let that stay in the word and the lookup as
+   normal for now.
+-}
+
+
+{-| Specifically just fathah, kasrah, and dammah. Not shaddah (or sukoon).
+-}
+tashkylSet : Set Char
+tashkylSet =
+    Set.fromList [ 'َ', 'ِ', 'ُ' ]
+
+
+splitOffTashkyl : String -> ( String, List Char )
+splitOffTashkyl string =
+    let
+        chars =
+            String.toList string
+
+        justTashkyl =
+            chars |> List.filter (\ch -> Set.member ch tashkylSet)
+
+        withoutTashkyl =
+            chars |> ListE.filterNot (\ch -> Set.member ch tashkylSet) |> String.fromList
+    in
+    ( withoutTashkyl, justTashkyl )
+
+
+{-| Removes fathah, kasrah, and dammah from the word.
+-}
+removeFKD : String -> String
+removeFKD =
+    splitOffTashkyl >> Tuple.first
+
+
+{-| Two words are tashkyl equivalent if their non-tashkyl forms are equal, and if either has no
+tashkyl, or if they both have tashkyl and are either exact matches or at least non-conflicting
+tashkyl.
+-}
+tashkylEquivalent : String -> String -> Bool
+tashkylEquivalent wop1 wop2 =
+    let
+        ( wt1, jt1 ) =
+            splitOffTashkyl wop1
+
+        ( wt2, jt2 ) =
+            splitOffTashkyl wop2
+    in
+    wt1 == wt2 && (List.isEmpty jt1 || List.isEmpty jt2 || ListE.isSubsequenceOf jt1 jt2 || ListE.isSubsequenceOf jt2 jt1)
+
+
+{-| Automatically removes fathah, kasrah, dammah, from the word so that it can be properly looked up
+as a key.
+-}
+get : String -> Dict String WOP -> Maybe WOP
+get wopKey =
+    Dict.get (removeFKD wopKey)
+
+
+migrateDictionary : Dict String WOP -> Dict String WOP
+migrateDictionary =
+    DictE.mapKeys (\k -> removeFKD k)

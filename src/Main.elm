@@ -246,7 +246,13 @@ update msg model =
                     else
                         Cmd.none
             in
-            ( newModel, Cmd.batch [ newModel.lessons |> Dict.toList |> storeLessonData, updateAudioName ] )
+            ( newModel
+            , Cmd.batch
+                [ storeLessonData (newModel.lessons |> Dict.toList)
+                , storeLessonTranslations (newModel.lessonTranslations |> Dict.toList)
+                , updateAudioName
+                ]
+            )
 
         BackendAudioUpdated response ->
             let
@@ -709,7 +715,7 @@ selectedWordEdit model =
             [ p [] [ text "Select a word to view options" ] ]
 
          else
-            case Dict.get model.selectedWop model.wops of
+            case WOP.get model.selectedWop model.wops of
                 Just wop ->
                     p [ class "primary-definition" ] [ text <| model.selectedWop ++ " = ", text <| Maybe.withDefault "" <| List.head wop.definitions ]
                         :: List.indexedMap
@@ -955,7 +961,7 @@ displayWords : Model -> String -> Html Msg
 displayWords model lessonText =
     let
         getFamiliarityLevel wopKey =
-            Dict.get wopKey model.wops
+            WOP.get wopKey model.wops
                 |> Maybe.map (\wop -> wop.familiarityLevel)
                 -- this default shouldn't hit, so I pick an intentionally bad value
                 |> Maybe.withDefault 0
@@ -965,8 +971,8 @@ displayWords model lessonText =
             span
                 [ classList
                     [ ( "word", True )
-                    , ( "selected", model.selectedWop == word )
-                    , ( "in-dict", Dict.member word model.wops )
+                    , ( "selected", WOP.tashkylEquivalent model.selectedWop word )
+                    , ( "in-dict", WOP.get word model.wops |> MaybeE.isJust )
                     , ( "part-of-phrase", partOfPhrase )
                     ]
                 , class <| String.toLower <| WOP.displayFamiliarityLevel (getFamiliarityLevel word)
