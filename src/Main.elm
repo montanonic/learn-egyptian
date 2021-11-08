@@ -796,7 +796,7 @@ markWordCharsFromNonWordChars : String -> List WordDisplayTypes
 markWordCharsFromNonWordChars lineOfText =
     let
         rxString =
-            " *():.?؟,،=\\-"
+            " *():.?؟,”،=\\-"
 
         nonWordDetectorRx =
             Maybe.withDefault Regex.never <|
