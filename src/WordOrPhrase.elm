@@ -210,6 +210,22 @@ get wopKey =
     Dict.get (removeFKD wopKey)
 
 
+{-| Automatically removes fathah, kasrah, dammah, from the word so that it can be properly looked up
+as a key.
+-}
+update : String -> (Maybe WOP -> Maybe WOP) -> Dict String WOP -> Dict String WOP
+update wopKey =
+    Dict.update (removeFKD wopKey)
+
+
+{-| Automatically removes fathah, kasrah, dammah, from the word so that it can be properly looked up
+as a key.
+-}
+insert : String -> WOP -> Dict String WOP -> Dict String WOP
+insert wopKey =
+    Dict.insert (removeFKD wopKey)
+
+
 migrateDictionary : Dict String WOP -> Dict String WOP
 migrateDictionary =
     DictE.mapKeys (\k -> removeFKD k)

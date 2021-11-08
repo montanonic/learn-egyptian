@@ -284,7 +284,7 @@ update msg model =
             impure
                 { model
                     | wops =
-                        Dict.update model.selectedWop
+                        WOP.update model.selectedWop
                             (Maybe.map (WOP.setDefinition defNumber definition))
                             model.wops
                 }
@@ -295,7 +295,7 @@ update msg model =
             impure
                 { model
                     | wops =
-                        Dict.update model.selectedWop
+                        WOP.update model.selectedWop
                             (Maybe.map (WOP.setNotes notes))
                             model.wops
                 }
@@ -305,7 +305,7 @@ update msg model =
             impure
                 { model
                     | wops =
-                        Dict.update model.selectedWop
+                        WOP.update model.selectedWop
                             (Maybe.andThen (WOP.setFamiliarityLevel familiarityLevel))
                             model.wops
                 }
@@ -329,7 +329,7 @@ update msg model =
             impure
                 { model
                     | wops =
-                        Dict.insert model.selectedWop
+                        WOP.insert model.selectedWop
                             (WOP.makeWOP wopKeyList model.newWopDefinition)
                             model.wops
                     , newWopDefinition = ""
