@@ -114,7 +114,7 @@ init { sm2FlashcardData, lessons, wops, lessonTranslations } =
       , lessonTranslations = Dict.fromList lessonTranslations
       , selectedLesson = ""
       , selectedWop = ""
-      , wops = Dict.fromList wops |> (\d -> always d (Debug.log "keys/w/sukoon" (Dict.keys d |> List.filter (\k -> String.contains "ْ" k))))
+      , wops = Dict.fromList wops
       , newWopDefinition = ""
       , mouseDownWord = ( 0, 0, "" )
       }
@@ -260,10 +260,10 @@ update msg model =
             )
 
         BackendAudioUpdated response ->
-            let
-                _ =
-                    Debug.log "BackendAudioUpdated" response
-            in
+            -- let
+            --     _ =
+            --         Debug.log "BackendAudioUpdated" response
+            -- in
             pure model
 
         SelectLesson title ->
@@ -336,9 +336,6 @@ update msg model =
 
                     else
                         [ model.selectedWop ]
-
-                _ =
-                    Debug.log "model.selectedWop and WOP.makeWOP" ( model.selectedWop, WOP.makeWOP wopKeyList model.newWopDefinition )
             in
             impure
                 { model

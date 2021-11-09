@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "buildForNetlify": "elm make ../src/Main.elm --optimize --output=public/javascripts/elm.js",
     "start": "node ./bin/www",
     "devStart": "nodemon --ignore public/audio/ DEBUG=myapp:* npm start"
   },
