@@ -1,8 +1,192 @@
-body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+* {
+    box-sizing: border-box;
 }
 
-a {
-  color: #00B7FF;
+:root {
+    --main-bg-color: rgb(11, 55, 70);
+    --primary-text-color: whitesmoke;
+    --new-word-bg: rgb(149, 204, 174);
+    --recognized-word-bg: rgb(110, 161, 144);
+    --familiar-word-bg: rgb(31, 76, 85);
+    --familiar-word-color: rgb(241, 235, 235);
+    /* --recognized-word-bg: rgb(121, 174, 153);
+    --familiar-word-bg: rgb(94, 144, 132); */
+    --learned-word-bg: inherit;
+    --learned-word-color: var(--primary-text-color);
+}
+
+body {
+    background-color: var(--main-bg-color);
+    color: var(--primary-text-color);
+}
+
+
+/* NEW LESSON VIEW */
+
+.new-lesson-view {
+    text-align: right;
+}
+
+.new-lesson-view .textarea-container {
+    direction: rtl;
+}
+
+.new-lesson-view input {
+    margin-left: auto;
+    display: block;
+    font-size: 20px;
+}
+
+.new-lesson-view textarea {
+    direction: rtl;
+    font-size: 20px;
+}
+
+.selected-lesson-view {
+    margin-bottom: 50vh;
+    max-width: 1400px;
+}
+
+.lesson-selector {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.displayed-words {
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    overflow: hidden;
+    direction: rtl;
+    font-size: 30px;
+}
+
+.displayed-words p {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 0;
+    margin-bottom: 10px;
+    /* this is necessary for punctuation to appear in the correct spot */
+    align-items: center;
+}
+
+.displayed-words .word,
+.displayed-words .non-word {
+    margin: 0 1px;
+}
+
+.displayed-words .word {
+    margin-top: 4px;
+    margin-bottom: 4px;
+    margin-right: 6px;
+    display: inline-block;
+    padding: 8px 4px;
+    cursor: pointer;
+    background-color: violet;
+    border: 2px solid var(--main-bg-color);
+    border-radius: 2px;
+    transition: all 300ms, color 100ms;
+}
+
+.word {
+    color: rgb(12, 37, 46);
+}
+
+.word.new {
+    background-color: var(--new-word-bg);
+}
+
+.word.recognized {
+    background-color: var(--recognized-word-bg);
+}
+
+.word.familiar {
+    color: var(--familiar-word-color);
+    background-color: var(--familiar-word-bg);
+}
+
+.word.learned {
+    color: var(--learned-word-color);
+    background-color: var(--learned-word-bg);
+}
+
+.displayed-words .word.part-of-phrase {
+    /* HACK: temporary styling fix */
+    outline: solid 1px rgb(196, 161, 98);
+}
+
+.displayed-words .word:hover,
+.displayed-words .word.selected {
+    color: rgb(187, 239, 255);
+    background-color: rgb(116, 77, 134);
+    border: 2px solid rgb(116, 77, 134);
+    transition: all 300ms, color 100ms;
+}
+
+.selected-word-edit-and-lesson-translation {
+    direction: ltr;
+    background-color: rgb(16, 73, 92);
+    margin: 8px 4px;
+    border-radius: 10px;
+    text-align: center;
+    display: grid;
+    grid-template-rows: 8fr 7fr;
+}
+
+.selected-word-edit input {
+    margin: 0 auto;
+}
+
+.selected-word-edit .primary-definition {
+    color: rgb(60, 66, 70);
+    font-size: 26px;
+    font-weight: bold;
+    background-color: rgb(149, 204, 174);
+}
+
+.familiarity-level-selector {
+    display: flex;
+    justify-content: center;
+}
+
+.familiarity-level-selector button {
+    font-size: 16px;
+    border: 1px solid black;
+    cursor: pointer;
+    margin: 0 2px;
+    color: rgb(12, 37, 46);
+    font-weight: bold;
+}
+
+.familiarity-level-selector button.selected.new {
+    background-color: var(--new-word-bg);
+}
+
+.familiarity-level-selector button.selected.recognized {
+    background-color: var(--recognized-word-bg);
+}
+
+.familiarity-level-selector button.selected.familiar {
+    color: var(--familiar-word-color);
+    background-color: var(--familiar-word-bg);
+}
+
+.familiarity-level-selector button.selected.learned {
+    color: var(--learned-word-color);
+    background-color: var(--learned-word-bg);
+}
+
+.lesson-words-and-lookup {
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+    border: solid rgb(23, 109, 95);
+}
+
+.lesson-translation-box {
+    background-color: rgb(20, 67, 83);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
