@@ -85,8 +85,8 @@
     }
   };
 
-  var numWops = Object.keys(getLocally('wops')).length;
-  document.getElementById('continue-button').innerHTML = `Continue with ${numWops} wops`;
+  var numWops = (getLocally('wops') || []).length;
+  document.getElementById('continue-button').innerHTML = `Continue with ${numWops} words`;
 
   document.getElementById('continue-button').onclick = () => initElm();
 
