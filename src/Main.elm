@@ -114,7 +114,7 @@ init { sm2FlashcardData, lessons, wops, lessonTranslations } =
       , lessonTranslations = Dict.fromList lessonTranslations
       , selectedLesson = ""
       , selectedWop = ""
-      , wops = Dict.fromList wops
+      , wops = Dict.fromList wops |> (\d -> always d (Debug.log "keys/w/sukoon" (Dict.keys d |> List.filter (\k -> String.contains "ْ" k))))
       , newWopDefinition = ""
       , mouseDownWord = ( 0, 0, "" )
       }
@@ -936,7 +936,7 @@ markPhrases allPhrasesWithLengths list =
                                         phrase =
                                             possiblePhraseMatch |> List.map Tuple.first |> String.join " "
                                     in
-                                    if Set.member phrase phraseSet then
+                                    if WOP.member phrase phraseSet then
                                         Just
                                             ( possiblePhraseMatch
                                             , possiblePhraseMatch

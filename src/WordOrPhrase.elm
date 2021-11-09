@@ -157,11 +157,11 @@ allPhrases dict =
 -}
 
 
-{-| Specifically just fathah, kasrah, and dammah. Not shaddah (or sukoon).
+{-| Specifically just fathah, kasrah, dammah, and sukoon. Not shaddah (or sukoon).
 -}
 tashkylSet : Set Char
 tashkylSet =
-    Set.fromList [ 'َ', 'ِ', 'ُ' ]
+    Set.fromList [ 'َ', 'ِ', 'ُ', 'ْ' ]
 
 
 splitOffTashkyl : String -> ( String, List Char )
@@ -202,7 +202,7 @@ tashkylEquivalent wop1 wop2 =
     wt1 == wt2 && (List.isEmpty jt1 || List.isEmpty jt2 || ListE.isSubsequenceOf jt1 jt2 || ListE.isSubsequenceOf jt2 jt1)
 
 
-{-| Automatically removes fathah, kasrah, dammah, from the word so that it can be properly looked up
+{-| Automatically removes fathah, kasrah, dammah, sukoon, from the WOP so that it can be properly looked up
 as a key.
 -}
 get : String -> Dict String WOP -> Maybe WOP
@@ -210,7 +210,7 @@ get wopKey =
     Dict.get (removeFKD wopKey)
 
 
-{-| Automatically removes fathah, kasrah, dammah, from the word so that it can be properly looked up
+{-| Automatically removes fathah, kasrah, dammah, sukoon, from the WOP so that it can be properly looked up
 as a key.
 -}
 update : String -> (Maybe WOP -> Maybe WOP) -> Dict String WOP -> Dict String WOP
@@ -218,12 +218,20 @@ update wopKey =
     Dict.update (removeFKD wopKey)
 
 
-{-| Automatically removes fathah, kasrah, dammah, from the word so that it can be properly looked up
+{-| Automatically removes fathah, kasrah, dammah, sukoon, from the WOP so that it can be properly looked up
 as a key.
 -}
 insert : String -> WOP -> Dict String WOP -> Dict String WOP
 insert wopKey =
     Dict.insert (removeFKD wopKey)
+
+
+{-| Automatically removes fathah, kasrah, dammah, sukoon, from the WOP so that it can be properly looked up
+as a key.
+-}
+member : String -> Set String -> Bool
+member wopKey =
+    Set.member (removeFKD wopKey)
 
 
 migrateDictionary : Dict String WOP -> Dict String WOP
