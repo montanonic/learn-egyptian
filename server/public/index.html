@@ -1,13 +1,217 @@
+<!DOCTYPE HTML>
 <html>
 
 <head>
-  <title>Express</title>
-  <link rel="stylesheet" href="/stylesheets/style.css">
+  <meta charset="UTF-8">
+  <title>Learn Egyptian</title>
+  <script type="text/javascript" src="javascripts/elm.js"></script>
+  <link rel="stylesheet" type="text/css" href="stylesheets/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"
+    integrity="sha512-Qlv6VSKh1gDKGoJbnyA5RMXYcvnpIqhO++MhIM2fStMcGT9i2T//tSwYFlcyoRRDcDZ+TYHpH8azBBCyhpSeqw=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 
 <body>
-  <h1>Express</h1>
-  <p>Welcome to Express</p>
+  <label id="backup-upload-label" for="backup-upload">Text Generated in JavaScript</label>
+  <input type="file" id="backup-upload" name="backup" accept=".json">
+  <button id="continue-button">Text Generated in JavaScript</button>
+  <div id="myapp"></div>
 </body>
+
+<script type="text/javascript">
+  // The following is book-keeping for our data in local storage. It's important to centralize
+  // this because it lets us effortlessly backup our data whenever we want, without leaving things
+  // out.
+
+  // Not every key here needs to correspond to the data model we use in Elm, as we may have extra
+  // book-keeping on the JS side, but for the keys that do correspond, by using the same name we
+  // can automatically generate the correct flag fields.
+  //
+  // Spurious fields are fine because elm ports, and the flag fields in this case, only care about
+  // the fields specified on the elm-side, and will ignore everything else.
+  //
+  // However for *backing up* our data model, we want to store *everything* so that we can ensure
+  // we can full restore a user session from it. No data needed by the app (not already provided
+  // by the server) should be ommitted here. Thankfully, by ensuring all of our localstorage
+  // accesses go through this object, our `getAllLocalData` will automatically stay in sync and
+  // grab the data at the keys defined. As you can see, the localstorage key names are allowed to
+  // differ from the backend. That's just a carryover from, well, it being a pain to transfer
+  // locally stored fields to different keys. We can update that whenever. For now, the values in
+  // this object are the literal field names in our localstorage. The keys are the names we use in
+  // our model (if the data is used in the model that is, otherwise it doesn't matter).
+  //
+  // Oh, the different key names *is* useful: for doing migrations we can safely keep the old data
+  // and just reference a new localstorage entry.
+  const localKeys = {
+    lessons: 'allLessons',
+    lessonTranslations: 'lessonTranslations',
+    wops: 'wops',
+    backupNumber: 'backupNumber',
+  };
+  const dataVersion = 1; // bump this when you change the data model in any way whatsoever, including adding or removing data.
+
+  /// Returns an object with all the data.
+  function getAllLocalData() {
+    let obj = {};
+    for (let modelKey of Object.keys(localKeys)) {
+      obj[modelKey] = getLocally(localKeys[modelKey]) || [];
+    }
+    return obj;
+  }
+
+  // When we load the app, we can provide a javascript file to load the latest data from, or we can
+  // just press continue to use the current data. Continuing will not be available when current data
+  // doesn't exist.
+
+  document.getElementById('backup-upload-label').innerHTML = `file upload must be v${dataVersion}`;
+
+  document.getElementById('backup-upload').oninput = e => {
+    var file = e.target.files[0];
+    if (file) {
+      var reader = new FileReader();
+      reader.readAsText(file, "UTF-8");
+      reader.onload = function (evt) {
+        var json = JSON.parse(evt.target.result);
+
+        for (let modelKey of Object.keys(localKeys)) {
+          storeLocally(localKeys[modelKey], json[modelKey]) || [];
+        }
+
+        initElm();
+      }
+      reader.onerror = function (evt) {
+        alert('error reading file');
+      }
+    }
+  };
+
+  var numWops = Object.keys(getLocally('wops')).length;
+  document.getElementById('continue-button').innerHTML = `Continue with ${numWops} wops`;
+
+  document.getElementById('continue-button').onclick = () => initElm();
+
+
+  function storeLocally(key, data) {
+    localStorage.setItem(key, JSON.stringify(data));
+  }
+
+  function getLocally(key) {
+    return JSON.parse(localStorage.getItem(key));
+  }
+
+  function initElm() {
+    // Remove "front page" UI.
+    document.getElementById('backup-upload').style.display = 'none';
+    document.getElementById('continue-button').style.display = 'none';
+
+    var app = Elm.Main.init({
+      node: document.getElementById('myapp'),
+      // TODO: also do a search of the English because we want to store one vocab PER meaning.
+      // For English->Eg when there's multiple words that mean the same thing in English, when you're tested you should be asked if you can recall another word for it. Ideally though we should just have a better way to mark the english side of the vocab with a special note. We should be able to mark either EG or Eng side of vocab with a note.
+      flags: {
+        sm2FlashcardData: Array.from(getEgyptianWords()).map(word => getLocally(word)),
+        ...getAllLocalData()
+      }
+    });
+
+    app.ports.saveLocalStorageToClipboard.subscribe(function () {
+      var blob = new Blob([JSON.stringify(getAllLocalData())], {
+        type: "application/json;charset=utf-8"
+      });
+      var backupNumber = getLocally(localKeys.backupNumber) || 1;
+      saveAs(blob, `learn_egyptian_backup_v${dataVersion}_${backupNumber}`);
+      storeLocally(localKeys.backupNumber, backupNumber + 1);
+    });
+
+    app.ports.storeLessonTranslations.subscribe(function (lessonTranslations) {
+      storeLocally(localKeys.lessonTranslations, lessonTranslations);
+    });
+
+    // An easier hack than dealing with lesson individually, that is also less performant.
+    app.ports.storeLessonData.subscribe(function (lessons) {
+      storeLocally(localKeys.lessons, lessons);
+    });
+
+    app.ports.storeWops.subscribe(function (wops) {
+      storeLocally(localKeys.wops, wops);
+    });
+
+    app.ports.autofocusId.subscribe(function (id) {
+      // try 10 times in .5 seconds to autofocus. until the new DOM element renders you won't be
+      // able to focus it, which is this is needed.
+      let loopCount = 0;
+      let loop = () => setTimeout(() => {
+        loopCount += 1;
+
+        if (loopCount == 10) {
+          return
+        }
+
+        let elem = document.getElementById(id);
+        if (elem) {
+          elem.focus();
+        } else {
+          loop();
+        }
+      }, 50);
+      loop();
+    });
+
+    // The below code is fine, but it's easier to manage entire sets of data in bulk, albeit much less performant as the size of data increases. For our early app, this is fine.
+
+    // app.ports.storeNewLesson.subscribe(function ([title, text]) {
+    //     storeLesson(title, text);
+    // });
+
+    // // returns List (title, text)
+    // function getLessonDict() {
+    //     const lessonTitles = getLocally('lessonTitles') || [];
+    //     return lessonTitles.map(title => [title, getLesson(title)])
+    // }
+
+    // function getLesson(title) {
+    //     return getLocally(`lesson-${title}`);
+    // }
+
+    // function getLessonTitles() {
+    //     return getLocally('lessonTitles');
+    // }
+
+    // function storeLesson(title, text) {
+    //     storeLocally('lessonTitles', [...getLessonTitles(), title]); // index it
+    //     return storeLocally(`lesson-${title}`, text);
+    // }
+
+    // TODO: Bad code
+    app.ports.storeFlashcardEntry.subscribe(function (entry) {
+      const {
+        egyptian,
+        english,
+        englishData,
+        egyptianData
+      } = entry;
+
+      // Add entry to lookup table used to load data on app init.
+      const egyptianWords = getEgyptianWords();
+      egyptianWords.add(egyptian);
+      storeLocally('egyptianWords', Array.from(egyptianWords));
+      console.log(egyptianWords);
+
+      storeLocally(`word-${egyptian}`, entry);
+      console.log({
+        egyptian,
+        english,
+        englishData,
+        egyptianData
+      });
+    });
+
+    /// Lists all egyptian words stored in vocab.
+    function getEgyptianWords() {
+      return new Set(getLocally('egyptianWords') || []);
+    }
+
+  }
+</script>
 
 </html>
