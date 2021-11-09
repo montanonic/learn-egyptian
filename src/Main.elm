@@ -95,6 +95,7 @@ type alias Model =
     , lessonTranslations : Dict String String -- title -> translation
     , selectedLesson : String
     , selectedWop : String -- just the key (AKA the stringified word or phrase), for lookup in the wops Dict
+    , selectedWopTagsBuffer : String
     , wops : Dict String WOP
     , newWopDefinition : String
     , mouseDownWord : ( Int, Int, String ) -- line index (which line), word index (which word within line)
@@ -114,6 +115,7 @@ init { sm2FlashcardData, lessons, wops, lessonTranslations } =
       , lessonTranslations = Dict.fromList lessonTranslations
       , selectedLesson = ""
       , selectedWop = ""
+      , selectedWopTagsBuffer = ""
       , wops = Dict.fromList wops
       , newWopDefinition = ""
       , mouseDownWord = ( 0, 0, "" )
@@ -149,6 +151,8 @@ type Msg
     | EditSelectedWOPDefinition Int String
     | EditSelectedWOPNotes String
     | SetSelectedWOPFamiliarityLevel Int
+    | EditSelectedWOPTagsBuffer String
+    | SetSelectedWOPTags String
     | DeselectWOP
     | SaveSelectedNewWOP
     | EditSelectedNewWOPDefinition String
@@ -322,6 +326,20 @@ update msg model =
                         WOP.update model.selectedWop
                             (Maybe.andThen (WOP.setFamiliarityLevel familiarityLevel))
                             model.wops
+                }
+                (.wops >> Dict.toList >> storeWops)
+
+        EditSelectedWOPTagsBuffer tagString ->
+            pure { model | selectedWopTagsBuffer = tagString }
+
+        SetSelectedWOPTags tagString ->
+            impure
+                { model
+                    | wops =
+                        WOP.update model.selectedWop
+                            (Maybe.map (WOP.setTags tagString))
+                            model.wops
+                    , selectedWopTagsBuffer = ""
                 }
                 (.wops >> Dict.toList >> storeWops)
 
@@ -763,7 +781,19 @@ selectedWordEdit model =
                                     []
                             )
                             wop.definitions
-                        ++ [ textarea
+                        ++ [ div [ class "selected-word-tags-edit" ]
+                                [ div []
+                                    (if not (String.isEmpty model.selectedWopTagsBuffer) then
+                                        {- the matching tags we show are ONLY for the last term in the list -}
+                                        [ text "Matching tags: ", text <| String.join ", " <| WOP.fuzzyMatchTag (model.selectedWopTagsBuffer |> WOP.stringToTags |> ListE.last |> Maybe.withDefault "") model.wops ]
+
+                                     else
+                                        [ text "Tags: ", text <| String.join ", " wop.tags ]
+                                    )
+                                , input [ onInput EditSelectedWOPTagsBuffer, value model.selectedWopTagsBuffer, onFocus (EditSelectedWOPTagsBuffer <| String.join ", " wop.tags) ] []
+                                , button [ onClick (SetSelectedWOPTags model.selectedWopTagsBuffer) ] [ text "Save Tags" ]
+                                ]
+                           , textarea
                                 [ cols 20, rows 10, onInput EditSelectedWOPNotes, value wop.notes ]
                                 []
                            , div [ class "familiarity-level-selector" ]

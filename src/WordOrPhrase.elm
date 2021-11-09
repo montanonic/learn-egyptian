@@ -4,6 +4,7 @@ import Dict exposing (Dict)
 import Dict.Extra as DictE
 import List.Extra as ListE
 import Set exposing (Set)
+import String.Extra as StringE
 
 
 
@@ -86,6 +87,40 @@ setFamiliarityLevel level wop =
 
     else
         Nothing
+
+
+setTags : String -> WOP -> WOP
+setTags tagString wop =
+    if String.isEmpty tagString then
+        wop
+
+    else
+        { wop | tags = stringToTags tagString }
+
+
+stringToTags : String -> List String
+stringToTags tagString =
+    if String.isEmpty tagString then
+        []
+
+    else
+        String.split "," tagString
+            |> List.map StringE.clean
+            |> ListE.filterNot String.isEmpty
+
+
+getTagList : Dict String WOP -> List String
+getTagList d =
+    Dict.values d
+        |> List.concatMap .tags
+        |> ListE.unique
+        |> List.sort
+
+
+fuzzyMatchTag : String -> Dict String WOP -> List String
+fuzzyMatchTag tag d =
+    List.filter (\existingTag -> ListE.isSubsequenceOf (String.toList tag) (String.toList existingTag))
+        (getTagList d)
 
 
 {-| For a word the key is just the word, and for a phrase like "لو سمحت", the key will be that whole
