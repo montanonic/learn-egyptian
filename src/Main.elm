@@ -151,6 +151,7 @@ type Msg
     | EditSelectedWOPDefinition Int String
     | EditSelectedWOPNotes String
     | SetSelectedWOPFamiliarityLevel Int
+    | EditSelectedWOPRomanization String
     | EditSelectedWOPTagsBuffer String
     | SetSelectedWOPTags String
     | DeselectWOP
@@ -284,7 +285,7 @@ update msg model =
             pure { model | selectedLesson = "", newLessonText = "", newLessonTitle = "" }
 
         SelectWord word ->
-            impure { model | selectedWop = word }
+            impure { model | selectedWop = word, selectedWopTagsBuffer = "" }
                 (\{ selectedWop } ->
                     -- autofocus the definition field if the word is not known
                     case WOP.get selectedWop model.wops of
@@ -325,6 +326,16 @@ update msg model =
                     | wops =
                         WOP.update model.selectedWop
                             (Maybe.andThen (WOP.setFamiliarityLevel familiarityLevel))
+                            model.wops
+                }
+                (.wops >> Dict.toList >> storeWops)
+
+        EditSelectedWOPRomanization romanization ->
+            impure
+                { model
+                    | wops =
+                        WOP.update model.selectedWop
+                            (Maybe.map (\wop -> { wop | romanization = romanization }))
                             model.wops
                 }
                 (.wops >> Dict.toList >> storeWops)
@@ -724,9 +735,20 @@ newAndEditLessonView model =
 
 lessonsView : Model -> Html Msg
 lessonsView model =
+    let
+        wordsOfLevel n =
+            (WOP.listWopsOfLevel n model.wops |> List.length |> String.fromInt) ++ " " ++ WOP.displayFamiliarityLevel n
+    in
     div [ class "lessons-view" ]
         [ h3 [] [ text "select a lesson" ]
-        , h5 [] [ text <| "currently learning " ++ String.fromInt (Dict.size model.wops) ++ " words!" ]
+        , h5 []
+            [ text <|
+                "currently learning "
+                    ++ String.fromInt (Dict.size model.wops)
+                    ++ " words!"
+                    ++ " including: "
+                    ++ String.join ", " (List.map wordsOfLevel [ 1, 2, 3, 4 ])
+            ]
         , div [ class "lesson-selector" ]
             (model.lessons
                 |> Dict.keys
@@ -781,7 +803,8 @@ selectedWordEdit model =
                                     []
                             )
                             wop.definitions
-                        ++ [ div [ class "selected-word-tags-edit" ]
+                        ++ [ input [ placeholder "romanization", value wop.romanization, onInput EditSelectedWOPRomanization ] []
+                           , div [ class "selected-word-tags-edit" ]
                                 [ div []
                                     (if not (String.isEmpty model.selectedWopTagsBuffer) then
                                         {- the matching tags we show are ONLY for the last term in the list -}

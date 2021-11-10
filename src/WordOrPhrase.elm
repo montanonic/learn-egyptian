@@ -40,6 +40,7 @@ type alias WOP =
     , notes : String
     , tags : List String
     , familiarityLevel : Int -- currently 1 through 4
+    , romanization : String -- optional guide for pronunciation
     }
 
 
@@ -67,7 +68,7 @@ for this, but I think it's slightly overkill for now.
 -}
 makeWOP : List String -> String -> WOP
 makeWOP wordOrPhrase definition =
-    { wordOrPhrase = wordOrPhrase, definitions = [ definition ], notes = "", tags = [], familiarityLevel = 1 }
+    { wordOrPhrase = wordOrPhrase, definitions = [ definition ], romanization = "", notes = "", tags = [], familiarityLevel = 1 }
 
 
 setDefinition : Int -> String -> WOP -> WOP
@@ -91,11 +92,7 @@ setFamiliarityLevel level wop =
 
 setTags : String -> WOP -> WOP
 setTags tagString wop =
-    if String.isEmpty tagString then
-        wop
-
-    else
-        { wop | tags = stringToTags tagString }
+    { wop | tags = stringToTags tagString }
 
 
 stringToTags : String -> List String
@@ -269,6 +266,6 @@ member wopKey =
     Set.member (removeFKD wopKey)
 
 
-migrateDictionary : Dict String WOP -> Dict String WOP
-migrateDictionary =
-    DictE.mapKeys (\k -> removeFKD k)
+listWopsOfLevel : Int -> Dict String WOP -> List WOP
+listWopsOfLevel familiarityLevel =
+    Dict.values >> List.filter (\wop -> wop.familiarityLevel == familiarityLevel)

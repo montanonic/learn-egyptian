@@ -6269,6 +6269,7 @@ var $author$project$WordOrPhrase$makeWOP = F2(
 				[definition]),
 			familiarityLevel: 1,
 			notes: '',
+			romanization: '',
 			tags: _List_Nil,
 			wordOrPhrase: wordOrPhrase
 		};
@@ -7089,7 +7090,7 @@ var $author$project$WordOrPhrase$stringToTags = function (tagString) {
 };
 var $author$project$WordOrPhrase$setTags = F2(
 	function (tagString, wop) {
-		return $elm$core$String$isEmpty(tagString) ? wop : _Utils_update(
+		return _Utils_update(
 			wop,
 			{
 				tags: $author$project$WordOrPhrase$stringToTags(tagString)
@@ -7198,6 +7199,9 @@ var $author$project$Main$storeWops = _Platform_outgoingPort(
 									_Utils_Tuple2(
 									'notes',
 									$elm$json$Json$Encode$string($.notes)),
+									_Utils_Tuple2(
+									'romanization',
+									$elm$json$Json$Encode$string($.romanization)),
 									_Utils_Tuple2(
 									'tags',
 									$elm$json$Json$Encode$list($elm$json$Json$Encode$string)($.tags)),
@@ -7449,7 +7453,7 @@ var $author$project$Main$update = F2(
 					$author$project$Main$impure,
 					_Utils_update(
 						model,
-						{selectedWop: word}),
+						{selectedWop: word, selectedWopTagsBuffer: ''}),
 					function (_v2) {
 						var selectedWop = _v2.selectedWop;
 						var _v3 = A2($author$project$WordOrPhrase$get, selectedWop, model.wops);
@@ -7517,6 +7521,30 @@ var $author$project$Main$update = F2(
 								model.selectedWop,
 								$elm$core$Maybe$andThen(
 									$author$project$WordOrPhrase$setFamiliarityLevel(familiarityLevel)),
+								model.wops)
+						}),
+					A2(
+						$elm$core$Basics$composeR,
+						function ($) {
+							return $.wops;
+						},
+						A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
+			case 'EditSelectedWOPRomanization':
+				var romanization = msg.a;
+				return A2(
+					$author$project$Main$impure,
+					_Utils_update(
+						model,
+						{
+							wops: A3(
+								$author$project$WordOrPhrase$update,
+								model.selectedWop,
+								$elm$core$Maybe$map(
+									function (wop) {
+										return _Utils_update(
+											wop,
+											{romanization: romanization});
+									}),
 								model.wops)
 						}),
 					A2(
@@ -7696,8 +7724,31 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			$elm$json$Json$Encode$string(string));
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
+var $author$project$WordOrPhrase$displayFamiliarityLevel = function (familiarityLevel) {
+	switch (familiarityLevel) {
+		case 1:
+			return 'New';
+		case 2:
+			return 'Recognized';
+		case 3:
+			return 'Familiar';
+		case 4:
+			return 'Learned';
+		default:
+			return '';
+	}
+};
 var $elm$html$Html$h3 = _VirtualDom_node('h3');
 var $elm$html$Html$h5 = _VirtualDom_node('h5');
+var $author$project$WordOrPhrase$listWopsOfLevel = function (familiarityLevel) {
+	return A2(
+		$elm$core$Basics$composeR,
+		$elm$core$Dict$values,
+		$elm$core$List$filter(
+			function (wop) {
+				return _Utils_eq(wop.familiarityLevel, familiarityLevel);
+			}));
+};
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -7738,6 +7789,11 @@ var $elm$core$Dict$size = function (dict) {
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Main$lessonsView = function (model) {
+	var wordsOfLevel = function (n) {
+		return $elm$core$String$fromInt(
+			$elm$core$List$length(
+				A2($author$project$WordOrPhrase$listWopsOfLevel, n, model.wops))) + (' ' + $author$project$WordOrPhrase$displayFamiliarityLevel(n));
+	};
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
@@ -7760,7 +7816,14 @@ var $author$project$Main$lessonsView = function (model) {
 					[
 						$elm$html$Html$text(
 						'currently learning ' + ($elm$core$String$fromInt(
-							$elm$core$Dict$size(model.wops)) + ' words!'))
+							$elm$core$Dict$size(model.wops)) + (' words!' + (' including: ' + A2(
+							$elm$core$String$join,
+							', ',
+							A2(
+								$elm$core$List$map,
+								wordsOfLevel,
+								_List_fromArray(
+									[1, 2, 3, 4])))))))
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -7986,20 +8049,6 @@ var $elm$html$Html$Attributes$classList = function (classes) {
 				$elm$core$List$map,
 				$elm$core$Tuple$first,
 				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
-};
-var $author$project$WordOrPhrase$displayFamiliarityLevel = function (familiarityLevel) {
-	switch (familiarityLevel) {
-		case 1:
-			return 'New';
-		case 2:
-			return 'Recognized';
-		case 3:
-			return 'Familiar';
-		case 4:
-			return 'Learned';
-		default:
-			return '';
-	}
 };
 var $elm_community$maybe_extra$Maybe$Extra$isJust = function (m) {
 	if (m.$ === 'Nothing') {
@@ -8387,6 +8436,9 @@ var $author$project$Main$EditSelectedWOPDefinition = F2(
 var $author$project$Main$EditSelectedWOPNotes = function (a) {
 	return {$: 'EditSelectedWOPNotes', a: a};
 };
+var $author$project$Main$EditSelectedWOPRomanization = function (a) {
+	return {$: 'EditSelectedWOPRomanization', a: a};
+};
 var $author$project$Main$EditSelectedWOPTagsBuffer = function (a) {
 	return {$: 'EditSelectedWOPTagsBuffer', a: a};
 };
@@ -8533,6 +8585,15 @@ var $author$project$Main$selectedWordEdit = function (model) {
 								wop.definitions),
 							_List_fromArray(
 								[
+									A2(
+									$elm$html$Html$input,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$placeholder('romanization'),
+											$elm$html$Html$Attributes$value(wop.romanization),
+											$elm$html$Html$Events$onInput($author$project$Main$EditSelectedWOPRomanization)
+										]),
+									_List_Nil),
 									A2(
 									$elm$html$Html$div,
 									_List_fromArray(
@@ -8870,24 +8931,29 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 											function (tags) {
 												return A2(
 													$elm$json$Json$Decode$andThen,
-													function (notes) {
+													function (romanization) {
 														return A2(
 															$elm$json$Json$Decode$andThen,
-															function (familiarityLevel) {
+															function (notes) {
 																return A2(
 																	$elm$json$Json$Decode$andThen,
-																	function (definitions) {
-																		return $elm$json$Json$Decode$succeed(
-																			{definitions: definitions, familiarityLevel: familiarityLevel, notes: notes, tags: tags, wordOrPhrase: wordOrPhrase});
+																	function (familiarityLevel) {
+																		return A2(
+																			$elm$json$Json$Decode$andThen,
+																			function (definitions) {
+																				return $elm$json$Json$Decode$succeed(
+																					{definitions: definitions, familiarityLevel: familiarityLevel, notes: notes, romanization: romanization, tags: tags, wordOrPhrase: wordOrPhrase});
+																			},
+																			A2(
+																				$elm$json$Json$Decode$field,
+																				'definitions',
+																				$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
 																	},
-																	A2(
-																		$elm$json$Json$Decode$field,
-																		'definitions',
-																		$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
+																	A2($elm$json$Json$Decode$field, 'familiarityLevel', $elm$json$Json$Decode$int));
 															},
-															A2($elm$json$Json$Decode$field, 'familiarityLevel', $elm$json$Json$Decode$int));
+															A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string));
 													},
-													A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string));
+													A2($elm$json$Json$Decode$field, 'romanization', $elm$json$Json$Decode$string));
 											},
 											A2(
 												$elm$json$Json$Decode$field,
