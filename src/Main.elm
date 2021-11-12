@@ -1,14 +1,15 @@
 port module Main exposing (..)
 
 import Browser
+import Browser.Events exposing (onKeyPress)
 import Dict exposing (Dict)
 import Dict.Extra as DictE
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
-import Json.Decode as D
-import Json.Encode as E
+import Json.Decode as Decode
+import Json.Encode as Encode
 import List.Extra as ListE
 import List.Zipper as Zipper exposing (Zipper)
 import Maybe.Extra as MaybeE
@@ -18,7 +19,7 @@ import Regex
 import SM2Flashcards exposing (SM2FlashcardData)
 import Set exposing (Set)
 import Utils
-import WordOrPhrase as WOP exposing (WOP)
+import WordOrPhrase as WOP exposing (WOP, update)
 
 
 
@@ -81,7 +82,7 @@ subscriptions _ =
     -- if not (String.isEmpty model.selectedWop) then
     --     Browser.Events.onMouseDown (D.succeed DeselectWord)
     -- else
-    Sub.none
+    onKeyPress keyDecoder
 
 
 
@@ -106,6 +107,7 @@ type alias Model =
     , wops : Dict String WOP
     , newWopDefinition : String
     , mouseDownWord : ( Int, Int, String ) -- line index (which line), word index (which word within line)
+    , hoveredWord : String
 
     -- new flashcard impl
     , onFlashcardPage : Bool
@@ -130,6 +132,7 @@ init { sm2FlashcardData, lessons, wops, lessonTranslations, newWopFlashcards } =
       , wops = Dict.fromList wops
       , newWopDefinition = ""
       , mouseDownWord = ( 0, 0, "" )
+      , hoveredWord = ""
       , onFlashcardPage = False
       , newWopFlashcards = Maybe.map (\{ before, current, after } -> Zipper.from before current after) newWopFlashcards
       }
@@ -178,6 +181,10 @@ type Msg
     | NavigateToFlashcardPage -- open up the flashcard view
     | MakeNewWopFlashcardSet (Maybe (List WOP)) (Random.Generator (List WOP))
     | NextFlashcard
+      -- misc (currently uncategorized)
+    | KeyPress String
+    | WordHoverStart String
+    | WordHoverLeave
 
 
 
@@ -190,6 +197,29 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        KeyPress key ->
+            {- handle pressing #'s 1 through 4 to change familiarity level -}
+            if (not <| String.isEmpty model.selectedWop) && model.selectedWop == model.hoveredWord then
+                String.toInt key
+                    |> Maybe.andThen
+                        (\n ->
+                            if n >= 1 && n <= 4 then
+                                Just <| update (SetSelectedWOPFamiliarityLevel n) model
+
+                            else
+                                Nothing
+                        )
+                    |> MaybeE.unwrap (pure model) identity
+
+            else
+                pure model
+
+        WordHoverStart word ->
+            pure { model | hoveredWord = word }
+
+        WordHoverLeave ->
+            pure { model | hoveredWord = "" }
+
         SaveDataModelToClipboard ->
             ( model, saveLocalStorageToClipboard () )
 
@@ -273,9 +303,9 @@ update msg model =
                             { url = "http://localhost:3000/updateAudioName"
                             , body =
                                 Http.jsonBody <|
-                                    E.object
-                                        [ ( "old", E.string existingTitle )
-                                        , ( "new", E.string newTitle )
+                                    Encode.object
+                                        [ ( "old", Encode.string existingTitle )
+                                        , ( "new", Encode.string newTitle )
                                         ]
                             , expect = Http.expectString BackendAudioUpdated
                             }
@@ -1286,6 +1316,8 @@ displayWords model lessonText =
                     )
                 , onMouseDown (MouseDownOnWord li wi word)
                 , onMouseUp (OpenPhraseCreationUI li wi word)
+                , onMouseOver <| WordHoverStart word
+                , onMouseLeave WordHoverLeave
                 ]
                 [ text word ]
     in
@@ -1367,18 +1399,21 @@ oldView model =
         ]
 
 
-
--- DETECT ENTER
-
-
-ifIsEnter : msg -> D.Decoder msg
+{-| Detect Enter.
+-}
+ifIsEnter : msg -> Decode.Decoder msg
 ifIsEnter msg =
-    D.field "key" D.string
-        |> D.andThen
+    Decode.field "key" Decode.string
+        |> Decode.andThen
             (\key ->
                 if key == "Enter" then
-                    D.succeed msg
+                    Decode.succeed msg
 
                 else
-                    D.fail "some other key"
+                    Decode.fail "some other key"
             )
+
+
+keyDecoder =
+    Decode.field "key" Decode.string
+        |> Decode.map KeyPress

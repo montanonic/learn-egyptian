@@ -60,7 +60,7 @@ body {
     overflow-y: scroll;
     direction: rtl;
     font-size: 30px;
-    max-height: 750px;
+    /* max-height: 750px; */
     padding-bottom: 40%;
 }
 
@@ -147,7 +147,7 @@ body {
 
 .selected-word-tags-edit {
     background-color: rgba(36, 24, 24, 0.507);
-    margin: 0 24px;
+    margin: 0 20px;
 }
 
 .familiarity-level-selector {
@@ -186,11 +186,14 @@ body {
     display: grid;
     grid-template-columns: 1fr 3fr;
     border: solid rgb(23, 109, 95);
+    height: 800px;
+    /* ensure the left bar doesn't move our window around */
 }
 
 .lesson-translation-box {
     background-color: rgb(20, 67, 83);
     display: flex;
     align-items: center;
+    border-radius: 10px;
     justify-content: center;
 }
