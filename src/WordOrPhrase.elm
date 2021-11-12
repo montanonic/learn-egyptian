@@ -1,7 +1,6 @@
 module WordOrPhrase exposing (..)
 
 import Dict exposing (Dict)
-import Dict.Extra as DictE
 import List.Extra as ListE
 import Set exposing (Set)
 import String.Extra as StringE
@@ -269,3 +268,11 @@ member wopKey =
 listWopsOfLevel : Int -> Dict String WOP -> List WOP
 listWopsOfLevel familiarityLevel =
     Dict.values >> List.filter (\wop -> wop.familiarityLevel == familiarityLevel)
+
+
+getFamiliarityLevel : String -> Dict String WOP -> Int
+getFamiliarityLevel wopKey wops =
+    get wopKey wops
+        |> Maybe.map (\wop -> wop.familiarityLevel)
+        -- this default shouldn't hit, so I pick an intentionally bad value
+        |> Maybe.withDefault 0

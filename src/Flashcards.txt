@@ -1,0 +1,48 @@
+module Flashcards exposing (FlashcardSet, PortFlashcardSet, fromPort, makeFlashcardSet, toPort)
+import List.Zipper as Zipper exposing (Zipper)
+import WordOrPhrase exposing (WOP)
+{-| Not a literal Set data type. A group of flashcards intended for a singular learning set. Once
+gone through, it goes away. The point of a flashcard set is to practice something in particular, and
+you can have multiple going on at once (likelier to happen for any large sets). No stats are tracked
+yet. You can of course update your word standings. The main progress method related to working
+through these flashcards is simply increasing the word level. That's it. Nothing else is tracked.
+When creating this, a random order for wops is recommended so that repeating a type of set doesn't
+feel predictable.
+-}
+type alias PortFriendly a =
+    { a | title : String, completed : Bool }
+type alias FlashcardSet =
+    PortFriendly { wops : Zipper WOP }
+type alias PortFlashcardSet =
+    PortFriendly { wops : List WOP }
+{-| The flashcards made by this will be traversed in the same order that the wops are provided.
+-}
+makeFlashcardSet : String -> List WOP -> Maybe FlashcardSet
+makeFlashcardSet title wops =
+    Maybe.map (\ws -> { wops = ws, title = title, completed = False }) (Zipper.fromList wops)
+toPort : FlashcardSet -> PortFlashcardSet
+toPort fs =
+    { wops = Zipper.toList fs.wops, title = fs.title, completed = fs.completed }
+fromPort : PortFlashcardSet -> Maybe FlashcardSet
+fromPort { wops, title, completed } =
+    Zipper.fromList wops |> Maybe.map (\zipper -> { wops = zipper, title = title, completed = completed })
+-- mwops : Maybe { a | wops : b } -> Maybe b
+-- mwops =
+--     Maybe.map .wops
+-- -- nextCard : Maybe FlashcardSet -> Maybe FlashcardSet
+-- -- nextCard =
+-- --     .wops >> Maybe.andThen Zipper.next
+-- currentCard : FlashcardSet -> Maybe WOP
+-- currentCard =
+--     .wops >> Maybe.map Zipper.current
+-- toList : FlashcardSet -> List WOP
+-- toList =
+--     Zipper.toList
+-- {-| Currently the same as `makeFlashcardSet` but definitions may diverge later. This is intended for
+-- deserializing from ports, whereas `makeFlashcardSet` is intended for initializing the data
+-- structure, period.
+-- -}
+-- fromList : List WOP -> Maybe FlashcardSet
+-- fromList =
+--     Zipper.fromList
+

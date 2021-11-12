@@ -10,11 +10,14 @@ import Http
 import Json.Decode as D
 import Json.Encode as E
 import List.Extra as ListE
+import List.Zipper as Zipper exposing (Zipper)
 import Maybe.Extra as MaybeE
+import Random
+import Random.List as RandomList
 import Regex
 import SM2Flashcards exposing (SM2FlashcardData)
 import Set exposing (Set)
-import Utils exposing (slidingWindow)
+import Utils
 import WordOrPhrase as WOP exposing (WOP)
 
 
@@ -27,6 +30,7 @@ type alias Flags =
     , lessons : List ( String, String )
     , lessonTranslations : List ( String, String )
     , wops : List ( String, WOP )
+    , newWopFlashcards : Maybe { before : List WOP, current : WOP, after : List WOP }
     }
 
 
@@ -50,10 +54,13 @@ port storeFlashcardEntry : SM2FlashcardData -> Cmd msg
 port storeLessonTranslations : List ( String, String ) -> Cmd msg
 
 
-port storeLessonData : List ( String, String ) -> Cmd msg
+port storeLessons : List ( String, String ) -> Cmd msg
 
 
 port storeWops : List ( String, WOP ) -> Cmd msg
+
+
+port storeNewWopFlashcards : Maybe { before : List WOP, current : WOP, after : List WOP } -> Cmd msg
 
 
 port saveLocalStorageToClipboard : () -> Cmd msg
@@ -99,11 +106,15 @@ type alias Model =
     , wops : Dict String WOP
     , newWopDefinition : String
     , mouseDownWord : ( Int, Int, String ) -- line index (which line), word index (which word within line)
+
+    -- new flashcard impl
+    , onFlashcardPage : Bool
+    , newWopFlashcards : Maybe (Zipper WOP)
     }
 
 
 init : Flags -> ( Model, Cmd Msg )
-init { sm2FlashcardData, lessons, wops, lessonTranslations } =
+init { sm2FlashcardData, lessons, wops, lessonTranslations, newWopFlashcards } =
     ( { draft = ""
       , mainWords = []
       , sm2FlashcardData = sm2FlashcardData
@@ -119,6 +130,8 @@ init { sm2FlashcardData, lessons, wops, lessonTranslations } =
       , wops = Dict.fromList wops
       , newWopDefinition = ""
       , mouseDownWord = ( 0, 0, "" )
+      , onFlashcardPage = False
+      , newWopFlashcards = Maybe.map (\{ before, current, after } -> Zipper.from before current after) newWopFlashcards
       }
     , Cmd.none
     )
@@ -161,6 +174,10 @@ type Msg
     | EditTranslationOfSelectedLesson String
     | MouseDownOnWord Int Int String -- used to start phrase creation
     | OpenPhraseCreationUI Int Int String
+      -- new flashcard stuff
+    | NavigateToFlashcardPage -- open up the flashcard view
+    | MakeNewWopFlashcardSet (Maybe (List WOP)) (Random.Generator (List WOP))
+    | NextFlashcard
 
 
 
@@ -217,7 +234,7 @@ update msg model =
         CreateNewLesson ->
             impure
                 { model | newLessonText = "", newLessonTitle = "", lessons = Dict.insert model.newLessonTitle model.newLessonText model.lessons }
-                (.lessons >> Dict.toList >> storeLessonData)
+                (.lessons >> Dict.toList >> storeLessons)
 
         {- BUG: When lesson title changes, the ordering of model updates leads to the active lesson
            being deselected. This is more of a problem with our conflation of viewing a lesson and editing a lesson, the sturucture isn't very well-conceived.
@@ -230,13 +247,23 @@ update msg model =
                         { m
                             | lessons = Dict.remove existingTitle m.lessons
                             , selectedLesson = newTitle
+                            , lessonTranslations = Dict.remove existingTitle m.lessonTranslations
                         }
 
                     else
                         m
 
+                existingTranslation =
+                    Dict.get existingTitle model.lessonTranslations
+
                 newModel =
-                    { model | lessons = Dict.insert newTitle model.newLessonText model.lessons }
+                    { model
+                        | lessons = Dict.insert newTitle model.newLessonText model.lessons
+                        , lessonTranslations =
+                            existingTranslation
+                                |> Maybe.map (\et -> Dict.insert newTitle et model.lessonTranslations)
+                                |> Maybe.withDefault model.lessonTranslations
+                    }
                         |> processTitleChange
 
                 {- audios are tied to lessons only by title, so when the title changes we need to change the file too -}
@@ -258,7 +285,7 @@ update msg model =
             in
             ( newModel
             , Cmd.batch
-                [ storeLessonData (newModel.lessons |> Dict.toList)
+                [ storeLessons (newModel.lessons |> Dict.toList)
                 , storeLessonTranslations (newModel.lessonTranslations |> Dict.toList)
                 , updateAudioName
                 ]
@@ -453,6 +480,31 @@ update msg model =
             else
                 pure model
 
+        NavigateToFlashcardPage ->
+            pure { model | onFlashcardPage = True }
+
+        MakeNewWopFlashcardSet maybeRandomizedWops randomizedWopsGenerator ->
+            case maybeRandomizedWops of
+                Just wops ->
+                    {- for now let's limit flashcard pools to 100 -}
+                    impure { model | newWopFlashcards = Zipper.fromList (List.take 100 wops) }
+                        (.newWopFlashcards >> Maybe.map Utils.deconstructZipper >> storeNewWopFlashcards)
+
+                Nothing ->
+                    ( model
+                    , Random.generate
+                        (\wops ->
+                            MakeNewWopFlashcardSet
+                                (Just wops)
+                                randomizedWopsGenerator
+                        )
+                        randomizedWopsGenerator
+                    )
+
+        NextFlashcard ->
+            impure { model | newWopFlashcards = Maybe.andThen Zipper.next model.newWopFlashcards }
+                (.newWopFlashcards >> Maybe.map Utils.deconstructZipper >> storeNewWopFlashcards)
+
 
 pure : Model -> ( Model, Cmd Msg )
 pure model =
@@ -480,7 +532,7 @@ process str =
     let
         unprocessedPairs =
             -- Debug.log "unprocessedPairs"
-            slidingWindow { step = 1, size = 2 } (String.toList str)
+            ListE.groupsOfWithStep 2 1 (String.toList str)
                 ++ (case ListE.last (String.toList str) of
                         Just lastChar ->
                             [ [ lastChar ] ]
@@ -662,17 +714,182 @@ twoLatinCharToArabicDict =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ h2 [] [ text "Learn Egyptian" ]
-        , button [ onClick SaveDataModelToClipboard ] [ text "Save Data Model to Clipboard (4MB limit)" ]
-        , newAndEditLessonView model
-        , lessonsView model
-        , if String.isEmpty model.selectedLesson then
-            span [] []
+    if model.onFlashcardPage then
+        flashcardView model
 
-          else
-            selectedLessonView model model.selectedLesson
+    else
+        div []
+            [ h2 [] [ text "Learn Egyptian" ]
+            , button [ onClick SaveDataModelToClipboard ] [ text "Save Data Model to Clipboard (4MB limit)" ]
+            , newAndEditLessonView model
+            , button [ onClick NavigateToFlashcardPage ] [ text "Go to Flashcards Page" ]
+            , lessonsView model
+            , if String.isEmpty model.selectedLesson then
+                span [] []
+
+              else
+                selectedLessonView model model.selectedLesson
+            ]
+
+
+flashcardView : Model -> Html Msg
+flashcardView model =
+    div [ class "flashcard-page" ]
+        [ case model.newWopFlashcards of
+            Just newWopFlashcards ->
+                let
+                    wop =
+                        Zipper.current newWopFlashcards
+
+                    currentFlashcardNumber =
+                        Zipper.before newWopFlashcards |> List.length |> (+) 1 |> String.fromInt
+
+                    totalSize =
+                        Zipper.toList newWopFlashcards |> List.length |> String.fromInt
+                in
+                div []
+                    [ p [ class "word new" ] [ text (String.join ", " wop.wordOrPhrase) ]
+                    , p []
+                        [ text (List.head wop.definitions |> Maybe.withDefault "no definition") ]
+                    , button
+                        [ onClick NextFlashcard ]
+                        [ text "Next Card" ]
+                    , p [] [ text ("on flashcard " ++ currentFlashcardNumber ++ "/" ++ totalSize) ]
+                    , getExampleSentenceForWop wop (Dict.values model.lessons) model.wops
+                    ]
+
+            Nothing ->
+                button
+                    [ onClick
+                        (MakeNewWopFlashcardSet Nothing
+                            (RandomList.shuffle <| WOP.listWopsOfLevel 1 model.wops)
+                        )
+                    ]
+                    [ text "Start a new set of new wops" ]
         ]
+
+
+{-| So this is the fun part of a flashcard: looking up an example sentence for it in the lessons.
+
+This is a simple algorithm that will return on the first match. If lessons are provided in a
+randomized order, the sentence used will differ. In fact, if given a random order list, we can just
+cycle the list at the point of every match and really try to ensure that there's lesson variety in
+the flashcards.
+
+That's not a big deal to me right now so I'll omit that.
+
+Returning a String would be nice for composing, but it's actually a bit easier to just render the
+html here for now, which is what I'll do.
+
+A more useful search strategy could involve generating a very large dict iteratively. The Dict would
+map wops to a list of lessons that contain them, perhaps also (nicely) alongside the indices at
+which the WOP can be found. The Dict.update function would be crucial here, and we'd just do that in
+a long reduce over lessons. The end result being a dict where we just give it the WOP, and we can
+immediately see every single lesson it belongs to, and every position it takes within that lesson.
+Pretty cool! But I'll stick with this v1.0 implementation for now cuz it was faster to conceptualize
+and get running.
+
+-}
+getExampleSentenceForWop : WOP -> List String -> Dict String WOP -> Html Msg
+getExampleSentenceForWop wop lessons wops =
+    if WOP.isPhrase wop then
+        p [] [ text "phrases currently unsupported" ]
+
+    else
+        let
+            word =
+                String.join " " wop.wordOrPhrase
+
+            lessonContainingWord =
+                ListE.find
+                    (\lesson ->
+                        markWordCharsFromNonWordChars lesson
+                            |> List.any
+                                (\displayWord ->
+                                    case displayWord of
+                                        DisplayWord lessonWord ->
+                                            WOP.tashkylEquivalent word lessonWord
+
+                                        _ ->
+                                            False
+                                )
+                    )
+                    lessons
+
+            fullSentenceContainingWord =
+                Maybe.map
+                    (\lesson ->
+                        let
+                            ( beforeMatch, withMatch ) =
+                                markWordCharsFromNonWordChars lesson
+                                    |> ListE.splitWhen
+                                        (\displayWord ->
+                                            case displayWord of
+                                                DisplayWord lessonWord ->
+                                                    not (WOP.tashkylEquivalent word lessonWord)
+
+                                                _ ->
+                                                    True
+                                        )
+                                    {- we know there's a match since the lesson was fetched from the
+                                       criteria of containing the target word
+                                    -}
+                                    |> Maybe.withDefault ( [], [] )
+
+                            ( match, afterMatch ) =
+                                ListE.uncons withMatch |> Maybe.withDefault ( DisplayWord "", [] )
+
+                            terminalPunctuationRx =
+                                ".?؟!" |> Regex.fromString |> Maybe.withDefault Regex.never
+
+                            isSentenceTerminal displayWord =
+                                case displayWord of
+                                    DisplayNonWord nonWord ->
+                                        -- keep going as long as we don't hit terminal punctuation
+                                        Regex.contains terminalPunctuationRx nonWord
+
+                                    _ ->
+                                        True
+
+                            sentenceBeforeMatch =
+                                ListE.takeWhileRight (not << isSentenceTerminal) beforeMatch
+
+                            sentenceAfterMatch =
+                                ListE.findIndex isSentenceTerminal afterMatch
+                                    |> Maybe.withDefault 0
+                                    |> (\endIndex -> List.take (endIndex + 1) afterMatch)
+                        in
+                        List.concat [ sentenceBeforeMatch, [ match ], sentenceAfterMatch ]
+                    )
+                    lessonContainingWord
+
+            wordFamiliarityClass =
+                class <| String.toLower <| WOP.displayFamiliarityLevel (WOP.getFamiliarityLevel word wops)
+        in
+        case fullSentenceContainingWord of
+            Nothing ->
+                div [] [ text word ]
+
+            Just exampleSentence ->
+                div [ class "example-sentence" ]
+                    (List.map
+                        (\displayWordInSentence ->
+                            case displayWordInSentence of
+                                DisplayWord wordInSentence ->
+                                    if WOP.tashkylEquivalent wordInSentence word then
+                                        span [ class "target-word-in-sentence", wordFamiliarityClass ] [ text word ]
+
+                                    else
+                                        span [ wordFamiliarityClass ] [ text wordInSentence ]
+
+                                DisplayNonWord nonWordInSentence ->
+                                    span [ class "non-word" ] [ text nonWordInSentence ]
+
+                                _ ->
+                                    div [] [ text "INVALID" ]
+                        )
+                        exampleSentence
+                    )
 
 
 newLessonView : Model -> Html Msg
@@ -890,7 +1107,7 @@ markWordCharsFromNonWordChars : String -> List WordDisplayTypes
 markWordCharsFromNonWordChars lineOfText =
     let
         rxString =
-            " *():.?؟,”،=\\-"
+            " *():.?؟!,”،=\\-"
 
         nonWordDetectorRx =
             Maybe.withDefault Regex.never <|
@@ -1048,12 +1265,6 @@ markPhrases allPhrasesWithLengths list =
 displayWords : Model -> String -> Html Msg
 displayWords model lessonText =
     let
-        getFamiliarityLevel wopKey =
-            WOP.get wopKey model.wops
-                |> Maybe.map (\wop -> wop.familiarityLevel)
-                -- this default shouldn't hit, so I pick an intentionally bad value
-                |> Maybe.withDefault 0
-
         {- li = lineIndex, wi = wordIndex, partOfPhrase = HACK short term solution -}
         displayWord word li wi partOfPhrase =
             span
@@ -1063,7 +1274,9 @@ displayWords model lessonText =
                     , ( "in-dict", WOP.get word model.wops |> MaybeE.isJust )
                     , ( "part-of-phrase", partOfPhrase )
                     ]
-                , class <| String.toLower <| WOP.displayFamiliarityLevel (getFamiliarityLevel word)
+                , class <|
+                    String.toLower <|
+                        WOP.displayFamiliarityLevel (WOP.getFamiliarityLevel word model.wops)
                 , onClick
                     (if model.selectedWop == word then
                         DeselectWOP

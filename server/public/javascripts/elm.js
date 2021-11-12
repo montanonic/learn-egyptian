@@ -4532,6 +4532,89 @@ function _Http_track(router, xhr, tracker)
 	});
 }
 
+
+var _Bitwise_and = F2(function(a, b)
+{
+	return a & b;
+});
+
+var _Bitwise_or = F2(function(a, b)
+{
+	return a | b;
+});
+
+var _Bitwise_xor = F2(function(a, b)
+{
+	return a ^ b;
+});
+
+function _Bitwise_complement(a)
+{
+	return ~a;
+};
+
+var _Bitwise_shiftLeftBy = F2(function(offset, a)
+{
+	return a << offset;
+});
+
+var _Bitwise_shiftRightBy = F2(function(offset, a)
+{
+	return a >> offset;
+});
+
+var _Bitwise_shiftRightZfBy = F2(function(offset, a)
+{
+	return a >>> offset;
+});
+
+
+
+function _Time_now(millisToPosix)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(millisToPosix(Date.now())));
+	});
+}
+
+var _Time_setInterval = F2(function(interval, task)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var id = setInterval(function() { _Scheduler_rawSpawn(task); }, interval);
+		return function() { clearInterval(id); };
+	});
+});
+
+function _Time_here()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(
+			A2($elm$time$Time$customZone, -(new Date().getTimezoneOffset()), _List_Nil)
+		));
+	});
+}
+
+
+function _Time_getZoneName()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		try
+		{
+			var name = $elm$time$Time$Name(Intl.DateTimeFormat().resolvedOptions().timeZone);
+		}
+		catch (e)
+		{
+			var name = $elm$time$Time$Offset(new Date().getTimezoneOffset());
+		}
+		callback(_Scheduler_succeed(name));
+	});
+}
+
+
 // CREATE
 
 var _Regex_never = /.^/;
@@ -4631,6 +4714,10 @@ var _Regex_splitAtMost = F3(function(n, re, str)
 });
 
 var _Regex_infinity = Infinity;
+var $elm$core$Maybe$Just = function (a) {
+	return {$: 'Just', a: a};
+};
+var $elm$core$Maybe$Nothing = {$: 'Nothing'};
 var $elm$core$List$cons = _List_cons;
 var $elm$core$Elm$JsArray$foldr = _JsArray_foldr;
 var $elm$core$Array$foldr = F3(
@@ -4734,10 +4821,6 @@ var $elm$json$Json$Decode$OneOf = function (a) {
 };
 var $elm$core$Basics$False = {$: 'False'};
 var $elm$core$Basics$add = _Basics_add;
-var $elm$core$Maybe$Just = function (a) {
-	return {$: 'Just', a: a};
-};
-var $elm$core$Maybe$Nothing = {$: 'Nothing'};
 var $elm$core$String$all = _String_all;
 var $elm$core$Basics$and = _Basics_and;
 var $elm$core$Basics$append = _Utils_append;
@@ -5423,6 +5506,18 @@ var $elm$core$Task$perform = F2(
 var $elm$browser$Browser$element = _Browser_element;
 var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$json$Json$Decode$index = _Json_decodeIndex;
+var $wernerdegroot$listzipper$List$Zipper$Zipper = F3(
+	function (a, b, c) {
+		return {$: 'Zipper', a: a, b: b, c: c};
+	});
+var $wernerdegroot$listzipper$List$Zipper$from = F3(
+	function (bef, curr, aft) {
+		return A3(
+			$wernerdegroot$listzipper$List$Zipper$Zipper,
+			$elm$core$List$reverse(bef),
+			curr,
+			aft);
+	});
 var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
 var $elm$core$Dict$Black = {$: 'Black'};
@@ -5546,6 +5641,16 @@ var $elm$core$Dict$fromList = function (assocs) {
 		$elm$core$Dict$empty,
 		assocs);
 };
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$init = function (_v0) {
@@ -5553,6 +5658,7 @@ var $author$project$Main$init = function (_v0) {
 	var lessons = _v0.lessons;
 	var wops = _v0.wops;
 	var lessonTranslations = _v0.lessonTranslations;
+	var newWopFlashcards = _v0.newWopFlashcards;
 	return _Utils_Tuple2(
 		{
 			draft: '',
@@ -5565,6 +5671,16 @@ var $author$project$Main$init = function (_v0) {
 			newLessonText: '',
 			newLessonTitle: '',
 			newWopDefinition: '',
+			newWopFlashcards: A2(
+				$elm$core$Maybe$map,
+				function (_v1) {
+					var before = _v1.before;
+					var current = _v1.current;
+					var after = _v1.after;
+					return A3($wernerdegroot$listzipper$List$Zipper$from, before, current, after);
+				},
+				newWopFlashcards),
+			onFlashcardPage: false,
 			selectedLesson: '',
 			selectedWop: '',
 			selectedWopTagsBuffer: '',
@@ -5575,6 +5691,8 @@ var $author$project$Main$init = function (_v0) {
 };
 var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $elm$json$Json$Decode$list = _Json_decodeList;
+var $elm$json$Json$Decode$null = _Json_decodeNull;
+var $elm$json$Json$Decode$oneOf = _Json_oneOf;
 var $elm$json$Json$Decode$string = _Json_decodeString;
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
@@ -5587,6 +5705,10 @@ var $author$project$Main$BackendAudioUpdated = function (a) {
 var $author$project$Main$DisplayNonWord = function (a) {
 	return {$: 'DisplayNonWord', a: a};
 };
+var $author$project$Main$MakeNewWopFlashcardSet = F2(
+	function (a, b) {
+		return {$: 'MakeNewWopFlashcardSet', a: a, b: b};
+	});
 var $elm$core$List$any = F2(
 	function (isOkay, list) {
 		any:
@@ -5637,6 +5759,25 @@ var $elm$core$Basics$composeR = F3(
 		return g(
 			f(x));
 	});
+var $wernerdegroot$listzipper$List$Zipper$after = function (_v0) {
+	var rs = _v0.c;
+	return rs;
+};
+var $wernerdegroot$listzipper$List$Zipper$before = function (_v0) {
+	var ls = _v0.a;
+	return $elm$core$List$reverse(ls);
+};
+var $wernerdegroot$listzipper$List$Zipper$current = function (_v0) {
+	var x = _v0.b;
+	return x;
+};
+var $author$project$Utils$deconstructZipper = function (z) {
+	return {
+		after: $wernerdegroot$listzipper$List$Zipper$after(z),
+		before: $wernerdegroot$listzipper$List$Zipper$before(z),
+		current: $wernerdegroot$listzipper$List$Zipper$current(z)
+	};
+};
 var $elm$core$List$drop = F2(
 	function (n, list) {
 		drop:
@@ -6159,6 +6300,123 @@ var $elm$core$List$filter = F2(
 			_List_Nil,
 			list);
 	});
+var $wernerdegroot$listzipper$List$Zipper$fromList = function (xs) {
+	if (!xs.b) {
+		return $elm$core$Maybe$Nothing;
+	} else {
+		var y = xs.a;
+		var ys = xs.b;
+		return $elm$core$Maybe$Just(
+			A3($wernerdegroot$listzipper$List$Zipper$Zipper, _List_Nil, y, ys));
+	}
+};
+var $elm$random$Random$Generate = function (a) {
+	return {$: 'Generate', a: a};
+};
+var $elm$random$Random$Seed = F2(
+	function (a, b) {
+		return {$: 'Seed', a: a, b: b};
+	});
+var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
+var $elm$random$Random$next = function (_v0) {
+	var state0 = _v0.a;
+	var incr = _v0.b;
+	return A2($elm$random$Random$Seed, ((state0 * 1664525) + incr) >>> 0, incr);
+};
+var $elm$random$Random$initialSeed = function (x) {
+	var _v0 = $elm$random$Random$next(
+		A2($elm$random$Random$Seed, 0, 1013904223));
+	var state1 = _v0.a;
+	var incr = _v0.b;
+	var state2 = (state1 + x) >>> 0;
+	return $elm$random$Random$next(
+		A2($elm$random$Random$Seed, state2, incr));
+};
+var $elm$time$Time$Name = function (a) {
+	return {$: 'Name', a: a};
+};
+var $elm$time$Time$Offset = function (a) {
+	return {$: 'Offset', a: a};
+};
+var $elm$time$Time$Zone = F2(
+	function (a, b) {
+		return {$: 'Zone', a: a, b: b};
+	});
+var $elm$time$Time$customZone = $elm$time$Time$Zone;
+var $elm$time$Time$Posix = function (a) {
+	return {$: 'Posix', a: a};
+};
+var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
+var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$random$Random$init = A2(
+	$elm$core$Task$andThen,
+	function (time) {
+		return $elm$core$Task$succeed(
+			$elm$random$Random$initialSeed(
+				$elm$time$Time$posixToMillis(time)));
+	},
+	$elm$time$Time$now);
+var $elm$random$Random$step = F2(
+	function (_v0, seed) {
+		var generator = _v0.a;
+		return generator(seed);
+	});
+var $elm$random$Random$onEffects = F3(
+	function (router, commands, seed) {
+		if (!commands.b) {
+			return $elm$core$Task$succeed(seed);
+		} else {
+			var generator = commands.a.a;
+			var rest = commands.b;
+			var _v1 = A2($elm$random$Random$step, generator, seed);
+			var value = _v1.a;
+			var newSeed = _v1.b;
+			return A2(
+				$elm$core$Task$andThen,
+				function (_v2) {
+					return A3($elm$random$Random$onEffects, router, rest, newSeed);
+				},
+				A2($elm$core$Platform$sendToApp, router, value));
+		}
+	});
+var $elm$random$Random$onSelfMsg = F3(
+	function (_v0, _v1, seed) {
+		return $elm$core$Task$succeed(seed);
+	});
+var $elm$random$Random$Generator = function (a) {
+	return {$: 'Generator', a: a};
+};
+var $elm$random$Random$map = F2(
+	function (func, _v0) {
+		var genA = _v0.a;
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v1 = genA(seed0);
+				var a = _v1.a;
+				var seed1 = _v1.b;
+				return _Utils_Tuple2(
+					func(a),
+					seed1);
+			});
+	});
+var $elm$random$Random$cmdMap = F2(
+	function (func, _v0) {
+		var generator = _v0.a;
+		return $elm$random$Random$Generate(
+			A2($elm$random$Random$map, func, generator));
+	});
+_Platform_effectManagers['Random'] = _Platform_createManager($elm$random$Random$init, $elm$random$Random$onEffects, $elm$random$Random$onSelfMsg, $elm$random$Random$cmdMap);
+var $elm$random$Random$command = _Platform_leaf('Random');
+var $elm$random$Random$generate = F2(
+	function (tagger, generator) {
+		return $elm$random$Random$command(
+			$elm$random$Random$Generate(
+				A2($elm$random$Random$map, tagger, generator)));
+	});
 var $elm_community$list_extra$List$Extra$filterNot = F2(
 	function (pred, list) {
 		return A2(
@@ -6274,16 +6532,6 @@ var $author$project$WordOrPhrase$makeWOP = F2(
 			wordOrPhrase: wordOrPhrase
 		};
 	});
-var $elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return $elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
 var $author$project$Main$DisplayWord = function (a) {
 	return {$: 'DisplayWord', a: a};
 };
@@ -6326,7 +6574,7 @@ var $elm$core$Maybe$withDefault = F2(
 		}
 	});
 var $author$project$Main$markWordCharsFromNonWordChars = function (lineOfText) {
-	var rxString = ' *():.?؟,”،=\\-';
+	var rxString = ' *():.?؟!,”،=\\-';
 	var nonWordDetectorRx = A2(
 		$elm$core$Maybe$withDefault,
 		$elm$regex$Regex$never,
@@ -6373,6 +6621,23 @@ var $elm$core$Basics$min = F2(
 		return (_Utils_cmp(x, y) < 0) ? x : y;
 	});
 var $elm$core$Basics$neq = _Utils_notEqual;
+var $wernerdegroot$listzipper$List$Zipper$next = function (_v0) {
+	var ls = _v0.a;
+	var x = _v0.b;
+	var rs = _v0.c;
+	if (!rs.b) {
+		return $elm$core$Maybe$Nothing;
+	} else {
+		var y = rs.a;
+		var ys = rs.b;
+		return $elm$core$Maybe$Just(
+			A3(
+				$wernerdegroot$listzipper$List$Zipper$Zipper,
+				A2($elm$core$List$cons, x, ls),
+				y,
+				ys));
+	}
+};
 var $elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
 		A3(
@@ -6558,6 +6823,145 @@ var $elm$http$Http$post = function (r) {
 	return $elm$http$Http$request(
 		{body: r.body, expect: r.expect, headers: _List_Nil, method: 'POST', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
 };
+var $elm$core$List$takeReverse = F3(
+	function (n, list, kept) {
+		takeReverse:
+		while (true) {
+			if (n <= 0) {
+				return kept;
+			} else {
+				if (!list.b) {
+					return kept;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs,
+						$temp$kept = A2($elm$core$List$cons, x, kept);
+					n = $temp$n;
+					list = $temp$list;
+					kept = $temp$kept;
+					continue takeReverse;
+				}
+			}
+		}
+	});
+var $elm$core$List$takeTailRec = F2(
+	function (n, list) {
+		return $elm$core$List$reverse(
+			A3($elm$core$List$takeReverse, n, list, _List_Nil));
+	});
+var $elm$core$List$takeFast = F3(
+	function (ctr, n, list) {
+		if (n <= 0) {
+			return _List_Nil;
+		} else {
+			var _v0 = _Utils_Tuple2(n, list);
+			_v0$1:
+			while (true) {
+				_v0$5:
+				while (true) {
+					if (!_v0.b.b) {
+						return list;
+					} else {
+						if (_v0.b.b.b) {
+							switch (_v0.a) {
+								case 1:
+									break _v0$1;
+								case 2:
+									var _v2 = _v0.b;
+									var x = _v2.a;
+									var _v3 = _v2.b;
+									var y = _v3.a;
+									return _List_fromArray(
+										[x, y]);
+								case 3:
+									if (_v0.b.b.b.b) {
+										var _v4 = _v0.b;
+										var x = _v4.a;
+										var _v5 = _v4.b;
+										var y = _v5.a;
+										var _v6 = _v5.b;
+										var z = _v6.a;
+										return _List_fromArray(
+											[x, y, z]);
+									} else {
+										break _v0$5;
+									}
+								default:
+									if (_v0.b.b.b.b && _v0.b.b.b.b.b) {
+										var _v7 = _v0.b;
+										var x = _v7.a;
+										var _v8 = _v7.b;
+										var y = _v8.a;
+										var _v9 = _v8.b;
+										var z = _v9.a;
+										var _v10 = _v9.b;
+										var w = _v10.a;
+										var tl = _v10.b;
+										return (ctr > 1000) ? A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A2($elm$core$List$takeTailRec, n - 4, tl))))) : A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A3($elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
+									} else {
+										break _v0$5;
+									}
+							}
+						} else {
+							if (_v0.a === 1) {
+								break _v0$1;
+							} else {
+								break _v0$5;
+							}
+						}
+					}
+				}
+				return list;
+			}
+			var _v1 = _v0.b;
+			var x = _v1.a;
+			return _List_fromArray(
+				[x]);
+		}
+	});
+var $elm$core$List$take = F2(
+	function (n, list) {
+		return A3($elm$core$List$takeFast, 0, n, list);
+	});
+var $elm_community$list_extra$List$Extra$groupsOfWithStep = F3(
+	function (size, step, xs) {
+		var xs_ = A2($elm$core$List$drop, step, xs);
+		var thisGroup = A2($elm$core$List$take, size, xs);
+		var okayLength = _Utils_eq(
+			size,
+			$elm$core$List$length(thisGroup));
+		var okayArgs = (size > 0) && (step > 0);
+		return (okayArgs && okayLength) ? A2(
+			$elm$core$List$cons,
+			thisGroup,
+			A3($elm_community$list_extra$List$Extra$groupsOfWithStep, size, step, xs_)) : _List_Nil;
+	});
 var $elm_community$list_extra$List$Extra$last = function (items) {
 	last:
 	while (true) {
@@ -6685,34 +7089,6 @@ var $author$project$Main$oneLatinCharToArabicDict = $elm$core$Dict$fromList(
 			_Utils_chr('Z'),
 			_Utils_chr('ظ'))
 		]));
-var $elm$core$Tuple$second = function (_v0) {
-	var y = _v0.b;
-	return y;
-};
-var $author$project$Utils$slidingWindow = F2(
-	function (_v0, list) {
-		var size = _v0.size;
-		var step = _v0.step;
-		return $elm$core$List$reverse(
-			A3(
-				$elm$core$List$foldl,
-				F2(
-					function (elem, _v1) {
-						var window = _v1.a;
-						var result = _v1.b;
-						var currentWindow = _Utils_ap(
-							window,
-							_List_fromArray(
-								[elem]));
-						return (!_Utils_eq(
-							$elm$core$List$length(currentWindow),
-							size)) ? _Utils_Tuple2(currentWindow, result) : _Utils_Tuple2(
-							A2($elm$core$List$drop, step, currentWindow),
-							A2($elm$core$List$cons, currentWindow, result));
-					}),
-				_Utils_Tuple2(_List_Nil, _List_Nil),
-				list).b);
-	});
 var $author$project$Main$twoLatinCharToArabicDict = $elm$core$Dict$fromList(
 	_List_fromArray(
 		[
@@ -6778,9 +7154,10 @@ var $elm_community$maybe_extra$Maybe$Extra$unwrap = F3(
 	});
 var $author$project$Main$process = function (str) {
 	var unprocessedPairs = _Utils_ap(
-		A2(
-			$author$project$Utils$slidingWindow,
-			{size: 2, step: 1},
+		A3(
+			$elm_community$list_extra$List$Extra$groupsOfWithStep,
+			2,
+			1,
 			$elm$core$String$toList(str)),
 		function () {
 			var _v2 = $elm_community$list_extra$List$Extra$last(
@@ -6863,132 +7240,6 @@ var $author$project$Main$process = function (str) {
 var $author$project$Main$pure = function (model) {
 	return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 };
-var $elm$core$List$takeReverse = F3(
-	function (n, list, kept) {
-		takeReverse:
-		while (true) {
-			if (n <= 0) {
-				return kept;
-			} else {
-				if (!list.b) {
-					return kept;
-				} else {
-					var x = list.a;
-					var xs = list.b;
-					var $temp$n = n - 1,
-						$temp$list = xs,
-						$temp$kept = A2($elm$core$List$cons, x, kept);
-					n = $temp$n;
-					list = $temp$list;
-					kept = $temp$kept;
-					continue takeReverse;
-				}
-			}
-		}
-	});
-var $elm$core$List$takeTailRec = F2(
-	function (n, list) {
-		return $elm$core$List$reverse(
-			A3($elm$core$List$takeReverse, n, list, _List_Nil));
-	});
-var $elm$core$List$takeFast = F3(
-	function (ctr, n, list) {
-		if (n <= 0) {
-			return _List_Nil;
-		} else {
-			var _v0 = _Utils_Tuple2(n, list);
-			_v0$1:
-			while (true) {
-				_v0$5:
-				while (true) {
-					if (!_v0.b.b) {
-						return list;
-					} else {
-						if (_v0.b.b.b) {
-							switch (_v0.a) {
-								case 1:
-									break _v0$1;
-								case 2:
-									var _v2 = _v0.b;
-									var x = _v2.a;
-									var _v3 = _v2.b;
-									var y = _v3.a;
-									return _List_fromArray(
-										[x, y]);
-								case 3:
-									if (_v0.b.b.b.b) {
-										var _v4 = _v0.b;
-										var x = _v4.a;
-										var _v5 = _v4.b;
-										var y = _v5.a;
-										var _v6 = _v5.b;
-										var z = _v6.a;
-										return _List_fromArray(
-											[x, y, z]);
-									} else {
-										break _v0$5;
-									}
-								default:
-									if (_v0.b.b.b.b && _v0.b.b.b.b.b) {
-										var _v7 = _v0.b;
-										var x = _v7.a;
-										var _v8 = _v7.b;
-										var y = _v8.a;
-										var _v9 = _v8.b;
-										var z = _v9.a;
-										var _v10 = _v9.b;
-										var w = _v10.a;
-										var tl = _v10.b;
-										return (ctr > 1000) ? A2(
-											$elm$core$List$cons,
-											x,
-											A2(
-												$elm$core$List$cons,
-												y,
-												A2(
-													$elm$core$List$cons,
-													z,
-													A2(
-														$elm$core$List$cons,
-														w,
-														A2($elm$core$List$takeTailRec, n - 4, tl))))) : A2(
-											$elm$core$List$cons,
-											x,
-											A2(
-												$elm$core$List$cons,
-												y,
-												A2(
-													$elm$core$List$cons,
-													z,
-													A2(
-														$elm$core$List$cons,
-														w,
-														A3($elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
-									} else {
-										break _v0$5;
-									}
-							}
-						} else {
-							if (_v0.a === 1) {
-								break _v0$1;
-							} else {
-								break _v0$5;
-							}
-						}
-					}
-				}
-				return list;
-			}
-			var _v1 = _v0.b;
-			var x = _v1.a;
-			return _List_fromArray(
-				[x]);
-		}
-	});
-var $elm$core$List$take = F2(
-	function (n, list) {
-		return A3($elm$core$List$takeFast, 0, n, list);
-	});
 var $elm_community$list_extra$List$Extra$removeAt = F2(
 	function (index, l) {
 		if (index < 0) {
@@ -7144,21 +7395,6 @@ var $author$project$Main$storeFlashcardEntry = _Platform_outgoingPort(
 					$elm$json$Json$Encode$list($elm$json$Json$Encode$int)($.englishData))
 				]));
 	});
-var $author$project$Main$storeLessonData = _Platform_outgoingPort(
-	'storeLessonData',
-	$elm$json$Json$Encode$list(
-		function ($) {
-			var a = $.a;
-			var b = $.b;
-			return A2(
-				$elm$json$Json$Encode$list,
-				$elm$core$Basics$identity,
-				_List_fromArray(
-					[
-						$elm$json$Json$Encode$string(a),
-						$elm$json$Json$Encode$string(b)
-					]));
-		}));
 var $author$project$Main$storeLessonTranslations = _Platform_outgoingPort(
 	'storeLessonTranslations',
 	$elm$json$Json$Encode$list(
@@ -7174,6 +7410,124 @@ var $author$project$Main$storeLessonTranslations = _Platform_outgoingPort(
 						$elm$json$Json$Encode$string(b)
 					]));
 		}));
+var $author$project$Main$storeLessons = _Platform_outgoingPort(
+	'storeLessons',
+	$elm$json$Json$Encode$list(
+		function ($) {
+			var a = $.a;
+			var b = $.b;
+			return A2(
+				$elm$json$Json$Encode$list,
+				$elm$core$Basics$identity,
+				_List_fromArray(
+					[
+						$elm$json$Json$Encode$string(a),
+						$elm$json$Json$Encode$string(b)
+					]));
+		}));
+var $elm$core$Maybe$destruct = F3(
+	function (_default, func, maybe) {
+		if (maybe.$ === 'Just') {
+			var a = maybe.a;
+			return func(a);
+		} else {
+			return _default;
+		}
+	});
+var $author$project$Main$storeNewWopFlashcards = _Platform_outgoingPort(
+	'storeNewWopFlashcards',
+	function ($) {
+		return A3(
+			$elm$core$Maybe$destruct,
+			$elm$json$Json$Encode$null,
+			function ($) {
+				return $elm$json$Json$Encode$object(
+					_List_fromArray(
+						[
+							_Utils_Tuple2(
+							'after',
+							$elm$json$Json$Encode$list(
+								function ($) {
+									return $elm$json$Json$Encode$object(
+										_List_fromArray(
+											[
+												_Utils_Tuple2(
+												'definitions',
+												$elm$json$Json$Encode$list($elm$json$Json$Encode$string)($.definitions)),
+												_Utils_Tuple2(
+												'familiarityLevel',
+												$elm$json$Json$Encode$int($.familiarityLevel)),
+												_Utils_Tuple2(
+												'notes',
+												$elm$json$Json$Encode$string($.notes)),
+												_Utils_Tuple2(
+												'romanization',
+												$elm$json$Json$Encode$string($.romanization)),
+												_Utils_Tuple2(
+												'tags',
+												$elm$json$Json$Encode$list($elm$json$Json$Encode$string)($.tags)),
+												_Utils_Tuple2(
+												'wordOrPhrase',
+												$elm$json$Json$Encode$list($elm$json$Json$Encode$string)($.wordOrPhrase))
+											]));
+								})($.after)),
+							_Utils_Tuple2(
+							'before',
+							$elm$json$Json$Encode$list(
+								function ($) {
+									return $elm$json$Json$Encode$object(
+										_List_fromArray(
+											[
+												_Utils_Tuple2(
+												'definitions',
+												$elm$json$Json$Encode$list($elm$json$Json$Encode$string)($.definitions)),
+												_Utils_Tuple2(
+												'familiarityLevel',
+												$elm$json$Json$Encode$int($.familiarityLevel)),
+												_Utils_Tuple2(
+												'notes',
+												$elm$json$Json$Encode$string($.notes)),
+												_Utils_Tuple2(
+												'romanization',
+												$elm$json$Json$Encode$string($.romanization)),
+												_Utils_Tuple2(
+												'tags',
+												$elm$json$Json$Encode$list($elm$json$Json$Encode$string)($.tags)),
+												_Utils_Tuple2(
+												'wordOrPhrase',
+												$elm$json$Json$Encode$list($elm$json$Json$Encode$string)($.wordOrPhrase))
+											]));
+								})($.before)),
+							_Utils_Tuple2(
+							'current',
+							function ($) {
+								return $elm$json$Json$Encode$object(
+									_List_fromArray(
+										[
+											_Utils_Tuple2(
+											'definitions',
+											$elm$json$Json$Encode$list($elm$json$Json$Encode$string)($.definitions)),
+											_Utils_Tuple2(
+											'familiarityLevel',
+											$elm$json$Json$Encode$int($.familiarityLevel)),
+											_Utils_Tuple2(
+											'notes',
+											$elm$json$Json$Encode$string($.notes)),
+											_Utils_Tuple2(
+											'romanization',
+											$elm$json$Json$Encode$string($.romanization)),
+											_Utils_Tuple2(
+											'tags',
+											$elm$json$Json$Encode$list($elm$json$Json$Encode$string)($.tags)),
+											_Utils_Tuple2(
+											'wordOrPhrase',
+											$elm$json$Json$Encode$list($elm$json$Json$Encode$string)($.wordOrPhrase))
+										]));
+							}($.current))
+						]));
+			},
+			$);
+	});
 var $author$project$Main$storeWops = _Platform_outgoingPort(
 	'storeWops',
 	$elm$json$Json$Encode$list(
@@ -7380,7 +7734,7 @@ var $author$project$Main$update = F2(
 						function ($) {
 							return $.lessons;
 						},
-						A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeLessonData)));
+						A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeLessons)));
 			case 'UpdateLesson':
 				var _v1 = msg.a;
 				var existingTitle = _v1.a;
@@ -7405,14 +7759,25 @@ var $author$project$Main$update = F2(
 					return (!_Utils_eq(existingTitle, newTitle)) ? _Utils_update(
 						m,
 						{
+							lessonTranslations: A2($elm$core$Dict$remove, existingTitle, m.lessonTranslations),
 							lessons: A2($elm$core$Dict$remove, existingTitle, m.lessons),
 							selectedLesson: newTitle
 						}) : m;
 				};
+				var existingTranslation = A2($elm$core$Dict$get, existingTitle, model.lessonTranslations);
 				var newModel = processTitleChange(
 					_Utils_update(
 						model,
 						{
+							lessonTranslations: A2(
+								$elm$core$Maybe$withDefault,
+								model.lessonTranslations,
+								A2(
+									$elm$core$Maybe$map,
+									function (et) {
+										return A3($elm$core$Dict$insert, newTitle, et, model.lessonTranslations);
+									},
+									existingTranslation)),
 							lessons: A3($elm$core$Dict$insert, newTitle, model.newLessonText, model.lessons)
 						}));
 				return _Utils_Tuple2(
@@ -7420,7 +7785,7 @@ var $author$project$Main$update = F2(
 					$elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
-								$author$project$Main$storeLessonData(
+								$author$project$Main$storeLessons(
 								$elm$core$Dict$toList(newModel.lessons)),
 								$author$project$Main$storeLessonTranslations(
 								$elm$core$Dict$toList(newModel.lessonTranslations)),
@@ -7639,7 +8004,7 @@ var $author$project$Main$update = F2(
 						{
 							mouseDownWord: _Utils_Tuple3(lineIndex, wordIndex, word)
 						}));
-			default:
+			case 'OpenPhraseCreationUI':
 				var lineIndexEnd = msg.a;
 				var wordIndexEnd = msg.b;
 				var _v4 = model.mouseDownWord;
@@ -7707,15 +8072,70 @@ var $author$project$Main$update = F2(
 				} else {
 					return $author$project$Main$pure(model);
 				}
+			case 'NavigateToFlashcardPage':
+				return $author$project$Main$pure(
+					_Utils_update(
+						model,
+						{onFlashcardPage: true}));
+			case 'MakeNewWopFlashcardSet':
+				var maybeRandomizedWops = msg.a;
+				var randomizedWopsGenerator = msg.b;
+				if (maybeRandomizedWops.$ === 'Just') {
+					var wops = maybeRandomizedWops.a;
+					return A2(
+						$author$project$Main$impure,
+						_Utils_update(
+							model,
+							{
+								newWopFlashcards: $wernerdegroot$listzipper$List$Zipper$fromList(
+									A2($elm$core$List$take, 100, wops))
+							}),
+						A2(
+							$elm$core$Basics$composeR,
+							function ($) {
+								return $.newWopFlashcards;
+							},
+							A2(
+								$elm$core$Basics$composeR,
+								$elm$core$Maybe$map($author$project$Utils$deconstructZipper),
+								$author$project$Main$storeNewWopFlashcards)));
+				} else {
+					return _Utils_Tuple2(
+						model,
+						A2(
+							$elm$random$Random$generate,
+							function (wops) {
+								return A2(
+									$author$project$Main$MakeNewWopFlashcardSet,
+									$elm$core$Maybe$Just(wops),
+									randomizedWopsGenerator);
+							},
+							randomizedWopsGenerator));
+				}
+			default:
+				return A2(
+					$author$project$Main$impure,
+					_Utils_update(
+						model,
+						{
+							newWopFlashcards: A2($elm$core$Maybe$andThen, $wernerdegroot$listzipper$List$Zipper$next, model.newWopFlashcards)
+						}),
+					A2(
+						$elm$core$Basics$composeR,
+						function ($) {
+							return $.newWopFlashcards;
+						},
+						A2(
+							$elm$core$Basics$composeR,
+							$elm$core$Maybe$map($author$project$Utils$deconstructZipper),
+							$author$project$Main$storeNewWopFlashcards)));
 		}
 	});
+var $author$project$Main$NavigateToFlashcardPage = {$: 'NavigateToFlashcardPage'};
 var $author$project$Main$SaveDataModelToClipboard = {$: 'SaveDataModelToClipboard'};
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$html$Html$h2 = _VirtualDom_node('h2');
-var $author$project$Main$SelectLesson = function (a) {
-	return {$: 'SelectLesson', a: a};
-};
+var $author$project$Main$NextFlashcard = {$: 'NextFlashcard'};
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -7724,6 +8144,7 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			$elm$json$Json$Encode$string(string));
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
+var $elm$regex$Regex$contains = _Regex_contains;
 var $author$project$WordOrPhrase$displayFamiliarityLevel = function (familiarityLevel) {
 	switch (familiarityLevel) {
 		case 1:
@@ -7738,8 +8159,307 @@ var $author$project$WordOrPhrase$displayFamiliarityLevel = function (familiarity
 			return '';
 	}
 };
-var $elm$html$Html$h3 = _VirtualDom_node('h3');
-var $elm$html$Html$h5 = _VirtualDom_node('h5');
+var $elm_community$list_extra$List$Extra$find = F2(
+	function (predicate, list) {
+		find:
+		while (true) {
+			if (!list.b) {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var first = list.a;
+				var rest = list.b;
+				if (predicate(first)) {
+					return $elm$core$Maybe$Just(first);
+				} else {
+					var $temp$predicate = predicate,
+						$temp$list = rest;
+					predicate = $temp$predicate;
+					list = $temp$list;
+					continue find;
+				}
+			}
+		}
+	});
+var $elm_community$list_extra$List$Extra$findIndexHelp = F3(
+	function (index, predicate, list) {
+		findIndexHelp:
+		while (true) {
+			if (!list.b) {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (predicate(x)) {
+					return $elm$core$Maybe$Just(index);
+				} else {
+					var $temp$index = index + 1,
+						$temp$predicate = predicate,
+						$temp$list = xs;
+					index = $temp$index;
+					predicate = $temp$predicate;
+					list = $temp$list;
+					continue findIndexHelp;
+				}
+			}
+		}
+	});
+var $elm_community$list_extra$List$Extra$findIndex = $elm_community$list_extra$List$Extra$findIndexHelp(0);
+var $author$project$WordOrPhrase$getFamiliarityLevel = F2(
+	function (wopKey, wops) {
+		return A2(
+			$elm$core$Maybe$withDefault,
+			0,
+			A2(
+				$elm$core$Maybe$map,
+				function (wop) {
+					return wop.familiarityLevel;
+				},
+				A2($author$project$WordOrPhrase$get, wopKey, wops)));
+	});
+var $author$project$WordOrPhrase$isPhrase = function (_v0) {
+	var wordOrPhrase = _v0.wordOrPhrase;
+	return $elm$core$List$length(wordOrPhrase) > 1;
+};
+var $elm$html$Html$p = _VirtualDom_node('p');
+var $elm$html$Html$span = _VirtualDom_node('span');
+var $elm_community$list_extra$List$Extra$splitWhen = F2(
+	function (predicate, list) {
+		return A2(
+			$elm$core$Maybe$map,
+			function (i) {
+				return A2($elm_community$list_extra$List$Extra$splitAt, i, list);
+			},
+			A2($elm_community$list_extra$List$Extra$findIndex, predicate, list));
+	});
+var $elm_community$list_extra$List$Extra$takeWhileRight = function (p) {
+	var step = F2(
+		function (x, _v0) {
+			var xs = _v0.a;
+			var free = _v0.b;
+			return (p(x) && free) ? _Utils_Tuple2(
+				A2($elm$core$List$cons, x, xs),
+				true) : _Utils_Tuple2(xs, false);
+		});
+	return A2(
+		$elm$core$Basics$composeL,
+		$elm$core$Tuple$first,
+		A2(
+			$elm$core$List$foldr,
+			step,
+			_Utils_Tuple2(_List_Nil, true)));
+};
+var $elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $elm_community$list_extra$List$Extra$isSubsequenceOf = F2(
+	function (subseq, list) {
+		isSubsequenceOf:
+		while (true) {
+			var _v0 = _Utils_Tuple2(subseq, list);
+			if (!_v0.a.b) {
+				return true;
+			} else {
+				if (!_v0.b.b) {
+					return false;
+				} else {
+					var _v1 = _v0.a;
+					var x = _v1.a;
+					var xs = _v1.b;
+					var _v2 = _v0.b;
+					var y = _v2.a;
+					var ys = _v2.b;
+					if (_Utils_eq(x, y)) {
+						var $temp$subseq = xs,
+							$temp$list = ys;
+						subseq = $temp$subseq;
+						list = $temp$list;
+						continue isSubsequenceOf;
+					} else {
+						var $temp$subseq = subseq,
+							$temp$list = ys;
+						subseq = $temp$subseq;
+						list = $temp$list;
+						continue isSubsequenceOf;
+					}
+				}
+			}
+		}
+	});
+var $author$project$WordOrPhrase$tashkylEquivalent = F2(
+	function (wop1, wop2) {
+		var _v0 = $author$project$WordOrPhrase$splitOffTashkyl(wop2);
+		var wt2 = _v0.a;
+		var jt2 = _v0.b;
+		var _v1 = $author$project$WordOrPhrase$splitOffTashkyl(wop1);
+		var wt1 = _v1.a;
+		var jt1 = _v1.b;
+		return _Utils_eq(wt1, wt2) && ($elm$core$List$isEmpty(jt1) || ($elm$core$List$isEmpty(jt2) || (A2($elm_community$list_extra$List$Extra$isSubsequenceOf, jt1, jt2) || A2($elm_community$list_extra$List$Extra$isSubsequenceOf, jt2, jt1))));
+	});
+var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $elm$core$String$toLower = _String_toLower;
+var $author$project$Main$getExampleSentenceForWop = F3(
+	function (wop, lessons, wops) {
+		if ($author$project$WordOrPhrase$isPhrase(wop)) {
+			return A2(
+				$elm$html$Html$p,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('phrases currently unsupported')
+					]));
+		} else {
+			var word = A2($elm$core$String$join, ' ', wop.wordOrPhrase);
+			var wordFamiliarityClass = $elm$html$Html$Attributes$class(
+				$elm$core$String$toLower(
+					$author$project$WordOrPhrase$displayFamiliarityLevel(
+						A2($author$project$WordOrPhrase$getFamiliarityLevel, word, wops))));
+			var lessonContainingWord = A2(
+				$elm_community$list_extra$List$Extra$find,
+				function (lesson) {
+					return A2(
+						$elm$core$List$any,
+						function (displayWord) {
+							if (displayWord.$ === 'DisplayWord') {
+								var lessonWord = displayWord.a;
+								return A2($author$project$WordOrPhrase$tashkylEquivalent, word, lessonWord);
+							} else {
+								return false;
+							}
+						},
+						$author$project$Main$markWordCharsFromNonWordChars(lesson));
+				},
+				lessons);
+			var fullSentenceContainingWord = A2(
+				$elm$core$Maybe$map,
+				function (lesson) {
+					var terminalPunctuationRx = A2(
+						$elm$core$Maybe$withDefault,
+						$elm$regex$Regex$never,
+						$elm$regex$Regex$fromString('.?؟!'));
+					var isSentenceTerminal = function (displayWord) {
+						if (displayWord.$ === 'DisplayNonWord') {
+							var nonWord = displayWord.a;
+							return A2($elm$regex$Regex$contains, terminalPunctuationRx, nonWord);
+						} else {
+							return true;
+						}
+					};
+					var _v2 = A2(
+						$elm$core$Maybe$withDefault,
+						_Utils_Tuple2(_List_Nil, _List_Nil),
+						A2(
+							$elm_community$list_extra$List$Extra$splitWhen,
+							function (displayWord) {
+								if (displayWord.$ === 'DisplayWord') {
+									var lessonWord = displayWord.a;
+									return !A2($author$project$WordOrPhrase$tashkylEquivalent, word, lessonWord);
+								} else {
+									return true;
+								}
+							},
+							$author$project$Main$markWordCharsFromNonWordChars(lesson)));
+					var beforeMatch = _v2.a;
+					var withMatch = _v2.b;
+					var sentenceBeforeMatch = A2(
+						$elm_community$list_extra$List$Extra$takeWhileRight,
+						A2($elm$core$Basics$composeL, $elm$core$Basics$not, isSentenceTerminal),
+						beforeMatch);
+					var _v4 = A2(
+						$elm$core$Maybe$withDefault,
+						_Utils_Tuple2(
+							$author$project$Main$DisplayWord(''),
+							_List_Nil),
+						$elm_community$list_extra$List$Extra$uncons(withMatch));
+					var match = _v4.a;
+					var afterMatch = _v4.b;
+					var sentenceAfterMatch = function (endIndex) {
+						return A2($elm$core$List$take, endIndex + 1, afterMatch);
+					}(
+						A2(
+							$elm$core$Maybe$withDefault,
+							0,
+							A2($elm_community$list_extra$List$Extra$findIndex, isSentenceTerminal, afterMatch)));
+					return $elm$core$List$concat(
+						_List_fromArray(
+							[
+								sentenceBeforeMatch,
+								_List_fromArray(
+								[match]),
+								sentenceAfterMatch
+							]));
+				},
+				lessonContainingWord);
+			if (fullSentenceContainingWord.$ === 'Nothing') {
+				return A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text(word)
+						]));
+			} else {
+				var exampleSentence = fullSentenceContainingWord.a;
+				return A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('example-sentence')
+						]),
+					A2(
+						$elm$core$List$map,
+						function (displayWordInSentence) {
+							switch (displayWordInSentence.$) {
+								case 'DisplayWord':
+									var wordInSentence = displayWordInSentence.a;
+									return A2($author$project$WordOrPhrase$tashkylEquivalent, wordInSentence, word) ? A2(
+										$elm$html$Html$span,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('target-word-in-sentence'),
+												wordFamiliarityClass
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(word)
+											])) : A2(
+										$elm$html$Html$span,
+										_List_fromArray(
+											[wordFamiliarityClass]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(wordInSentence)
+											]));
+								case 'DisplayNonWord':
+									var nonWordInSentence = displayWordInSentence.a;
+									return A2(
+										$elm$html$Html$span,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('non-word')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(nonWordInSentence)
+											]));
+								default:
+									return A2(
+										$elm$html$Html$div,
+										_List_Nil,
+										_List_fromArray(
+											[
+												$elm$html$Html$text('INVALID')
+											]));
+							}
+						},
+						exampleSentence));
+			}
+		}
+	});
 var $author$project$WordOrPhrase$listWopsOfLevel = function (familiarityLevel) {
 	return A2(
 		$elm$core$Basics$composeR,
@@ -7766,6 +8486,228 @@ var $elm$html$Html$Events$onClick = function (msg) {
 		'click',
 		$elm$json$Json$Decode$succeed(msg));
 };
+var $elm$core$Bitwise$and = _Bitwise_and;
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $elm$core$Bitwise$xor = _Bitwise_xor;
+var $elm$random$Random$peel = function (_v0) {
+	var state = _v0.a;
+	var word = (state ^ (state >>> ((state >>> 28) + 4))) * 277803737;
+	return ((word >>> 22) ^ word) >>> 0;
+};
+var $elm$random$Random$int = F2(
+	function (a, b) {
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v0 = (_Utils_cmp(a, b) < 0) ? _Utils_Tuple2(a, b) : _Utils_Tuple2(b, a);
+				var lo = _v0.a;
+				var hi = _v0.b;
+				var range = (hi - lo) + 1;
+				if (!((range - 1) & range)) {
+					return _Utils_Tuple2(
+						(((range - 1) & $elm$random$Random$peel(seed0)) >>> 0) + lo,
+						$elm$random$Random$next(seed0));
+				} else {
+					var threshhold = (((-range) >>> 0) % range) >>> 0;
+					var accountForBias = function (seed) {
+						accountForBias:
+						while (true) {
+							var x = $elm$random$Random$peel(seed);
+							var seedN = $elm$random$Random$next(seed);
+							if (_Utils_cmp(x, threshhold) < 0) {
+								var $temp$seed = seedN;
+								seed = $temp$seed;
+								continue accountForBias;
+							} else {
+								return _Utils_Tuple2((x % range) + lo, seedN);
+							}
+						}
+					};
+					return accountForBias(seed0);
+				}
+			});
+	});
+var $elm$random$Random$maxInt = 2147483647;
+var $elm$random$Random$minInt = -2147483648;
+var $elm_community$random_extra$Random$List$anyInt = A2($elm$random$Random$int, $elm$random$Random$minInt, $elm$random$Random$maxInt);
+var $elm$random$Random$map3 = F4(
+	function (func, _v0, _v1, _v2) {
+		var genA = _v0.a;
+		var genB = _v1.a;
+		var genC = _v2.a;
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v3 = genA(seed0);
+				var a = _v3.a;
+				var seed1 = _v3.b;
+				var _v4 = genB(seed1);
+				var b = _v4.a;
+				var seed2 = _v4.b;
+				var _v5 = genC(seed2);
+				var c = _v5.a;
+				var seed3 = _v5.b;
+				return _Utils_Tuple2(
+					A3(func, a, b, c),
+					seed3);
+			});
+	});
+var $elm$core$Bitwise$or = _Bitwise_or;
+var $elm$random$Random$independentSeed = $elm$random$Random$Generator(
+	function (seed0) {
+		var makeIndependentSeed = F3(
+			function (state, b, c) {
+				return $elm$random$Random$next(
+					A2($elm$random$Random$Seed, state, (1 | (b ^ c)) >>> 0));
+			});
+		var gen = A2($elm$random$Random$int, 0, 4294967295);
+		return A2(
+			$elm$random$Random$step,
+			A4($elm$random$Random$map3, makeIndependentSeed, gen, gen, gen),
+			seed0);
+	});
+var $elm$core$Tuple$second = function (_v0) {
+	var y = _v0.b;
+	return y;
+};
+var $elm$core$List$sortBy = _List_sortBy;
+var $elm_community$random_extra$Random$List$shuffle = function (list) {
+	return A2(
+		$elm$random$Random$map,
+		function (independentSeed) {
+			return A2(
+				$elm$core$List$map,
+				$elm$core$Tuple$first,
+				A2(
+					$elm$core$List$sortBy,
+					$elm$core$Tuple$second,
+					A3(
+						$elm$core$List$foldl,
+						F2(
+							function (item, _v0) {
+								var acc = _v0.a;
+								var seed = _v0.b;
+								var _v1 = A2($elm$random$Random$step, $elm_community$random_extra$Random$List$anyInt, seed);
+								var tag = _v1.a;
+								var nextSeed = _v1.b;
+								return _Utils_Tuple2(
+									A2(
+										$elm$core$List$cons,
+										_Utils_Tuple2(item, tag),
+										acc),
+									nextSeed);
+							}),
+						_Utils_Tuple2(_List_Nil, independentSeed),
+						list).a));
+		},
+		$elm$random$Random$independentSeed);
+};
+var $wernerdegroot$listzipper$List$Zipper$toList = function (z) {
+	return _Utils_ap(
+		$wernerdegroot$listzipper$List$Zipper$before(z),
+		_Utils_ap(
+			_List_fromArray(
+				[
+					$wernerdegroot$listzipper$List$Zipper$current(z)
+				]),
+			$wernerdegroot$listzipper$List$Zipper$after(z)));
+};
+var $author$project$Main$flashcardView = function (model) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('flashcard-page')
+			]),
+		_List_fromArray(
+			[
+				function () {
+				var _v0 = model.newWopFlashcards;
+				if (_v0.$ === 'Just') {
+					var newWopFlashcards = _v0.a;
+					var wop = $wernerdegroot$listzipper$List$Zipper$current(newWopFlashcards);
+					var totalSize = $elm$core$String$fromInt(
+						$elm$core$List$length(
+							$wernerdegroot$listzipper$List$Zipper$toList(newWopFlashcards)));
+					var currentFlashcardNumber = $elm$core$String$fromInt(
+						1 + $elm$core$List$length(
+							$wernerdegroot$listzipper$List$Zipper$before(newWopFlashcards)));
+					return A2(
+						$elm$html$Html$div,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$p,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('word new')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text(
+										A2($elm$core$String$join, ', ', wop.wordOrPhrase))
+									])),
+								A2(
+								$elm$html$Html$p,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(
+										A2(
+											$elm$core$Maybe$withDefault,
+											'no definition',
+											$elm$core$List$head(wop.definitions)))
+									])),
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Events$onClick($author$project$Main$NextFlashcard)
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Next Card')
+									])),
+								A2(
+								$elm$html$Html$p,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('on flashcard ' + (currentFlashcardNumber + ('/' + totalSize)))
+									])),
+								A3(
+								$author$project$Main$getExampleSentenceForWop,
+								wop,
+								$elm$core$Dict$values(model.lessons),
+								model.wops)
+							]));
+				} else {
+					return A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								A2(
+									$author$project$Main$MakeNewWopFlashcardSet,
+									$elm$core$Maybe$Nothing,
+									$elm_community$random_extra$Random$List$shuffle(
+										A2($author$project$WordOrPhrase$listWopsOfLevel, 1, model.wops))))
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Start a new set of new wops')
+							]));
+				}
+			}()
+			]));
+};
+var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $author$project$Main$SelectLesson = function (a) {
+	return {$: 'SelectLesson', a: a};
+};
+var $elm$html$Html$h3 = _VirtualDom_node('h3');
+var $elm$html$Html$h5 = _VirtualDom_node('h5');
 var $elm$core$Dict$sizeHelp = F2(
 	function (n, dict) {
 		sizeHelp:
@@ -7786,8 +8728,6 @@ var $elm$core$Dict$sizeHelp = F2(
 var $elm$core$Dict$size = function (dict) {
 	return A2($elm$core$Dict$sizeHelp, 0, dict);
 };
-var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Main$lessonsView = function (model) {
 	var wordsOfLevel = function (n) {
 		return $elm$core$String$fromInt(
@@ -8060,24 +9000,10 @@ var $elm_community$maybe_extra$Maybe$Extra$isJust = function (m) {
 var $author$project$Main$DisplayWordOfPhrase = function (a) {
 	return {$: 'DisplayWordOfPhrase', a: a};
 };
-var $elm_community$list_extra$List$Extra$groupsOfWithStep = F3(
-	function (size, step, xs) {
-		var xs_ = A2($elm$core$List$drop, step, xs);
-		var thisGroup = A2($elm$core$List$take, size, xs);
-		var okayLength = _Utils_eq(
-			size,
-			$elm$core$List$length(thisGroup));
-		var okayArgs = (size > 0) && (step > 0);
-		return (okayArgs && okayLength) ? A2(
-			$elm$core$List$cons,
-			thisGroup,
-			A3($elm_community$list_extra$List$Extra$groupsOfWithStep, size, step, xs_)) : _List_Nil;
-	});
 var $author$project$WordOrPhrase$member = function (wopKey) {
 	return $elm$core$Set$member(
 		$author$project$WordOrPhrase$removeFKD(wopKey));
 };
-var $elm$core$List$sortBy = _List_sortBy;
 var $elm$core$List$sort = function (xs) {
 	return A2($elm$core$List$sortBy, $elm$core$Basics$identity, xs);
 };
@@ -8235,73 +9161,8 @@ var $elm$html$Html$Events$onMouseUp = function (msg) {
 		'mouseup',
 		$elm$json$Json$Decode$succeed(msg));
 };
-var $elm$html$Html$p = _VirtualDom_node('p');
-var $elm$html$Html$span = _VirtualDom_node('span');
-var $elm$core$List$isEmpty = function (xs) {
-	if (!xs.b) {
-		return true;
-	} else {
-		return false;
-	}
-};
-var $elm_community$list_extra$List$Extra$isSubsequenceOf = F2(
-	function (subseq, list) {
-		isSubsequenceOf:
-		while (true) {
-			var _v0 = _Utils_Tuple2(subseq, list);
-			if (!_v0.a.b) {
-				return true;
-			} else {
-				if (!_v0.b.b) {
-					return false;
-				} else {
-					var _v1 = _v0.a;
-					var x = _v1.a;
-					var xs = _v1.b;
-					var _v2 = _v0.b;
-					var y = _v2.a;
-					var ys = _v2.b;
-					if (_Utils_eq(x, y)) {
-						var $temp$subseq = xs,
-							$temp$list = ys;
-						subseq = $temp$subseq;
-						list = $temp$list;
-						continue isSubsequenceOf;
-					} else {
-						var $temp$subseq = subseq,
-							$temp$list = ys;
-						subseq = $temp$subseq;
-						list = $temp$list;
-						continue isSubsequenceOf;
-					}
-				}
-			}
-		}
-	});
-var $author$project$WordOrPhrase$tashkylEquivalent = F2(
-	function (wop1, wop2) {
-		var _v0 = $author$project$WordOrPhrase$splitOffTashkyl(wop2);
-		var wt2 = _v0.a;
-		var jt2 = _v0.b;
-		var _v1 = $author$project$WordOrPhrase$splitOffTashkyl(wop1);
-		var wt1 = _v1.a;
-		var jt1 = _v1.b;
-		return _Utils_eq(wt1, wt2) && ($elm$core$List$isEmpty(jt1) || ($elm$core$List$isEmpty(jt2) || (A2($elm_community$list_extra$List$Extra$isSubsequenceOf, jt1, jt2) || A2($elm_community$list_extra$List$Extra$isSubsequenceOf, jt2, jt1))));
-	});
-var $elm$core$String$toLower = _String_toLower;
 var $author$project$Main$displayWords = F2(
 	function (model, lessonText) {
-		var getFamiliarityLevel = function (wopKey) {
-			return A2(
-				$elm$core$Maybe$withDefault,
-				0,
-				A2(
-					$elm$core$Maybe$map,
-					function (wop) {
-						return wop.familiarityLevel;
-					},
-					A2($author$project$WordOrPhrase$get, wopKey, model.wops)));
-		};
 		var displayWord = F4(
 			function (word, li, wi, partOfPhrase) {
 				return A2(
@@ -8324,7 +9185,7 @@ var $author$project$Main$displayWords = F2(
 							$elm$html$Html$Attributes$class(
 							$elm$core$String$toLower(
 								$author$project$WordOrPhrase$displayFamiliarityLevel(
-									getFamiliarityLevel(word)))),
+									A2($author$project$WordOrPhrase$getFamiliarityLevel, word, model.wops)))),
 							$elm$html$Html$Events$onClick(
 							_Utils_eq(model.selectedWop, word) ? $author$project$Main$DeselectWOP : $author$project$Main$SelectWord(word)),
 							$elm$html$Html$Events$onMouseDown(
@@ -8795,7 +9656,7 @@ var $author$project$Main$selectedLessonView = F2(
 				]));
 	});
 var $author$project$Main$view = function (model) {
-	return A2(
+	return model.onFlashcardPage ? $author$project$Main$flashcardView(model) : A2(
 		$elm$html$Html$div,
 		_List_Nil,
 		_List_fromArray(
@@ -8818,6 +9679,16 @@ var $author$project$Main$view = function (model) {
 						$elm$html$Html$text('Save Data Model to Clipboard (4MB limit)')
 					])),
 				$author$project$Main$newAndEditLessonView(model),
+				A2(
+				$elm$html$Html$button,
+				_List_fromArray(
+					[
+						$elm$html$Html$Events$onClick($author$project$Main$NavigateToFlashcardPage)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Go to Flashcards Page')
+					])),
 				$author$project$Main$lessonsView(model),
 				$elm$core$String$isEmpty(model.selectedLesson) ? A2($elm$html$Html$span, _List_Nil, _List_Nil) : A2($author$project$Main$selectedLessonView, model, model.selectedLesson)
 			]));
@@ -8833,16 +9704,36 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 				function (sm2FlashcardData) {
 					return A2(
 						$elm$json$Json$Decode$andThen,
-						function (lessons) {
+						function (newWopFlashcards) {
 							return A2(
 								$elm$json$Json$Decode$andThen,
-								function (lessonTranslations) {
-									return $elm$json$Json$Decode$succeed(
-										{lessonTranslations: lessonTranslations, lessons: lessons, sm2FlashcardData: sm2FlashcardData, wops: wops});
+								function (lessons) {
+									return A2(
+										$elm$json$Json$Decode$andThen,
+										function (lessonTranslations) {
+											return $elm$json$Json$Decode$succeed(
+												{lessonTranslations: lessonTranslations, lessons: lessons, newWopFlashcards: newWopFlashcards, sm2FlashcardData: sm2FlashcardData, wops: wops});
+										},
+										A2(
+											$elm$json$Json$Decode$field,
+											'lessonTranslations',
+											$elm$json$Json$Decode$list(
+												A2(
+													$elm$json$Json$Decode$andThen,
+													function (_v0) {
+														return A2(
+															$elm$json$Json$Decode$andThen,
+															function (_v1) {
+																return $elm$json$Json$Decode$succeed(
+																	_Utils_Tuple2(_v0, _v1));
+															},
+															A2($elm$json$Json$Decode$index, 1, $elm$json$Json$Decode$string));
+													},
+													A2($elm$json$Json$Decode$index, 0, $elm$json$Json$Decode$string)))));
 								},
 								A2(
 									$elm$json$Json$Decode$field,
-									'lessonTranslations',
+									'lessons',
 									$elm$json$Json$Decode$list(
 										A2(
 											$elm$json$Json$Decode$andThen,
@@ -8859,20 +9750,163 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 						},
 						A2(
 							$elm$json$Json$Decode$field,
-							'lessons',
-							$elm$json$Json$Decode$list(
-								A2(
-									$elm$json$Json$Decode$andThen,
-									function (_v0) {
-										return A2(
+							'newWopFlashcards',
+							$elm$json$Json$Decode$oneOf(
+								_List_fromArray(
+									[
+										$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
+										A2(
+										$elm$json$Json$Decode$map,
+										$elm$core$Maybe$Just,
+										A2(
 											$elm$json$Json$Decode$andThen,
-											function (_v1) {
-												return $elm$json$Json$Decode$succeed(
-													_Utils_Tuple2(_v0, _v1));
+											function (current) {
+												return A2(
+													$elm$json$Json$Decode$andThen,
+													function (before) {
+														return A2(
+															$elm$json$Json$Decode$andThen,
+															function (after) {
+																return $elm$json$Json$Decode$succeed(
+																	{after: after, before: before, current: current});
+															},
+															A2(
+																$elm$json$Json$Decode$field,
+																'after',
+																$elm$json$Json$Decode$list(
+																	A2(
+																		$elm$json$Json$Decode$andThen,
+																		function (wordOrPhrase) {
+																			return A2(
+																				$elm$json$Json$Decode$andThen,
+																				function (tags) {
+																					return A2(
+																						$elm$json$Json$Decode$andThen,
+																						function (romanization) {
+																							return A2(
+																								$elm$json$Json$Decode$andThen,
+																								function (notes) {
+																									return A2(
+																										$elm$json$Json$Decode$andThen,
+																										function (familiarityLevel) {
+																											return A2(
+																												$elm$json$Json$Decode$andThen,
+																												function (definitions) {
+																													return $elm$json$Json$Decode$succeed(
+																														{definitions: definitions, familiarityLevel: familiarityLevel, notes: notes, romanization: romanization, tags: tags, wordOrPhrase: wordOrPhrase});
+																												},
+																												A2(
+																													$elm$json$Json$Decode$field,
+																													'definitions',
+																													$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
+																										},
+																										A2($elm$json$Json$Decode$field, 'familiarityLevel', $elm$json$Json$Decode$int));
+																								},
+																								A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string));
+																						},
+																						A2($elm$json$Json$Decode$field, 'romanization', $elm$json$Json$Decode$string));
+																				},
+																				A2(
+																					$elm$json$Json$Decode$field,
+																					'tags',
+																					$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
+																		},
+																		A2(
+																			$elm$json$Json$Decode$field,
+																			'wordOrPhrase',
+																			$elm$json$Json$Decode$list($elm$json$Json$Decode$string))))));
+													},
+													A2(
+														$elm$json$Json$Decode$field,
+														'before',
+														$elm$json$Json$Decode$list(
+															A2(
+																$elm$json$Json$Decode$andThen,
+																function (wordOrPhrase) {
+																	return A2(
+																		$elm$json$Json$Decode$andThen,
+																		function (tags) {
+																			return A2(
+																				$elm$json$Json$Decode$andThen,
+																				function (romanization) {
+																					return A2(
+																						$elm$json$Json$Decode$andThen,
+																						function (notes) {
+																							return A2(
+																								$elm$json$Json$Decode$andThen,
+																								function (familiarityLevel) {
+																									return A2(
+																										$elm$json$Json$Decode$andThen,
+																										function (definitions) {
+																											return $elm$json$Json$Decode$succeed(
+																												{definitions: definitions, familiarityLevel: familiarityLevel, notes: notes, romanization: romanization, tags: tags, wordOrPhrase: wordOrPhrase});
+																										},
+																										A2(
+																											$elm$json$Json$Decode$field,
+																											'definitions',
+																											$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
+																								},
+																								A2($elm$json$Json$Decode$field, 'familiarityLevel', $elm$json$Json$Decode$int));
+																						},
+																						A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string));
+																				},
+																				A2($elm$json$Json$Decode$field, 'romanization', $elm$json$Json$Decode$string));
+																		},
+																		A2(
+																			$elm$json$Json$Decode$field,
+																			'tags',
+																			$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
+																},
+																A2(
+																	$elm$json$Json$Decode$field,
+																	'wordOrPhrase',
+																	$elm$json$Json$Decode$list($elm$json$Json$Decode$string))))));
 											},
-											A2($elm$json$Json$Decode$index, 1, $elm$json$Json$Decode$string));
-									},
-									A2($elm$json$Json$Decode$index, 0, $elm$json$Json$Decode$string)))));
+											A2(
+												$elm$json$Json$Decode$field,
+												'current',
+												A2(
+													$elm$json$Json$Decode$andThen,
+													function (wordOrPhrase) {
+														return A2(
+															$elm$json$Json$Decode$andThen,
+															function (tags) {
+																return A2(
+																	$elm$json$Json$Decode$andThen,
+																	function (romanization) {
+																		return A2(
+																			$elm$json$Json$Decode$andThen,
+																			function (notes) {
+																				return A2(
+																					$elm$json$Json$Decode$andThen,
+																					function (familiarityLevel) {
+																						return A2(
+																							$elm$json$Json$Decode$andThen,
+																							function (definitions) {
+																								return $elm$json$Json$Decode$succeed(
+																									{definitions: definitions, familiarityLevel: familiarityLevel, notes: notes, romanization: romanization, tags: tags, wordOrPhrase: wordOrPhrase});
+																							},
+																							A2(
+																								$elm$json$Json$Decode$field,
+																								'definitions',
+																								$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
+																					},
+																					A2($elm$json$Json$Decode$field, 'familiarityLevel', $elm$json$Json$Decode$int));
+																			},
+																			A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string));
+																	},
+																	A2($elm$json$Json$Decode$field, 'romanization', $elm$json$Json$Decode$string));
+															},
+															A2(
+																$elm$json$Json$Decode$field,
+																'tags',
+																$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
+													},
+													A2(
+														$elm$json$Json$Decode$field,
+														'wordOrPhrase',
+														$elm$json$Json$Decode$list($elm$json$Json$Decode$string))))))
+									]))));
 				},
 				A2(
 					$elm$json$Json$Decode$field,

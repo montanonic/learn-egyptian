@@ -47,14 +47,22 @@
     lessonTranslations: 'lessonTranslations',
     wops: 'wops',
     backupNumber: 'backupNumber',
+    newWopFlashcards: 'newWopFlashcards'
   };
-  const dataVersion = 2; // bump this when you change the data model in any way whatsoever, including adding or removing data.
+  const dataVersion = 3; // bump this when you change the data model in any way whatsoever, including adding or removing data.
 
   /// Returns an object with all the data.
   function getAllLocalData() {
     let obj = {};
     for (let modelKey of Object.keys(localKeys)) {
-      obj[modelKey] = getLocally(localKeys[modelKey]) || [];
+      let value = getLocally(localKeys[modelKey]);
+
+      // bad HACK, should write better code
+      if (modelKey === 'newWopFlashcards') {
+        obj[modelKey] = value || null;
+      } else {
+        obj[modelKey] = value || [];
+      }
     }
     return obj;
   }
@@ -124,17 +132,32 @@
       storeLocally(localKeys.backupNumber, backupNumber + 1);
     });
 
+
+    // A nice little way of cleaning up the simplistic definitions below.
+    // ['lessonTranslations', 'lessons', 'wops', 'flashcardSets'].map(dataModelName => {
+    //   app.ports[`store${capitalizeFirstLetter(localStorageKey)}`]
+    // })
+
+    // function capitalizeFirstLetter(string) {
+    //   return string.charAt(0).toUpperCase() + string.slice(1);
+    // }
+
     app.ports.storeLessonTranslations.subscribe(function (lessonTranslations) {
       storeLocally(localKeys.lessonTranslations, lessonTranslations);
     });
 
     // An easier hack than dealing with lesson individually, that is also less performant.
-    app.ports.storeLessonData.subscribe(function (lessons) {
+    app.ports.storeLessons.subscribe(function (lessons) {
       storeLocally(localKeys.lessons, lessons);
     });
 
     app.ports.storeWops.subscribe(function (wops) {
       storeLocally(localKeys.wops, wops);
+    });
+
+
+    app.ports.storeNewWopFlashcards.subscribe(function (newWopFlashcards) {
+      storeLocally(localKeys.newWopFlashcards, newWopFlashcards)
     });
 
     app.ports.autofocusId.subscribe(function (id) {
