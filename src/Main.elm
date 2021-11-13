@@ -336,10 +336,11 @@ update msg model =
                         Dict.get title model.lessons
                             |> Maybe.withDefault ""
                     , newLessonTitle = title
+                    , selectedWop = ""
                 }
 
         DeselectLesson ->
-            pure { model | selectedLesson = "", newLessonText = "", newLessonTitle = "" }
+            pure { model | selectedLesson = "", newLessonText = "", newLessonTitle = "", selectedWop = "" }
 
         SelectWord word ->
             impure { model | selectedWop = word, selectedWopTagsBuffer = "" }

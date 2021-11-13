@@ -8099,13 +8099,14 @@ var $author$project$Main$update = F2(
 								'',
 								A2($elm$core$Dict$get, title, model.lessons)),
 							newLessonTitle: title,
-							selectedLesson: title
+							selectedLesson: title,
+							selectedWop: ''
 						}));
 			case 'DeselectLesson':
 				return $author$project$Main$pure(
 					_Utils_update(
 						model,
-						{newLessonText: '', newLessonTitle: '', selectedLesson: ''}));
+						{newLessonText: '', newLessonTitle: '', selectedLesson: '', selectedWop: ''}));
 			case 'SelectWord':
 				var word = msg.a;
 				return A2(
