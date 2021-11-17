@@ -9405,57 +9405,70 @@ var $author$project$Main$newAndEditLessonView = function (model) {
 		$elm$core$Maybe$Just(model.newLessonText)) && (_Utils_eq(model.selectedLesson, model.newLessonTitle) || (!_Utils_eq(
 		A2($elm$core$Dict$get, model.newLessonTitle, model.lessons),
 		$elm$core$Maybe$Nothing))));
-	var audioFileTypeRadioButtons = A2(
-		$elm$html$Html$form,
-		_List_fromArray(
-			[
-				A2($elm$html$Html$Attributes$style, 'display', 'flex'),
-				A2($elm$html$Html$Attributes$style, 'width', '120px'),
-				A2($elm$html$Html$Attributes$style, 'margin-left', 'auto')
-			]),
+	var audioFileTypeRadioButtons = $elm$core$String$isEmpty(model.selectedLesson) ? A2($elm$html$Html$div, _List_Nil, _List_Nil) : A2(
+		$elm$html$Html$div,
+		_List_Nil,
 		_List_fromArray(
 			[
 				A2(
-				$elm$html$Html$input,
+				$elm$html$Html$div,
+				_List_Nil,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$type_('radio'),
-						$elm$html$Html$Attributes$name('fileTypeWav'),
-						$elm$html$Html$Events$onInput($author$project$Main$ChangeLessonAudioFileType),
-						$elm$html$Html$Attributes$checked(lessonFileType === 'wav'),
-						$elm$html$Html$Attributes$value('wav')
-					]),
-				_List_Nil),
-				A2(
-				$elm$html$Html$label,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$for('fileTypeWav')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('wav')
+						$elm$html$Html$text('select file type for associated audio:')
 					])),
 				A2(
-				$elm$html$Html$input,
+				$elm$html$Html$form,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$type_('radio'),
-						$elm$html$Html$Attributes$name('fileTypeMp3'),
-						$elm$html$Html$Events$onInput($author$project$Main$ChangeLessonAudioFileType),
-						$elm$html$Html$Attributes$checked(lessonFileType === 'mp3'),
-						$elm$html$Html$Attributes$value('mp3')
-					]),
-				_List_Nil),
-				A2(
-				$elm$html$Html$label,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$for('fileTypeMp3')
+						A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+						A2($elm$html$Html$Attributes$style, 'width', '120px'),
+						A2($elm$html$Html$Attributes$style, 'margin-left', 'auto')
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('mp3')
+						A2(
+						$elm$html$Html$input,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$type_('radio'),
+								$elm$html$Html$Attributes$name('fileTypeWav'),
+								$elm$html$Html$Events$onInput($author$project$Main$ChangeLessonAudioFileType),
+								$elm$html$Html$Attributes$checked(lessonFileType === 'wav'),
+								$elm$html$Html$Attributes$value('wav')
+							]),
+						_List_Nil),
+						A2(
+						$elm$html$Html$label,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$for('fileTypeWav')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('wav')
+							])),
+						A2(
+						$elm$html$Html$input,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$type_('radio'),
+								$elm$html$Html$Attributes$name('fileTypeMp3'),
+								$elm$html$Html$Events$onInput($author$project$Main$ChangeLessonAudioFileType),
+								$elm$html$Html$Attributes$checked(lessonFileType === 'mp3'),
+								$elm$html$Html$Attributes$value('mp3')
+							]),
+						_List_Nil),
+						A2(
+						$elm$html$Html$label,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$for('fileTypeMp3')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('mp3')
+							]))
 					]))
 			]));
 	return A2(

@@ -1196,26 +1196,36 @@ newAndEditLessonView model =
             Dict.get model.selectedLesson model.lessons |> Maybe.map .audioFileType |> Maybe.withDefault ""
 
         audioFileTypeRadioButtons =
-            Html.form [ style "display" "flex", style "width" "120px", style "margin-left" "auto" ]
-                [ input
-                    [ type_ "radio"
-                    , name "fileTypeWav"
-                    , onInput ChangeLessonAudioFileType
-                    , checked (lessonFileType == "wav")
-                    , value "wav"
+            if String.isEmpty model.selectedLesson then
+                {- don't show audio selection until lesson is created (reason being that I'd need to
+                   make another buffer field)
+                -}
+                div [] []
+
+            else
+                div []
+                    [ div [] [ text "select file type for associated audio:" ]
+                    , Html.form [ style "display" "flex", style "width" "120px", style "margin-left" "auto" ]
+                        [ input
+                            [ type_ "radio"
+                            , name "fileTypeWav"
+                            , onInput ChangeLessonAudioFileType
+                            , checked (lessonFileType == "wav")
+                            , value "wav"
+                            ]
+                            []
+                        , label [ for "fileTypeWav" ] [ text "wav" ]
+                        , input
+                            [ type_ "radio"
+                            , name "fileTypeMp3"
+                            , onInput ChangeLessonAudioFileType
+                            , checked (lessonFileType == "mp3")
+                            , value "mp3"
+                            ]
+                            []
+                        , label [ for "fileTypeMp3" ] [ text "mp3" ]
+                        ]
                     ]
-                    []
-                , label [ for "fileTypeWav" ] [ text "wav" ]
-                , input
-                    [ type_ "radio"
-                    , name "fileTypeMp3"
-                    , onInput ChangeLessonAudioFileType
-                    , checked (lessonFileType == "mp3")
-                    , value "mp3"
-                    ]
-                    []
-                , label [ for "fileTypeMp3" ] [ text "mp3" ]
-                ]
     in
     div [ class "new-lesson-view" ]
         [ if String.isEmpty model.selectedLesson then
