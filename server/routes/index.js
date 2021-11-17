@@ -15,11 +15,12 @@ router.get('/', function (req, res, next) {
 // });
 
 router.post('/updateAudioName', function (req, res, next) {
-  const { old, new: new_ } = req.body;
+  const { old, new: new_, type } = req.body;
   const audioPath = '/home/montanonic/elm/egyptian/server/public/audio';
+  const fileType = type || "wav";
   // Ah okay, the last thing we need to know is the file type. This will differ depending on that.
   // We'll handle this in audio upload.
-  fs.renameSync(`${audioPath}/${old}.wav`, `${audioPath}/${new_}.wav`)
+  fs.renameSync(`${audioPath}/${old}.${fileType}`, `${audioPath}/${new_}.${fileType}`)
   res.send('file updated')
 });
 

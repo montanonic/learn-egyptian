@@ -5662,9 +5662,12 @@ var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
 		{
 			draft: '',
+			drawInLesson: false,
+			drawRectangleKalimniBuffer: $elm$core$Maybe$Nothing,
 			flashcardEgyptianInput: '',
 			flashcardEnglishInput: '',
 			hoveredWord: '',
+			lastKalimniEvent: $elm$core$Maybe$Nothing,
 			lessonTranslations: $elm$core$Dict$fromList(lessonTranslations),
 			lessons: $elm$core$Dict$fromList(lessons),
 			mainWords: _List_Nil,
@@ -5682,10 +5685,13 @@ var $author$project$Main$init = function (_v0) {
 				},
 				newWopFlashcards),
 			onFlashcardPage: false,
+			selectedKalimniLessonPage: $elm$core$Maybe$Just(
+				{currentScaling: 1.0, naturalHeight: 400, naturalWidth: 1000, textBoxes: _List_Nil}),
 			selectedLesson: '',
 			selectedWop: '',
 			selectedWopTagsBuffer: '',
 			sm2FlashcardData: sm2FlashcardData,
+			startingRectangleCoordinate: $elm$core$Maybe$Nothing,
 			wops: $elm$core$Dict$fromList(wops)
 		},
 		$elm$core$Platform$Cmd$none);
@@ -5695,6 +5701,10 @@ var $elm$json$Json$Decode$list = _Json_decodeList;
 var $elm$json$Json$Decode$null = _Json_decodeNull;
 var $elm$json$Json$Decode$oneOf = _Json_oneOf;
 var $elm$json$Json$Decode$string = _Json_decodeString;
+var $author$project$Main$GotKalimniEvent = function (a) {
+	return {$: 'GotKalimniEvent', a: a};
+};
+var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $author$project$Main$KeyPress = function (a) {
 	return {$: 'KeyPress', a: a};
 };
@@ -5702,6 +5712,7 @@ var $author$project$Main$keyDecoder = A2(
 	$elm$json$Json$Decode$map,
 	$author$project$Main$KeyPress,
 	A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string));
+var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
 var $elm$browser$Browser$Events$Document = {$: 'Document'};
 var $elm$browser$Browser$Events$MySub = F3(
 	function (a, b, c) {
@@ -5980,8 +5991,49 @@ var $elm$browser$Browser$Events$on = F3(
 			A3($elm$browser$Browser$Events$MySub, node, name, decoder));
 	});
 var $elm$browser$Browser$Events$onKeyPress = A2($elm$browser$Browser$Events$on, $elm$browser$Browser$Events$Document, 'keypress');
+var $elm$json$Json$Decode$float = _Json_decodeFloat;
+var $author$project$Main$receiveKalimniEvents = _Platform_incomingPort(
+	'receiveKalimniEvents',
+	A2(
+		$elm$json$Json$Decode$andThen,
+		function (width) {
+			return A2(
+				$elm$json$Json$Decode$andThen,
+				function (relativeY) {
+					return A2(
+						$elm$json$Json$Decode$andThen,
+						function (relativeX) {
+							return A2(
+								$elm$json$Json$Decode$andThen,
+								function (naturalWidth) {
+									return A2(
+										$elm$json$Json$Decode$andThen,
+										function (naturalHeight) {
+											return A2(
+												$elm$json$Json$Decode$andThen,
+												function (height) {
+													return $elm$json$Json$Decode$succeed(
+														{height: height, naturalHeight: naturalHeight, naturalWidth: naturalWidth, relativeX: relativeX, relativeY: relativeY, width: width});
+												},
+												A2($elm$json$Json$Decode$field, 'height', $elm$json$Json$Decode$int));
+										},
+										A2($elm$json$Json$Decode$field, 'naturalHeight', $elm$json$Json$Decode$int));
+								},
+								A2($elm$json$Json$Decode$field, 'naturalWidth', $elm$json$Json$Decode$int));
+						},
+						A2($elm$json$Json$Decode$field, 'relativeX', $elm$json$Json$Decode$float));
+				},
+				A2($elm$json$Json$Decode$field, 'relativeY', $elm$json$Json$Decode$float));
+		},
+		A2($elm$json$Json$Decode$field, 'width', $elm$json$Json$Decode$int)));
 var $author$project$Main$subscriptions = function (_v0) {
-	return $elm$browser$Browser$Events$onKeyPress($author$project$Main$keyDecoder);
+	var drawInLesson = _v0.drawInLesson;
+	return $elm$core$Platform$Sub$batch(
+		_List_fromArray(
+			[
+				$elm$browser$Browser$Events$onKeyPress($author$project$Main$keyDecoder),
+				drawInLesson ? $author$project$Main$receiveKalimniEvents($author$project$Main$GotKalimniEvent) : $elm$core$Platform$Sub$none
+			]));
 };
 var $author$project$Main$BackendAudioUpdated = function (a) {
 	return {$: 'BackendAudioUpdated', a: a};
@@ -6807,6 +6859,7 @@ var $author$project$WordOrPhrase$keyIsPhrase = function (key_) {
 	return $elm$core$List$length(
 		A2($elm$core$String$split, ' ', key_)) > 1;
 };
+var $elm$core$Debug$log = _Debug_log;
 var $author$project$WordOrPhrase$makeWOP = F2(
 	function (wordOrPhrase, definition) {
 		return {
@@ -7564,11 +7617,26 @@ var $elm_community$list_extra$List$Extra$setAt = F2(
 	});
 var $author$project$WordOrPhrase$setDefinition = F3(
 	function (defNumber, definition, wop) {
-		return _Utils_update(
+		return _Utils_eq(
+			defNumber,
+			$elm$core$List$length(wop.definitions)) ? _Utils_update(
+			wop,
+			{
+				definitions: _Utils_ap(
+					wop.definitions,
+					_List_fromArray(
+						[definition]))
+			}) : (((!(!defNumber)) && (_Utils_eq(
+			defNumber,
+			$elm$core$List$length(wop.definitions) - 1) && (definition === ''))) ? _Utils_update(
+			wop,
+			{
+				definitions: A2($elm_community$list_extra$List$Extra$removeAt, defNumber, wop.definitions)
+			}) : _Utils_update(
 			wop,
 			{
 				definitions: A3($elm_community$list_extra$List$Extra$setAt, defNumber, definition, wop.definitions)
-			});
+			}));
 	});
 var $author$project$WordOrPhrase$setFamiliarityLevel = F2(
 	function (level, wop) {
@@ -7902,6 +7970,79 @@ var $author$project$WordOrPhrase$update = function (wopKey) {
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
+			case 'GotKalimniEvent':
+				var kalimniEvent = msg.a;
+				return $author$project$Main$pure(
+					_Utils_update(
+						model,
+						{
+							lastKalimniEvent: $elm$core$Maybe$Just(kalimniEvent)
+						}));
+			case 'ToggleDrawInLesson':
+				return $author$project$Main$pure(
+					model.drawInLesson ? _Utils_update(
+						model,
+						{drawInLesson: !model.drawInLesson}) : _Utils_update(
+						model,
+						{drawInLesson: !model.drawInLesson, startingRectangleCoordinate: $elm$core$Maybe$Nothing}));
+			case 'LessonImageClick':
+				if (model.drawInLesson) {
+					var _v1 = model.startingRectangleCoordinate;
+					if (_v1.$ === 'Just') {
+						var topLeft = _v1.a;
+						return $author$project$Main$pure(
+							A2(
+								$elm$core$Maybe$withDefault,
+								model,
+								A2(
+									$elm$core$Maybe$map,
+									function (_v2) {
+										var relativeX = _v2.relativeX;
+										var relativeY = _v2.relativeY;
+										return _Utils_update(
+											model,
+											{
+												selectedKalimniLessonPage: A2(
+													$elm$core$Debug$log,
+													'blah',
+													A2(
+														$elm$core$Maybe$map,
+														function (lessonPage) {
+															return _Utils_update(
+																lessonPage,
+																{
+																	textBoxes: A2(
+																		$elm$core$List$cons,
+																		{
+																			bottomRight: _Utils_Tuple2(relativeX, relativeY),
+																			text: '',
+																			topLeft: topLeft
+																		},
+																		lessonPage.textBoxes)
+																});
+														},
+														model.selectedKalimniLessonPage)),
+												startingRectangleCoordinate: $elm$core$Maybe$Nothing
+											});
+									},
+									model.lastKalimniEvent)));
+					} else {
+						return $author$project$Main$pure(
+							_Utils_update(
+								model,
+								{
+									startingRectangleCoordinate: A2(
+										$elm$core$Maybe$andThen,
+										function (ke) {
+											return $elm$core$Maybe$Just(
+												_Utils_Tuple2(ke.relativeX, ke.relativeY));
+										},
+										model.lastKalimniEvent)
+								}));
+					}
+				} else {
+					return $author$project$Main$pure(model);
+				}
 			case 'KeyPress':
 				var key = msg.a;
 				return ((!$elm$core$String$isEmpty(model.selectedWop)) && _Utils_eq(model.selectedWop, model.hoveredWord)) ? A3(
@@ -8030,9 +8171,9 @@ var $author$project$Main$update = F2(
 						},
 						A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeLessons)));
 			case 'UpdateLesson':
-				var _v1 = msg.a;
-				var existingTitle = _v1.a;
-				var newTitle = _v1.b;
+				var _v3 = msg.a;
+				var existingTitle = _v3.a;
+				var newTitle = _v3.b;
 				var updateAudioName = (!_Utils_eq(existingTitle, newTitle)) ? $elm$http$Http$post(
 					{
 						body: $elm$http$Http$jsonBody(
@@ -8114,10 +8255,10 @@ var $author$project$Main$update = F2(
 					_Utils_update(
 						model,
 						{selectedWop: word, selectedWopTagsBuffer: ''}),
-					function (_v2) {
-						var selectedWop = _v2.selectedWop;
-						var _v3 = A2($author$project$WordOrPhrase$get, selectedWop, model.wops);
-						if (_v3.$ === 'Just') {
+					function (_v4) {
+						var selectedWop = _v4.selectedWop;
+						var _v5 = A2($author$project$WordOrPhrase$get, selectedWop, model.wops);
+						if (_v5.$ === 'Just') {
 							return $elm$core$Platform$Cmd$none;
 						} else {
 							return $author$project$Main$autofocusId('newWopDefinition');
@@ -8302,9 +8443,9 @@ var $author$project$Main$update = F2(
 			case 'OpenPhraseCreationUI':
 				var lineIndexEnd = msg.a;
 				var wordIndexEnd = msg.b;
-				var _v4 = model.mouseDownWord;
-				var lineIndexStart = _v4.a;
-				var wordIndexStart = _v4.b;
+				var _v6 = model.mouseDownWord;
+				var lineIndexStart = _v6.a;
+				var wordIndexStart = _v6.b;
 				if ((!_Utils_eq(wordIndexEnd, wordIndexStart)) && _Utils_eq(lineIndexEnd, lineIndexStart)) {
 					var selectedLessonText = A2(
 						$elm$core$Maybe$withDefault,
@@ -9614,88 +9755,8 @@ var $author$project$Main$EditSelectedWOPNotes = function (a) {
 var $author$project$Main$EditSelectedWOPRomanization = function (a) {
 	return {$: 'EditSelectedWOPRomanization', a: a};
 };
-var $author$project$Main$EditSelectedWOPTagsBuffer = function (a) {
-	return {$: 'EditSelectedWOPTagsBuffer', a: a};
-};
 var $author$project$Main$SaveSelectedNewWOP = {$: 'SaveSelectedNewWOP'};
-var $author$project$Main$SetSelectedWOPTags = function (a) {
-	return {$: 'SetSelectedWOPTags', a: a};
-};
-var $elm$core$List$member = F2(
-	function (x, xs) {
-		return A2(
-			$elm$core$List$any,
-			function (a) {
-				return _Utils_eq(a, x);
-			},
-			xs);
-	});
-var $elm_community$list_extra$List$Extra$uniqueHelp = F4(
-	function (f, existing, remaining, accumulator) {
-		uniqueHelp:
-		while (true) {
-			if (!remaining.b) {
-				return $elm$core$List$reverse(accumulator);
-			} else {
-				var first = remaining.a;
-				var rest = remaining.b;
-				var computedFirst = f(first);
-				if (A2($elm$core$List$member, computedFirst, existing)) {
-					var $temp$f = f,
-						$temp$existing = existing,
-						$temp$remaining = rest,
-						$temp$accumulator = accumulator;
-					f = $temp$f;
-					existing = $temp$existing;
-					remaining = $temp$remaining;
-					accumulator = $temp$accumulator;
-					continue uniqueHelp;
-				} else {
-					var $temp$f = f,
-						$temp$existing = A2($elm$core$List$cons, computedFirst, existing),
-						$temp$remaining = rest,
-						$temp$accumulator = A2($elm$core$List$cons, first, accumulator);
-					f = $temp$f;
-					existing = $temp$existing;
-					remaining = $temp$remaining;
-					accumulator = $temp$accumulator;
-					continue uniqueHelp;
-				}
-			}
-		}
-	});
-var $elm_community$list_extra$List$Extra$unique = function (list) {
-	return A4($elm_community$list_extra$List$Extra$uniqueHelp, $elm$core$Basics$identity, _List_Nil, list, _List_Nil);
-};
-var $author$project$WordOrPhrase$getTagList = function (d) {
-	return $elm$core$List$sort(
-		$elm_community$list_extra$List$Extra$unique(
-			A2(
-				$elm$core$List$concatMap,
-				function ($) {
-					return $.tags;
-				},
-				$elm$core$Dict$values(d))));
-};
-var $author$project$WordOrPhrase$fuzzyMatchTag = F2(
-	function (tag, d) {
-		return A2(
-			$elm$core$List$filter,
-			function (existingTag) {
-				return A2(
-					$elm_community$list_extra$List$Extra$isSubsequenceOf,
-					$elm$core$String$toList(tag),
-					$elm$core$String$toList(existingTag));
-			},
-			$author$project$WordOrPhrase$getTagList(d));
-	});
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
-var $elm$html$Html$Events$onFocus = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'focus',
-		$elm$json$Json$Decode$succeed(msg));
-};
 var $elm$html$Html$Attributes$title = $elm$html$Html$Attributes$stringProperty('title');
 var $author$project$Main$selectedWordEdit = function (model) {
 	return A2(
@@ -9732,10 +9793,7 @@ var $author$project$Main$selectedWordEdit = function (model) {
 								[
 									$elm$html$Html$text(model.selectedWop + ' = '),
 									$elm$html$Html$text(
-									A2(
-										$elm$core$Maybe$withDefault,
-										'',
-										$elm$core$List$head(wop.definitions)))
+									A2($elm$core$String$join, ' || ', wop.definitions))
 								])),
 						_Utils_ap(
 							A2(
@@ -9747,14 +9805,17 @@ var $author$project$Main$selectedWordEdit = function (model) {
 											_List_fromArray(
 												[
 													$elm$html$Html$Attributes$placeholder(
-													'Definition #' + $elm$core$String$fromInt(i)),
+													'Definition #' + $elm$core$String$fromInt(i + 1)),
 													$elm$html$Html$Attributes$value(def),
 													$elm$html$Html$Events$onInput(
 													$author$project$Main$EditSelectedWOPDefinition(i))
 												]),
 											_List_Nil);
 									}),
-								wop.definitions),
+								_Utils_ap(
+									wop.definitions,
+									_List_fromArray(
+										['']))),
 							_List_fromArray(
 								[
 									A2(
@@ -9763,64 +9824,10 @@ var $author$project$Main$selectedWordEdit = function (model) {
 										[
 											$elm$html$Html$Attributes$placeholder('romanization'),
 											$elm$html$Html$Attributes$value(wop.romanization),
-											$elm$html$Html$Events$onInput($author$project$Main$EditSelectedWOPRomanization)
+											$elm$html$Html$Events$onInput($author$project$Main$EditSelectedWOPRomanization),
+											$elm$html$Html$Attributes$class('romanization')
 										]),
 									_List_Nil),
-									A2(
-									$elm$html$Html$div,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('selected-word-tags-edit')
-										]),
-									_List_fromArray(
-										[
-											A2(
-											$elm$html$Html$div,
-											_List_Nil,
-											(!$elm$core$String$isEmpty(model.selectedWopTagsBuffer)) ? _List_fromArray(
-												[
-													$elm$html$Html$text('Matching tags: '),
-													$elm$html$Html$text(
-													A2(
-														$elm$core$String$join,
-														', ',
-														A2(
-															$author$project$WordOrPhrase$fuzzyMatchTag,
-															A2(
-																$elm$core$Maybe$withDefault,
-																'',
-																$elm_community$list_extra$List$Extra$last(
-																	$author$project$WordOrPhrase$stringToTags(model.selectedWopTagsBuffer))),
-															model.wops)))
-												]) : _List_fromArray(
-												[
-													$elm$html$Html$text('Tags: '),
-													$elm$html$Html$text(
-													A2($elm$core$String$join, ', ', wop.tags))
-												])),
-											A2(
-											$elm$html$Html$input,
-											_List_fromArray(
-												[
-													$elm$html$Html$Events$onInput($author$project$Main$EditSelectedWOPTagsBuffer),
-													$elm$html$Html$Attributes$value(model.selectedWopTagsBuffer),
-													$elm$html$Html$Events$onFocus(
-													$author$project$Main$EditSelectedWOPTagsBuffer(
-														A2($elm$core$String$join, ', ', wop.tags)))
-												]),
-											_List_Nil),
-											A2(
-											$elm$html$Html$button,
-											_List_fromArray(
-												[
-													$elm$html$Html$Events$onClick(
-													$author$project$Main$SetSelectedWOPTags(model.selectedWopTagsBuffer))
-												]),
-											_List_fromArray(
-												[
-													$elm$html$Html$text('Save Tags')
-												]))
-										])),
 									A2(
 									$elm$html$Html$textarea,
 									_List_fromArray(

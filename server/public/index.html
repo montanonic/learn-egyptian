@@ -155,7 +155,6 @@
       storeLocally(localKeys.wops, wops);
     });
 
-
     app.ports.storeNewWopFlashcards.subscribe(function (newWopFlashcards) {
       storeLocally(localKeys.newWopFlashcards, newWopFlashcards)
     });
@@ -180,6 +179,20 @@
       }, 50);
       loop();
     });
+
+    var img = document.getElementById('img');
+    img.onmousemove = (e) => {
+      target = e.target;
+      app.ports.receiveKalimniEvents.send({
+        relativeX: (e.offsetX + 1) / target.width,
+        relativeY: (e.offsetY + 1) / target.height,
+        width: target.width,
+        height: target.height,
+        naturalWidth: target.naturalWidth,
+        naturalHeight: target.naturalHeight,
+      });
+    }
+
 
     // The below code is fine, but it's easier to manage entire sets of data in bulk, albeit much less performant as the size of data increases. For our early app, this is fine.
 

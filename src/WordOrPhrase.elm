@@ -2,6 +2,7 @@ module WordOrPhrase exposing (..)
 
 import Dict exposing (Dict)
 import List.Extra as ListE
+import Maybe.Extra as MaybeE
 import Set exposing (Set)
 import String.Extra as StringE
 
@@ -72,7 +73,19 @@ makeWOP wordOrPhrase definition =
 
 setDefinition : Int -> String -> WOP -> WOP
 setDefinition defNumber definition wop =
-    { wop | definitions = ListE.setAt defNumber definition wop.definitions }
+    if defNumber == List.length wop.definitions then
+        -- adding a new definition
+        { wop | definitions = wop.definitions ++ [ definition ] }
+
+    else if defNumber /= 0 && defNumber == (List.length wop.definitions - 1) && definition == "" then
+        {- wop must always have 1 definition, but aside from the first one, if the last one is set
+           to empty, we delete it.
+        -}
+        { wop | definitions = ListE.removeAt defNumber wop.definitions }
+
+    else
+        -- editing an existing definition (will not alter anything if index is out of range)
+        { wop | definitions = ListE.setAt defNumber definition wop.definitions }
 
 
 setNotes : String -> WOP -> WOP

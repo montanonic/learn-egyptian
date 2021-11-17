@@ -1,7 +1,8 @@
 port module Main exposing (..)
 
 import Browser
-import Browser.Events exposing (onKeyPress)
+import Browser.Events exposing (onKeyPress, onMouseMove)
+import Debug exposing (toString)
 import Dict exposing (Dict)
 import Dict.Extra as DictE
 import Html exposing (..)
@@ -67,9 +68,15 @@ port storeNewWopFlashcards : Maybe { before : List WOP, current : WOP, after : L
 port saveLocalStorageToClipboard : () -> Cmd msg
 
 
+port mouseMoveImageLesson : Decode.Value -> Cmd msg
+
+
 {-| Focus on the html element with the given id.
 -}
 port autofocusId : String -> Cmd msg
+
+
+port receiveKalimniEvents : (KalimniEvent -> msg) -> Sub msg
 
 
 
@@ -77,12 +84,91 @@ port autofocusId : String -> Cmd msg
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
+subscriptions { drawInLesson } =
     {- TODO: improve deselection of words ; currently it's too broad and even clicking on the word edit interface deselects it. -}
     -- if not (String.isEmpty model.selectedWop) then
     --     Browser.Events.onMouseDown (D.succeed DeselectWord)
     -- else
-    onKeyPress keyDecoder
+    Sub.batch
+        [ onKeyPress keyDecoder
+        , if drawInLesson then
+            receiveKalimniEvents GotKalimniEvent
+
+          else
+            Sub.none
+        ]
+
+
+
+{- so to construct absolutely position rectangles, we need to know where, proportionally on the
+   image, the rectangle should start drawing, and where it should end drawing. In short: we need the
+   start and end corners. because rectangles are always drawn in the browser from the top-left, if
+   the datums we receive are the bottom left corner and the top right corner, we'll need to compute
+   the origin of the top-left corner from that. the top-left, by definition, is a value with min Y
+   (top of a browser is Y 0, so we go the opposite to math graphs), and min X.
+
+   I'll make it easy for myself for now and only give it in top-left to bottom-right order.
+
+   both clicks must have come from events of same width and height otherwise the proportions will be
+   messed up.
+-}
+
+
+type alias KalimniEvent =
+    { relativeX : Float
+    , relativeY : Float
+    , width : Int
+    , height : Int
+    , naturalWidth : Int
+    , naturalHeight : Int
+    }
+
+
+type alias KalimniLessonPage =
+    { naturalWidth : Int
+    , naturalHeight : Int
+    , currentScaling : Float
+    , textBoxes : List LessonTextBox
+    }
+
+
+{-| ALl position data is stored as relative proportions, so that if the image is scaled, the text
+can naturally be scaled along with it.
+-}
+type alias LessonTextBox =
+    { topLeft : ( Float, Float )
+    , bottomRight : ( Float, Float )
+    , text : String
+    }
+
+
+{-| Converts from relative coords back to actual pixel values.
+-}
+textBoxGetTopLeftCoord : KalimniLessonPage -> LessonTextBox -> ( String, String )
+textBoxGetTopLeftCoord { currentScaling, naturalWidth, naturalHeight } { topLeft } =
+    let
+        ( tlX, tlY ) =
+            topLeft
+    in
+    ( tlY * currentScaling * toFloat naturalWidth |> round |> intToPx
+    , tlX * currentScaling * toFloat naturalHeight |> round |> intToPx
+    )
+
+
+lessonTextBoxWidthAndHeight : KalimniLessonPage -> LessonTextBox -> List (Html.Attribute msg)
+lessonTextBoxWidthAndHeight { currentScaling, naturalWidth, naturalHeight } { topLeft, bottomRight } =
+    let
+        ( ( tlX, tlY ), ( brX, brY ) ) =
+            ( topLeft, bottomRight )
+    in
+    [ style "width" <| intToPx <| round <| (brX - tlX) * toFloat naturalWidth * currentScaling
+    , style "height" <| intToPx <| round <| (brY - tlY) * toFloat naturalHeight * currentScaling
+    ]
+
+
+intToPx : Int -> String
+intToPx n =
+    toString n ++ "px"
 
 
 
@@ -112,6 +198,13 @@ type alias Model =
     -- new flashcard impl
     , onFlashcardPage : Bool
     , newWopFlashcards : Maybe (Zipper WOP)
+
+    -- kalimni stuff
+    , lastKalimniEvent : Maybe KalimniEvent
+    , selectedKalimniLessonPage : Maybe KalimniLessonPage
+    , drawInLesson : Bool
+    , drawRectangleKalimniBuffer : Maybe KalimniEvent
+    , startingRectangleCoordinate : Maybe ( Float, Float )
     }
 
 
@@ -135,6 +228,19 @@ init { sm2FlashcardData, lessons, wops, lessonTranslations, newWopFlashcards } =
       , hoveredWord = ""
       , onFlashcardPage = False
       , newWopFlashcards = Maybe.map (\{ before, current, after } -> Zipper.from before current after) newWopFlashcards
+
+      -- kalimni stuff
+      , lastKalimniEvent = Nothing
+      , selectedKalimniLessonPage =
+            Just
+                { naturalWidth = 1000
+                , naturalHeight = 400
+                , currentScaling = 1.0
+                , textBoxes = []
+                }
+      , drawInLesson = False
+      , drawRectangleKalimniBuffer = Nothing
+      , startingRectangleCoordinate = Nothing
       }
     , Cmd.none
     )
@@ -181,6 +287,10 @@ type Msg
     | NavigateToFlashcardPage -- open up the flashcard view
     | MakeNewWopFlashcardSet (Maybe (List WOP)) (Random.Generator (List WOP))
     | NextFlashcard
+      -- kalimni arabi stuff
+    | GotKalimniEvent KalimniEvent
+    | ToggleDrawInLesson
+    | LessonImageClick
       -- misc (currently uncategorized)
     | KeyPress String
     | WordHoverStart String
@@ -197,6 +307,57 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        GotKalimniEvent kalimniEvent ->
+            pure { model | lastKalimniEvent = Just kalimniEvent }
+
+        ToggleDrawInLesson ->
+            pure
+                (if model.drawInLesson then
+                    { model | drawInLesson = not model.drawInLesson }
+
+                 else
+                    -- start drawing, with empty rectangle coord buffer
+                    { model
+                        | drawInLesson = not model.drawInLesson
+                        , startingRectangleCoordinate = Nothing
+                    }
+                )
+
+        LessonImageClick ->
+            if model.drawInLesson then
+                case model.startingRectangleCoordinate of
+                    Just topLeft ->
+                        model.lastKalimniEvent
+                            |> Maybe.map
+                                (\{ relativeX, relativeY } ->
+                                    { model
+                                        | selectedKalimniLessonPage =
+                                            Maybe.map
+                                                (\lessonPage ->
+                                                    { lessonPage | textBoxes = { topLeft = topLeft, bottomRight = ( relativeX, relativeY ), text = "" } :: lessonPage.textBoxes }
+                                                )
+                                                model.selectedKalimniLessonPage
+                                                |> Debug.log "blah"
+                                        , startingRectangleCoordinate = Nothing
+                                    }
+                                )
+                            |> Maybe.withDefault model
+                            |> pure
+
+                    Nothing ->
+                        pure
+                            { model
+                                | startingRectangleCoordinate =
+                                    Maybe.andThen
+                                        (\ke ->
+                                            Just ( ke.relativeX, ke.relativeY )
+                                        )
+                                        model.lastKalimniEvent
+                            }
+
+            else
+                pure model
+
         KeyPress key ->
             {- handle pressing #'s 1 through 4 to change familiarity level -}
             if (not <| String.isEmpty model.selectedWop) && model.selectedWop == model.hoveredWord then
@@ -751,7 +912,11 @@ view model =
     else
         div []
             [ h2 [] [ text "Learn Egyptian" ]
-            , button [ onClick SaveDataModelToClipboard ] [ text "Save Data Model to Clipboard (4MB limit)" ]
+
+            -- , Maybe.map (\lesson -> imageLessonPage lesson model) model.selectedKalimniLessonPage
+            --     |> Maybe.withDefault (span [] [])
+            , button [ onClick SaveDataModelToClipboard ]
+                [ text "Save Data Model to Clipboard (4MB limit)" ]
             , newAndEditLessonView model
             , button [ onClick NavigateToFlashcardPage ] [ text "Go to Flashcards Page" ]
             , lessonsView model
@@ -761,6 +926,48 @@ view model =
               else
                 selectedLessonView model model.selectedLesson
             ]
+
+
+imageLessonPage : KalimniLessonPage -> Model -> Html Msg
+imageLessonPage lessonPage model =
+    let
+        displayLessonBoxes =
+            lessonPage.textBoxes
+                |> List.map
+                    (\textBox ->
+                        let
+                            ( top, left ) =
+                                textBoxGetTopLeftCoord lessonPage textBox
+                        in
+                        div
+                            ([ class "lesson-text-box"
+                             , style "top" top
+                             , style "left" left
+                             ]
+                                ++ lessonTextBoxWidthAndHeight lessonPage textBox
+                            )
+                            [ text "new box" ]
+                    )
+    in
+    div [ class "image-lesson-page" ]
+        [ button [ onClick ToggleDrawInLesson ]
+            [ if model.drawInLesson then
+                text "Stop Drawing"
+
+              else
+                text "Draw in Lesson"
+            ]
+        , div [ class "image-lesson-view" ]
+            ([ img
+                [ onClick LessonImageClick
+                , id "img"
+                , src "https://www.splitbrain.org/_media/blog/2010-06/ocr/verdana-black-300.png"
+                ]
+                []
+             ]
+                ++ displayLessonBoxes
+            )
+        ]
 
 
 flashcardView : Model -> Html Msg
@@ -1040,30 +1247,31 @@ selectedWordEdit model =
          else
             case WOP.get model.selectedWop model.wops of
                 Just wop ->
-                    p [ class "primary-definition" ] [ text <| model.selectedWop ++ " = ", text <| Maybe.withDefault "" <| List.head wop.definitions ]
+                    p [ class "primary-definition" ] [ text <| model.selectedWop ++ " = ", text <| String.join " || " wop.definitions ]
                         :: List.indexedMap
                             (\i def ->
                                 input
-                                    [ placeholder ("Definition #" ++ String.fromInt i)
+                                    [ placeholder ("Definition #" ++ String.fromInt (i + 1))
                                     , value def
                                     , onInput <| EditSelectedWOPDefinition i
                                     ]
                                     []
                             )
-                            wop.definitions
-                        ++ [ input [ placeholder "romanization", value wop.romanization, onInput EditSelectedWOPRomanization ] []
-                           , div [ class "selected-word-tags-edit" ]
-                                [ div []
-                                    (if not (String.isEmpty model.selectedWopTagsBuffer) then
-                                        {- the matching tags we show are ONLY for the last term in the list -}
-                                        [ text "Matching tags: ", text <| String.join ", " <| WOP.fuzzyMatchTag (model.selectedWopTagsBuffer |> WOP.stringToTags |> ListE.last |> Maybe.withDefault "") model.wops ]
+                            (wop.definitions ++ [ "" ])
+                        ++ [ input [ placeholder "romanization", value wop.romanization, onInput EditSelectedWOPRomanization, class "romanization" ] []
 
-                                     else
-                                        [ text "Tags: ", text <| String.join ", " wop.tags ]
-                                    )
-                                , input [ onInput EditSelectedWOPTagsBuffer, value model.selectedWopTagsBuffer, onFocus (EditSelectedWOPTagsBuffer <| String.join ", " wop.tags) ] []
-                                , button [ onClick (SetSelectedWOPTags model.selectedWopTagsBuffer) ] [ text "Save Tags" ]
-                                ]
+                           -- NOTE: I'm not finding tags to be useful yet, so I'm just gonna to remove the UI for them for now.
+                           --    , div [ class "selected-word-tags-edit" ]
+                           --         [ div []
+                           --             (if not (String.isEmpty model.selectedWopTagsBuffer) then
+                           --                 {- the matching tags we show are ONLY for the last term in the list -}
+                           --                 [ text "Matching tags: ", text <| String.join ", " <| WOP.fuzzyMatchTag (model.selectedWopTagsBuffer |> WOP.stringToTags |> ListE.last |> Maybe.withDefault "") model.wops ]
+                           --              else
+                           --                 [ text "Tags: ", text <| String.join ", " wop.tags ]
+                           --             )
+                           --         , input [ onInput EditSelectedWOPTagsBuffer, value model.selectedWopTagsBuffer, onFocus (EditSelectedWOPTagsBuffer <| String.join ", " wop.tags) ] []
+                           --         , button [ onClick (SetSelectedWOPTags model.selectedWopTagsBuffer) ] [ text "Save Tags" ]
+                           --         ]
                            , textarea
                                 [ cols 20, rows 10, onInput EditSelectedWOPNotes, value wop.notes ]
                                 []
@@ -1248,7 +1456,6 @@ markPhrases allPhrasesWithLengths list =
                     )
                 |> List.sortBy (\( _, ( startI, _ ) ) -> startI)
 
-        -- |> Debug.log "matchingPhrases"
         {- now we have a list containing our phrase and the start and end indices of it, we can use
            this data to alter the original data set by replacing all the values in the range of
            those indices with the phrase data structure

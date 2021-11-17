@@ -136,6 +136,12 @@ body {
 
 .selected-word-edit input {
     margin: 0 auto;
+    display: block;
+}
+
+.selected-word-edit input.romanization {
+    margin-top: 10px;
+    background-color: pink;
 }
 
 .selected-word-edit .primary-definition {
@@ -196,4 +202,19 @@ body {
     align-items: center;
     border-radius: 10px;
     justify-content: center;
+}
+
+.image-lesson-page .image-lesson-view {
+    /* give the textboxes an anchor to position themselves against */
+    position: relative;
+    /* inline-block makes it so that the dive takes up the same space as the image, which is
+    critical for our placements to work corrently */
+    display: inline-block;
+    /* filter: invert(1); */
+}
+
+.image-lesson-page .image-lesson-view .lesson-text-box {
+    background-color: black;
+    color: white;
+    position: absolute;
 }
