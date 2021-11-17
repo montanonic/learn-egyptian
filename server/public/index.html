@@ -19,6 +19,22 @@
 </body>
 
 <script type="text/javascript">
+  function alterValue(func) {
+    return (([k, v]) => [k, func(v)]);
+  }
+  function alterKey(func) {
+    return (([k, v]) => [func(k), v]);
+  }
+  function migrateDataAtKey(opt, key, func) {
+    const data = getLocally(key);
+    const newData = data.map(func);
+    if (opt === "test") {
+      return newData;
+    }
+    if (opt === "for real") {
+      storeLocally(key, newData);
+    }
+  }
   // The following is book-keeping for our data in local storage. It's important to centralize
   // this because it lets us effortlessly backup our data whenever we want, without leaving things
   // out.

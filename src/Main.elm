@@ -29,11 +29,24 @@ import WordOrPhrase as WOP exposing (WOP, update)
 
 type alias Flags =
     { sm2FlashcardData : List SM2FlashcardData
-    , lessons : List ( String, String )
+    , lessons : List ( String, Lesson )
     , lessonTranslations : List ( String, String )
     , wops : List ( String, WOP )
     , newWopFlashcards : Maybe { before : List WOP, current : WOP, after : List WOP }
     }
+
+
+type alias Lesson =
+    { text : String
+    , audioFileType : String
+    }
+
+
+{-| Default `audioFileType` is "wav".
+-}
+makeLesson : String -> Lesson
+makeLesson text =
+    { text = text, audioFileType = "wav" }
 
 
 main : Program Flags Model Msg
@@ -56,7 +69,7 @@ port storeFlashcardEntry : SM2FlashcardData -> Cmd msg
 port storeLessonTranslations : List ( String, String ) -> Cmd msg
 
 
-port storeLessons : List ( String, String ) -> Cmd msg
+port storeLessons : List ( String, Lesson ) -> Cmd msg
 
 
 port storeWops : List ( String, WOP ) -> Cmd msg
@@ -185,7 +198,7 @@ type alias Model =
     -- lessons
     , newLessonText : String
     , newLessonTitle : String
-    , lessons : Dict String String -- title -> text
+    , lessons : Dict String Lesson -- title -> text
     , lessonTranslations : Dict String String -- title -> translation
     , selectedLesson : String
     , selectedWop : String -- just the key (AKA the stringified word or phrase), for lookup in the wops Dict
@@ -266,6 +279,7 @@ type Msg
     | ChangeNewLessonTitle String
     | CreateNewLesson
     | UpdateLesson ( String, String )
+    | ChangeLessonAudioFileType String
     | SelectLesson String
     | DeselectLesson -- useful in this development design at least, not a good long-term design
     | BackendAudioUpdated (Result Http.Error String)
@@ -424,7 +438,14 @@ update msg model =
 
         CreateNewLesson ->
             impure
-                { model | newLessonText = "", newLessonTitle = "", lessons = Dict.insert model.newLessonTitle model.newLessonText model.lessons }
+                { model
+                    | newLessonText = ""
+                    , newLessonTitle = ""
+                    , lessons =
+                        Dict.update model.newLessonTitle
+                            (Maybe.map (\lesson -> { lesson | text = model.newLessonText }))
+                            model.lessons
+                }
                 (.lessons >> Dict.toList >> storeLessons)
 
         {- BUG: When lesson title changes, the ordering of model updates leads to the active lesson
@@ -449,7 +470,10 @@ update msg model =
 
                 newModel =
                     { model
-                        | lessons = Dict.insert newTitle model.newLessonText model.lessons
+                        | lessons =
+                            Dict.update newTitle
+                                (Maybe.map (\lesson -> { lesson | text = model.newLessonText }))
+                                model.lessons
                         , lessonTranslations =
                             existingTranslation
                                 |> Maybe.map (\et -> Dict.insert newTitle et model.lessonTranslations)
@@ -467,6 +491,14 @@ update msg model =
                                     Encode.object
                                         [ ( "old", Encode.string existingTitle )
                                         , ( "new", Encode.string newTitle )
+                                        , ( "type"
+                                          , Encode.string
+                                                (newModel.lessons
+                                                    |> Dict.get newTitle
+                                                    |> Maybe.map .audioFileType
+                                                    |> Maybe.withDefault "wav"
+                                                )
+                                          )
                                         ]
                             , expect = Http.expectString BackendAudioUpdated
                             }
@@ -482,6 +514,16 @@ update msg model =
                 ]
             )
 
+        ChangeLessonAudioFileType newFileType ->
+            impure
+                { model
+                    | lessons =
+                        Dict.update model.selectedLesson
+                            (Maybe.map (\lesson -> { lesson | audioFileType = newFileType }))
+                            model.lessons
+                }
+                (.lessons >> Dict.toList >> storeLessons)
+
         BackendAudioUpdated response ->
             -- let
             --     _ =
@@ -495,6 +537,7 @@ update msg model =
                     | selectedLesson = title
                     , newLessonText =
                         Dict.get title model.lessons
+                            |> Maybe.map .text
                             |> Maybe.withDefault ""
                     , newLessonTitle = title
                     , selectedWop = ""
@@ -613,7 +656,7 @@ update msg model =
                 {- in this branch we've guaranteed the start and end words are different (well, technically the word might be repeated but they're separate instances). also the line of text is the same (it seems like a bad idea to create a phrase across sentence boundaries...). thus we construct a phrase from the words in between. -}
                 let
                     selectedLessonText =
-                        Dict.get model.selectedLesson model.lessons |> Maybe.withDefault ""
+                        Dict.get model.selectedLesson model.lessons |> Maybe.map .text |> Maybe.withDefault ""
 
                     line =
                         ListE.getAt lineIndexEnd (splitIntoCleanLines selectedLessonText)
@@ -993,7 +1036,7 @@ flashcardView model =
                         [ onClick NextFlashcard ]
                         [ text "Next Card" ]
                     , p [] [ text ("on flashcard " ++ currentFlashcardNumber ++ "/" ++ totalSize) ]
-                    , getExampleSentenceForWop wop (Dict.values model.lessons) model.wops
+                    , getExampleSentenceForWop wop (Dict.values model.lessons |> List.map .text) model.wops
                     ]
 
             Nothing ->
@@ -1130,28 +1173,6 @@ getExampleSentenceForWop wop lessons wops =
                     )
 
 
-newLessonView : Model -> Html Msg
-newLessonView model =
-    let
-        creationDisabled =
-            (model.newLessonText == "")
-                || (model.newLessonTitle == "")
-                || (Dict.get model.newLessonTitle model.lessons /= Nothing)
-    in
-    div [ class "new-lesson-view" ]
-        [ label [] [ text "Make a new lesson" ]
-        , input [ placeholder "title", value model.newLessonTitle, onInput ChangeNewLessonTitle ] []
-        , textarea [ rows 15, cols 60, onInput ChangeNewLessonText, value model.newLessonText ] []
-        , button [ onClick CreateNewLesson, disabled creationDisabled ] [ text "Create Lesson" ]
-        , h3 [] [ text "Preview:" ]
-        , div []
-            (model.newLessonText
-                |> String.split "\n"
-                |> List.map (\line -> p [] [ text line ])
-            )
-        ]
-
-
 {-| Covers creating lessons and editing them.
 -}
 newAndEditLessonView : Model -> Html Msg
@@ -1159,6 +1180,7 @@ newAndEditLessonView model =
     let
         buttonDisabled =
             if String.isEmpty model.selectedLesson then
+                -- in this case we're creating a new lesson
                 (model.newLessonText == "")
                     || (model.newLessonTitle == "")
                     -- don't allow creation if it conflicts with an existing lesson
@@ -1166,8 +1188,34 @@ newAndEditLessonView model =
                 {- disable the button if all fields stayed the same, or if a new title conflicts -}
 
             else
-                (Dict.get model.selectedLesson model.lessons == Just model.newLessonText)
+                -- otherwise we're updating an existing lesson if we click this button
+                ((Dict.get model.selectedLesson model.lessons |> Maybe.map .text) == Just model.newLessonText)
                     && (model.selectedLesson == model.newLessonTitle || Dict.get model.newLessonTitle model.lessons /= Nothing)
+
+        lessonFileType =
+            Dict.get model.selectedLesson model.lessons |> Maybe.map .audioFileType |> Maybe.withDefault ""
+
+        audioFileTypeRadioButtons =
+            Html.form [ style "display" "flex", style "width" "120px", style "margin-left" "auto" ]
+                [ input
+                    [ type_ "radio"
+                    , name "fileTypeWav"
+                    , onInput ChangeLessonAudioFileType
+                    , checked (lessonFileType == "wav")
+                    , value "wav"
+                    ]
+                    []
+                , label [ for "fileTypeWav" ] [ text "wav" ]
+                , input
+                    [ type_ "radio"
+                    , name "fileTypeMp3"
+                    , onInput ChangeLessonAudioFileType
+                    , checked (lessonFileType == "mp3")
+                    , value "mp3"
+                    ]
+                    []
+                , label [ for "fileTypeMp3" ] [ text "mp3" ]
+                ]
     in
     div [ class "new-lesson-view" ]
         [ if String.isEmpty model.selectedLesson then
@@ -1175,10 +1223,11 @@ newAndEditLessonView model =
 
           else
             div []
-                [ button [ onClick DeselectLesson ] [ text "Deselect Lesson" ]
-                , label [] [ text <| "Edit lesson" ]
+                [ label [ style "display" "block" ] [ text <| "Edit lesson" ]
+                , button [ onClick DeselectLesson ] [ text "Deselect Lesson" ]
                 ]
         , input [ placeholder "title", value model.newLessonTitle, onInput ChangeNewLessonTitle ] []
+        , audioFileTypeRadioButtons
         , div [ class "textarea-container" ] [ textarea [ rows 15, cols 60, onInput ChangeNewLessonText, value model.newLessonText ] [] ]
         , if String.isEmpty model.selectedLesson then
             button [ onClick CreateNewLesson, disabled buttonDisabled ] [ text "Create Lesson" ]
@@ -1215,12 +1264,18 @@ lessonsView model =
 selectedLessonView : Model -> String -> Html Msg
 selectedLessonView model title =
     let
+        mlesson =
+            Dict.get title model.lessons
+
         lessonText =
-            Dict.get title model.lessons |> Maybe.withDefault ""
+            mlesson |> Maybe.map .text |> Maybe.withDefault ""
+
+        lessonAudioType =
+            mlesson |> Maybe.map .audioFileType |> Maybe.withDefault "wav"
     in
     div [ class "selected-lesson-view" ]
         [ h2 [] [ text <| "Title: " ++ title ]
-        , audio [ controls True, src <| "http://localhost:3000/audio/" ++ title ++ ".wav" ] []
+        , audio [ controls True, src <| "http://localhost:3000/audio/" ++ title ++ "." ++ lessonAudioType ] []
         , div [ class "lesson-words-and-lookup" ] [ div [ class "selected-word-edit-and-lesson-translation" ] [ selectedWordEdit model, lessonTranslationBox model ], displayWords model lessonText ]
         ]
 

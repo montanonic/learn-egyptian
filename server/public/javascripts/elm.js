@@ -7757,7 +7757,18 @@ var $author$project$Main$storeLessons = _Platform_outgoingPort(
 				_List_fromArray(
 					[
 						$elm$json$Json$Encode$string(a),
-						$elm$json$Json$Encode$string(b)
+						function ($) {
+						return $elm$json$Json$Encode$object(
+							_List_fromArray(
+								[
+									_Utils_Tuple2(
+									'audioFileType',
+									$elm$json$Json$Encode$string($.audioFileType)),
+									_Utils_Tuple2(
+									'text',
+									$elm$json$Json$Encode$string($.text))
+								]));
+					}(b)
 					]));
 		}));
 var $elm$core$Maybe$destruct = F3(
@@ -8160,7 +8171,16 @@ var $author$project$Main$update = F2(
 					_Utils_update(
 						model,
 						{
-							lessons: A3($elm$core$Dict$insert, model.newLessonTitle, model.newLessonText, model.lessons),
+							lessons: A3(
+								$elm$core$Dict$update,
+								model.newLessonTitle,
+								$elm$core$Maybe$map(
+									function (lesson) {
+										return _Utils_update(
+											lesson,
+											{text: model.newLessonText});
+									}),
+								model.lessons),
 							newLessonText: '',
 							newLessonTitle: ''
 						}),
@@ -8174,22 +8194,6 @@ var $author$project$Main$update = F2(
 				var _v3 = msg.a;
 				var existingTitle = _v3.a;
 				var newTitle = _v3.b;
-				var updateAudioName = (!_Utils_eq(existingTitle, newTitle)) ? $elm$http$Http$post(
-					{
-						body: $elm$http$Http$jsonBody(
-							$elm$json$Json$Encode$object(
-								_List_fromArray(
-									[
-										_Utils_Tuple2(
-										'old',
-										$elm$json$Json$Encode$string(existingTitle)),
-										_Utils_Tuple2(
-										'new',
-										$elm$json$Json$Encode$string(newTitle))
-									]))),
-						expect: $elm$http$Http$expectString($author$project$Main$BackendAudioUpdated),
-						url: 'http://localhost:3000/updateAudioName'
-					}) : $elm$core$Platform$Cmd$none;
 				var processTitleChange = function (m) {
 					return (!_Utils_eq(existingTitle, newTitle)) ? _Utils_update(
 						m,
@@ -8213,8 +8217,45 @@ var $author$project$Main$update = F2(
 										return A3($elm$core$Dict$insert, newTitle, et, model.lessonTranslations);
 									},
 									existingTranslation)),
-							lessons: A3($elm$core$Dict$insert, newTitle, model.newLessonText, model.lessons)
+							lessons: A3(
+								$elm$core$Dict$update,
+								newTitle,
+								$elm$core$Maybe$map(
+									function (lesson) {
+										return _Utils_update(
+											lesson,
+											{text: model.newLessonText});
+									}),
+								model.lessons)
 						}));
+				var updateAudioName = (!_Utils_eq(existingTitle, newTitle)) ? $elm$http$Http$post(
+					{
+						body: $elm$http$Http$jsonBody(
+							$elm$json$Json$Encode$object(
+								_List_fromArray(
+									[
+										_Utils_Tuple2(
+										'old',
+										$elm$json$Json$Encode$string(existingTitle)),
+										_Utils_Tuple2(
+										'new',
+										$elm$json$Json$Encode$string(newTitle)),
+										_Utils_Tuple2(
+										'type',
+										$elm$json$Json$Encode$string(
+											A2(
+												$elm$core$Maybe$withDefault,
+												'wav',
+												A2(
+													$elm$core$Maybe$map,
+													function ($) {
+														return $.audioFileType;
+													},
+													A2($elm$core$Dict$get, newTitle, newModel.lessons)))))
+									]))),
+						expect: $elm$http$Http$expectString($author$project$Main$BackendAudioUpdated),
+						url: 'http://localhost:3000/updateAudioName'
+					}) : $elm$core$Platform$Cmd$none;
 				return _Utils_Tuple2(
 					newModel,
 					$elm$core$Platform$Cmd$batch(
@@ -8226,6 +8267,30 @@ var $author$project$Main$update = F2(
 								$elm$core$Dict$toList(newModel.lessonTranslations)),
 								updateAudioName
 							])));
+			case 'ChangeLessonAudioFileType':
+				var newFileType = msg.a;
+				return A2(
+					$author$project$Main$impure,
+					_Utils_update(
+						model,
+						{
+							lessons: A3(
+								$elm$core$Dict$update,
+								model.selectedLesson,
+								$elm$core$Maybe$map(
+									function (lesson) {
+										return _Utils_update(
+											lesson,
+											{audioFileType: newFileType});
+									}),
+								model.lessons)
+						}),
+					A2(
+						$elm$core$Basics$composeR,
+						function ($) {
+							return $.lessons;
+						},
+						A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeLessons)));
 			case 'BackendAudioUpdated':
 				var response = msg.a;
 				return $author$project$Main$pure(model);
@@ -8238,7 +8303,12 @@ var $author$project$Main$update = F2(
 							newLessonText: A2(
 								$elm$core$Maybe$withDefault,
 								'',
-								A2($elm$core$Dict$get, title, model.lessons)),
+								A2(
+									$elm$core$Maybe$map,
+									function ($) {
+										return $.text;
+									},
+									A2($elm$core$Dict$get, title, model.lessons))),
 							newLessonTitle: title,
 							selectedLesson: title,
 							selectedWop: ''
@@ -8450,7 +8520,12 @@ var $author$project$Main$update = F2(
 					var selectedLessonText = A2(
 						$elm$core$Maybe$withDefault,
 						'',
-						A2($elm$core$Dict$get, model.selectedLesson, model.lessons));
+						A2(
+							$elm$core$Maybe$map,
+							function ($) {
+								return $.text;
+							},
+							A2($elm$core$Dict$get, model.selectedLesson, model.lessons)));
 					var line = A2(
 						$elm$core$Maybe$withDefault,
 						'',
@@ -9115,7 +9190,12 @@ var $author$project$Main$flashcardView = function (model) {
 								A3(
 								$author$project$Main$getExampleSentenceForWop,
 								wop,
-								$elm$core$Dict$values(model.lessons),
+								A2(
+									$elm$core$List$map,
+									function ($) {
+										return $.text;
+									},
+									$elm$core$Dict$values(model.lessons)),
 								model.wops)
 							]));
 				} else {
@@ -9225,6 +9305,9 @@ var $author$project$Main$lessonsView = function (model) {
 					$elm$core$Dict$keys(model.lessons)))
 			]));
 };
+var $author$project$Main$ChangeLessonAudioFileType = function (a) {
+	return {$: 'ChangeLessonAudioFileType', a: a};
+};
 var $author$project$Main$ChangeNewLessonText = function (a) {
 	return {$: 'ChangeNewLessonText', a: a};
 };
@@ -9236,12 +9319,6 @@ var $author$project$Main$DeselectLesson = {$: 'DeselectLesson'};
 var $author$project$Main$UpdateLesson = function (a) {
 	return {$: 'UpdateLesson', a: a};
 };
-var $elm$html$Html$Attributes$cols = function (n) {
-	return A2(
-		_VirtualDom_attribute,
-		'cols',
-		$elm$core$String$fromInt(n));
-};
 var $elm$json$Json$Encode$bool = _Json_wrap;
 var $elm$html$Html$Attributes$boolProperty = F2(
 	function (key, bool) {
@@ -9250,9 +9327,19 @@ var $elm$html$Html$Attributes$boolProperty = F2(
 			key,
 			$elm$json$Json$Encode$bool(bool));
 	});
+var $elm$html$Html$Attributes$checked = $elm$html$Html$Attributes$boolProperty('checked');
+var $elm$html$Html$Attributes$cols = function (n) {
+	return A2(
+		_VirtualDom_attribute,
+		'cols',
+		$elm$core$String$fromInt(n));
+};
 var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
+var $elm$html$Html$Attributes$for = $elm$html$Html$Attributes$stringProperty('htmlFor');
+var $elm$html$Html$form = _VirtualDom_node('form');
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$html$Html$label = _VirtualDom_node('label');
+var $elm$html$Html$Attributes$name = $elm$html$Html$Attributes$stringProperty('name');
 var $elm$html$Html$Events$alwaysStop = function (x) {
 	return _Utils_Tuple2(x, true);
 };
@@ -9291,16 +9378,86 @@ var $elm$html$Html$Attributes$rows = function (n) {
 		'rows',
 		$elm$core$String$fromInt(n));
 };
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $elm$html$Html$textarea = _VirtualDom_node('textarea');
+var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
 var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
 var $author$project$Main$newAndEditLessonView = function (model) {
+	var lessonFileType = A2(
+		$elm$core$Maybe$withDefault,
+		'',
+		A2(
+			$elm$core$Maybe$map,
+			function ($) {
+				return $.audioFileType;
+			},
+			A2($elm$core$Dict$get, model.selectedLesson, model.lessons)));
 	var buttonDisabled = $elm$core$String$isEmpty(model.selectedLesson) ? ((model.newLessonText === '') || ((model.newLessonTitle === '') || (!_Utils_eq(
 		A2($elm$core$Dict$get, model.newLessonTitle, model.lessons),
 		$elm$core$Maybe$Nothing)))) : (_Utils_eq(
-		A2($elm$core$Dict$get, model.selectedLesson, model.lessons),
+		A2(
+			$elm$core$Maybe$map,
+			function ($) {
+				return $.text;
+			},
+			A2($elm$core$Dict$get, model.selectedLesson, model.lessons)),
 		$elm$core$Maybe$Just(model.newLessonText)) && (_Utils_eq(model.selectedLesson, model.newLessonTitle) || (!_Utils_eq(
 		A2($elm$core$Dict$get, model.newLessonTitle, model.lessons),
 		$elm$core$Maybe$Nothing))));
+	var audioFileTypeRadioButtons = A2(
+		$elm$html$Html$form,
+		_List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+				A2($elm$html$Html$Attributes$style, 'width', '120px'),
+				A2($elm$html$Html$Attributes$style, 'margin-left', 'auto')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$input,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$type_('radio'),
+						$elm$html$Html$Attributes$name('fileTypeWav'),
+						$elm$html$Html$Events$onInput($author$project$Main$ChangeLessonAudioFileType),
+						$elm$html$Html$Attributes$checked(lessonFileType === 'wav'),
+						$elm$html$Html$Attributes$value('wav')
+					]),
+				_List_Nil),
+				A2(
+				$elm$html$Html$label,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$for('fileTypeWav')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('wav')
+					])),
+				A2(
+				$elm$html$Html$input,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$type_('radio'),
+						$elm$html$Html$Attributes$name('fileTypeMp3'),
+						$elm$html$Html$Events$onInput($author$project$Main$ChangeLessonAudioFileType),
+						$elm$html$Html$Attributes$checked(lessonFileType === 'mp3'),
+						$elm$html$Html$Attributes$value('mp3')
+					]),
+				_List_Nil),
+				A2(
+				$elm$html$Html$label,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$for('fileTypeMp3')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('mp3')
+					]))
+			]));
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
@@ -9321,6 +9478,16 @@ var $author$project$Main$newAndEditLessonView = function (model) {
 				_List_fromArray(
 					[
 						A2(
+						$elm$html$Html$label,
+						_List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$style, 'display', 'block')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Edit lesson')
+							])),
+						A2(
 						$elm$html$Html$button,
 						_List_fromArray(
 							[
@@ -9329,13 +9496,6 @@ var $author$project$Main$newAndEditLessonView = function (model) {
 						_List_fromArray(
 							[
 								$elm$html$Html$text('Deselect Lesson')
-							])),
-						A2(
-						$elm$html$Html$label,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Edit lesson')
 							]))
 					])),
 				A2(
@@ -9347,6 +9507,7 @@ var $author$project$Main$newAndEditLessonView = function (model) {
 						$elm$html$Html$Events$onInput($author$project$Main$ChangeNewLessonTitle)
 					]),
 				_List_Nil),
+				audioFileTypeRadioButtons,
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
@@ -9923,10 +10084,25 @@ var $elm$html$Html$Attributes$src = function (url) {
 };
 var $author$project$Main$selectedLessonView = F2(
 	function (model, title) {
+		var mlesson = A2($elm$core$Dict$get, title, model.lessons);
 		var lessonText = A2(
 			$elm$core$Maybe$withDefault,
 			'',
-			A2($elm$core$Dict$get, title, model.lessons));
+			A2(
+				$elm$core$Maybe$map,
+				function ($) {
+					return $.text;
+				},
+				mlesson));
+		var lessonAudioType = A2(
+			$elm$core$Maybe$withDefault,
+			'wav',
+			A2(
+				$elm$core$Maybe$map,
+				function ($) {
+					return $.audioFileType;
+				},
+				mlesson));
 		return A2(
 			$elm$html$Html$div,
 			_List_fromArray(
@@ -9947,7 +10123,7 @@ var $author$project$Main$selectedLessonView = F2(
 					_List_fromArray(
 						[
 							$elm$html$Html$Attributes$controls(true),
-							$elm$html$Html$Attributes$src('http://localhost:3000/audio/' + (title + '.wav'))
+							$elm$html$Html$Attributes$src('http://localhost:3000/audio/' + (title + ('.' + lessonAudioType)))
 						]),
 					_List_Nil),
 					A2(
@@ -10062,7 +10238,21 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 														return $elm$json$Json$Decode$succeed(
 															_Utils_Tuple2(_v0, _v1));
 													},
-													A2($elm$json$Json$Decode$index, 1, $elm$json$Json$Decode$string));
+													A2(
+														$elm$json$Json$Decode$index,
+														1,
+														A2(
+															$elm$json$Json$Decode$andThen,
+															function (text) {
+																return A2(
+																	$elm$json$Json$Decode$andThen,
+																	function (audioFileType) {
+																		return $elm$json$Json$Decode$succeed(
+																			{audioFileType: audioFileType, text: text});
+																	},
+																	A2($elm$json$Json$Decode$field, 'audioFileType', $elm$json$Json$Decode$string));
+															},
+															A2($elm$json$Json$Decode$field, 'text', $elm$json$Json$Decode$string))));
 											},
 											A2($elm$json$Json$Decode$index, 0, $elm$json$Json$Decode$string)))));
 						},
