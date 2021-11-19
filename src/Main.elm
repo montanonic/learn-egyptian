@@ -442,8 +442,8 @@ update msg model =
                     | newLessonText = ""
                     , newLessonTitle = ""
                     , lessons =
-                        Dict.update model.newLessonTitle
-                            (Maybe.map (\lesson -> { lesson | text = model.newLessonText }))
+                        Dict.insert model.newLessonTitle
+                            (makeLesson model.newLessonText)
                             model.lessons
                 }
                 (.lessons >> Dict.toList >> storeLessons)

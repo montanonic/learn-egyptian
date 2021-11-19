@@ -6860,6 +6860,9 @@ var $author$project$WordOrPhrase$keyIsPhrase = function (key_) {
 		A2($elm$core$String$split, ' ', key_)) > 1;
 };
 var $elm$core$Debug$log = _Debug_log;
+var $author$project$Main$makeLesson = function (text) {
+	return {audioFileType: 'wav', text: text};
+};
 var $author$project$WordOrPhrase$makeWOP = F2(
 	function (wordOrPhrase, definition) {
 		return {
@@ -8172,14 +8175,9 @@ var $author$project$Main$update = F2(
 						model,
 						{
 							lessons: A3(
-								$elm$core$Dict$update,
+								$elm$core$Dict$insert,
 								model.newLessonTitle,
-								$elm$core$Maybe$map(
-									function (lesson) {
-										return _Utils_update(
-											lesson,
-											{text: model.newLessonText});
-									}),
+								$author$project$Main$makeLesson(model.newLessonText),
 								model.lessons),
 							newLessonText: '',
 							newLessonTitle: ''
