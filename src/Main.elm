@@ -1298,7 +1298,17 @@ lessonTranslationBox model =
                 button [ onClick AddTranslationToSelectedLesson ] [ text "Add Translation" ]
 
             Just translation ->
-                textarea [ rows 15, cols 20, value translation, onInput EditTranslationOfSelectedLesson ] []
+                textarea
+                    [ rows 1
+
+                    {- 15 -}
+                    , cols 1
+
+                    {- 20 -}
+                    , value translation
+                    , onInput EditTranslationOfSelectedLesson
+                    ]
+                    []
         ]
 
 

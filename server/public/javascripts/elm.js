@@ -9904,8 +9904,8 @@ var $author$project$Main$lessonTranslationBox = function (model) {
 						$elm$html$Html$textarea,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$rows(15),
-								$elm$html$Html$Attributes$cols(20),
+								$elm$html$Html$Attributes$rows(1),
+								$elm$html$Html$Attributes$cols(1),
 								$elm$html$Html$Attributes$value(translation),
 								$elm$html$Html$Events$onInput($author$project$Main$EditTranslationOfSelectedLesson)
 							]),
