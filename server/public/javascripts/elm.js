@@ -8026,7 +8026,6 @@ var $author$project$Main$update = F2(
 							},
 							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeLessons)));
 				case 'BackendAudioUpdated':
-					var response = msg.a;
 					return $author$project$Main$pure(model);
 				case 'SelectLesson':
 					var title = msg.a;
@@ -8408,7 +8407,8 @@ var $author$project$Main$update = F2(
 								return $.familiarityLevel;
 							},
 							A2($author$project$Main$getWopsInLesson, lessonText, model.wops)));
-					var unidentifiedWops = A2(
+					var _v10 = $author$project$Main$extractSentences(lessonText);
+					var _v11 = A2(
 						$elm$core$List$map,
 						function (word) {
 							return A2(
@@ -8418,7 +8418,6 @@ var $author$project$Main$update = F2(
 								'');
 						},
 						A2($author$project$Main$getUnidentifiedWordsInLesson, lessonText, model.wops));
-					var sentences = $author$project$Main$extractSentences(lessonText);
 					return $author$project$Main$pure(
 						_Utils_update(
 							model,
@@ -9565,7 +9564,6 @@ var $author$project$Main$markPhrases = F2(
 						var restPhrases = _v1.c;
 						if (mnextMatchingPhrase.$ === 'Just') {
 							var _v3 = mnextMatchingPhrase.a;
-							var phrase = _v3.a;
 							var _v4 = _v3.b;
 							var startI = _v4.a;
 							var endI = _v4.b;
@@ -10023,7 +10021,6 @@ var $author$project$Main$selectedLessonView = F2(
 									A2($author$project$Main$displayWords, model, lessonText)
 								]);
 						} else {
-							var wops = _v0.a;
 							return _List_fromArray(
 								[
 									A2($elm$html$Html$div, _List_Nil, _List_Nil)

@@ -502,7 +502,7 @@ update msg model =
                 }
                 (.lessons >> Dict.toList >> storeLessons)
 
-        BackendAudioUpdated response ->
+        BackendAudioUpdated _ ->
             -- let
             --     _ =
             --         Debug.log "BackendAudioUpdated" response
@@ -731,10 +731,10 @@ update msg model =
 
         PrepareForLessonWithFlashcards lessonText ->
             let
-                sentences =
+                _ =
                     extractSentences lessonText
 
-                unidentifiedWops =
+                _ =
                     getUnidentifiedWordsInLesson lessonText model.wops
                         |> List.map (\word -> WOP.makeWOP [ word ] "")
 
@@ -1080,14 +1080,13 @@ imageLessonPage lessonPage model =
                 text "Draw in Lesson"
             ]
         , div [ class "image-lesson-view" ]
-            ([ img
+            (img
                 [ onClick LessonImageClick
                 , id "img"
                 , src "https://www.splitbrain.org/_media/blog/2010-06/ocr/verdana-black-300.png"
                 ]
                 []
-             ]
-                ++ displayLessonBoxes
+                :: displayLessonBoxes
             )
         ]
 
@@ -1382,16 +1381,16 @@ selectedLessonView model title =
                     , displayWords model lessonText
                     ]
 
-                Just wops ->
+                Just _ ->
                     [ div [] [] ]
             )
         ]
 
 
 lessonPrepFlashcardsView : Model -> List WOP -> Html Msg
-lessonPrepFlashcardsView model familiaritySortedWops =
+lessonPrepFlashcardsView _ familiaritySortedWops =
     let
-        wops =
+        _ =
             familiaritySortedWops
                 |> List.filter (\{ familiarityLevel } -> familiarityLevel <= 2)
     in
@@ -1700,7 +1699,7 @@ markPhrases allPhrasesWithLengths list =
     List.foldr
         (\( i, wordOrNonWord ) ( ls, mnextMatchingPhrase, restPhrases ) ->
             case mnextMatchingPhrase of
-                Just ( phrase, ( startI, endI ) ) ->
+                Just ( _, ( startI, endI ) ) ->
                     if i >= startI && i < endI then
                         -- HACK: short term solution is mark these words differently:
                         ( wordToPhraseWord wordOrNonWord :: ls, mnextMatchingPhrase, restPhrases )
