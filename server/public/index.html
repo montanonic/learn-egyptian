@@ -9,6 +9,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"
     integrity="sha512-Qlv6VSKh1gDKGoJbnyA5RMXYcvnpIqhO++MhIM2fStMcGT9i2T//tSwYFlcyoRRDcDZ+TYHpH8azBBCyhpSeqw=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://unpkg.com/elm-debug-transformer/dist/elm-console-debug.js"></script>
 </head>
 
 <body>
@@ -19,6 +20,8 @@
 </body>
 
 <script type="text/javascript">
+  ElmConsoleDebug.register();
+
   function alterValue(func) {
     return (([k, v]) => [k, func(v)]);
   }
@@ -135,6 +138,7 @@
       // For English->Eg when there's multiple words that mean the same thing in English, when you're tested you should be asked if you can recall another word for it. Ideally though we should just have a better way to mark the english side of the vocab with a special note. We should be able to mark either EG or Eng side of vocab with a note.
       flags: {
         sm2FlashcardData: Array.from(getEgyptianWords()).map(word => getLocally(word)),
+        tick: Date.now(),
         ...getAllLocalData()
       }
     });
@@ -197,16 +201,18 @@
     });
 
     var img = document.getElementById('img');
-    img.onmousemove = (e) => {
-      target = e.target;
-      app.ports.receiveKalimniEvents.send({
-        relativeX: (e.offsetX + 1) / target.width,
-        relativeY: (e.offsetY + 1) / target.height,
-        width: target.width,
-        height: target.height,
-        naturalWidth: target.naturalWidth,
-        naturalHeight: target.naturalHeight,
-      });
+    if (img) {
+      img.onmousemove = (e) => {
+        target = e.target;
+        app.ports.receiveKalimniEvents.send({
+          relativeX: (e.offsetX + 1) / target.width,
+          relativeY: (e.offsetY + 1) / target.height,
+          width: target.width,
+          height: target.height,
+          naturalWidth: target.naturalWidth,
+          naturalHeight: target.naturalHeight,
+        });
+      }
     }
 
 
@@ -234,6 +240,18 @@
     //     storeLocally('lessonTitles', [...getLessonTitles(), title]); // index it
     //     return storeLocally(`lesson-${title}`, text);
     // }
+
+    app.ports.getSentencesFromTextBlobFinal.subscribe(function ([originalText, lines]) {
+      let sentences = [];
+      for (let line of lines) {
+        const lineMatches = line.match(/[^.?!؟]+[.!?؟]+[\])'"`’”]*|.+/g);
+        sentences.push(...(lineMatches || []));
+      }
+      // remove excess whitespace and drop any blank sentences.
+      sentences = sentences.map(x => x.trim());
+      sentences = sentences.filter(x => x !== "");
+      app.ports.receiveSentencesFromTextBlob.send([originalText, sentences]);
+    });
 
     // TODO: Bad code
     app.ports.storeFlashcardEntry.subscribe(function (entry) {

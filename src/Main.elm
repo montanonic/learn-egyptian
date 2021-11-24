@@ -1,5 +1,6 @@
 port module Main exposing (..)
 
+import Basics.Extra exposing (curry)
 import Browser
 import Browser.Events exposing (onKeyPress, onMouseMove)
 import Debug exposing (toString)
@@ -16,9 +17,11 @@ import List.Zipper as Zipper exposing (Zipper)
 import Maybe.Extra as MaybeE
 import Random
 import Random.List as RandomList
-import Regex
+import Regex exposing (Regex)
 import SM2Flashcards exposing (SM2FlashcardData)
 import Set exposing (Set)
+import String.Extra exposing (toSentence)
+import Time
 import Utils
 import WordOrPhrase as WOP exposing (WOP, update)
 
@@ -28,7 +31,8 @@ import WordOrPhrase as WOP exposing (WOP, update)
 
 
 type alias Flags =
-    { sm2FlashcardData : List SM2FlashcardData
+    { tick : Int
+    , sm2FlashcardData : List SM2FlashcardData
     , lessons : List ( String, Lesson )
     , lessonTranslations : List ( String, String )
     , wops : List ( String, WOP )
@@ -92,6 +96,21 @@ port autofocusId : String -> Cmd msg
 port receiveKalimniEvents : (KalimniEvent -> msg) -> Sub msg
 
 
+{-| Currently I'm unhappy with Elm's lackluster Regex support and want to solve this problem
+efficiently. The problem: correctly breaking off a chunk of text into sentences. This should
+preserve the terminal characters, and newlines should be considered their own sentences.
+-}
+port getSentencesFromTextBlobFinal : ( String, List String ) -> Cmd msg
+
+
+getSentencesFromTextBlob : String -> Cmd msg
+getSentencesFromTextBlob str =
+    splitIntoCleanLines str |> curry getSentencesFromTextBlobFinal str
+
+
+port receiveSentencesFromTextBlob : (( String, List String ) -> msg) -> Sub msg
+
+
 
 -- SUBSCRIPTIONS
 
@@ -109,6 +128,17 @@ subscriptions { drawInLesson } =
 
           else
             Sub.none
+
+        {- some objects need to be timestamped, and for our purposes, a resolution of a second is
+           totally fine. to be on the safe side, 100ms is chosen as a time interval. what this means
+           is that any elm updates within 100ms of each other will have a different value in
+           model.tick. if a unique value is needed each time, there's no other solution than to
+           manually fire a Time.now command, and thread the result into the computation. because
+           that type of book-keeping feels tedious, and such a precise resolution doesn't seem to be
+           important for now, I stick with a 100ms tick.
+        -}
+        -- , Time.every 100 Tick
+        , receiveSentencesFromTextBlob (\( a, b ) -> PrepareForLessonWithFlashcards a (Just b))
         ]
 
 
@@ -189,7 +219,8 @@ intToPx n =
 
 
 type alias Model =
-    { draft : String
+    { tick : Time.Posix
+    , draft : String
     , mainWords : List String -- all arabic
     , sm2FlashcardData : List SM2FlashcardData
     , flashcardEgyptianInput : String
@@ -222,8 +253,9 @@ type alias Model =
 
 
 init : Flags -> ( Model, Cmd Msg )
-init { sm2FlashcardData, lessons, wops, lessonTranslations, newWopFlashcards } =
-    ( { draft = ""
+init { tick, sm2FlashcardData, lessons, wops, lessonTranslations, newWopFlashcards } =
+    ( { tick = Time.millisToPosix tick
+      , draft = ""
       , mainWords = []
       , sm2FlashcardData = sm2FlashcardData
       , flashcardEgyptianInput = ""
@@ -265,6 +297,8 @@ init { sm2FlashcardData, lessons, wops, lessonTranslations, newWopFlashcards } =
 
 type Msg
     = SaveDataModelToClipboard
+      -- Time
+    | Tick Time.Posix
       -- Flashcard stuff, currently not used *at all*, and needs to be repurposed.
     | DraftChanged String
     | MainWordEntered
@@ -301,6 +335,7 @@ type Msg
     | NavigateToFlashcardPage -- open up the flashcard view
     | MakeNewWopFlashcardSet (Maybe (List WOP)) (Random.Generator (List WOP))
     | NextFlashcard
+    | PrepareForLessonWithFlashcards String (Maybe (List String))
       -- kalimni arabi stuff
     | GotKalimniEvent KalimniEvent
     | ToggleDrawInLesson
@@ -321,6 +356,9 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Tick posix ->
+            pure { model | tick = posix }
+
         GotKalimniEvent kalimniEvent ->
             pure { model | lastKalimniEvent = Just kalimniEvent }
 
@@ -740,6 +778,29 @@ update msg model =
             impure { model | newWopFlashcards = Maybe.andThen Zipper.next model.newWopFlashcards }
                 (.newWopFlashcards >> Maybe.map Utils.deconstructZipper >> storeNewWopFlashcards)
 
+        PrepareForLessonWithFlashcards lessonText maybeSentences ->
+            case maybeSentences of
+                Just sentences ->
+                    let
+                        unidentifiedWops =
+                            getUnidentifiedWordsInLesson lessonText model.wops
+                                |> List.map (\word -> WOP.makeWOP [ word ] "")
+
+                        _ =
+                            unidentifiedWops
+                                |> List.map
+                                    (\wop ->
+                                        ( WOP.key wop
+                                        , filterSentencesContainingWop sentences wop
+                                        )
+                                    )
+                                |> Debug.log "ting"
+                    in
+                    pure model
+
+                Nothing ->
+                    impure model (always (getSentencesFromTextBlob lessonText))
+
 
 pure : Model -> ( Model, Cmd Msg )
 pure model =
@@ -749,6 +810,66 @@ pure model =
 impure : Model -> (Model -> Cmd Msg) -> ( Model, Cmd Msg )
 impure model effect =
     ( model, effect model )
+
+
+
+-- LESSON VOCAB
+{- so there's two main goals here. before starting a lesson we want to cover the new vocab presented
+   in a lesson. for my purposes this just means to have a button that I can click which says "review
+   new words", and then there will be a flashcard interface.
+
+   the second main goal will be to do SRS review of any due words. this can be listed as a daily goal that can be done via flashcards (with automatic sentence context) but also after marking a lesson or page as read. there's also seamless SRS where clicking on an SRS-due word within a lesson will ask if you remembered it's meaning or not; it can be optionally underlined in blue, or just maybe have a blue color effect when hovered to distinguish it and prime you to try recalling the meaning.
+
+   for starters I want to get the first feature working.
+-}
+
+
+{-| In order of first appearance, no duplicates.
+-}
+getWordsInLesson : String -> List String
+getWordsInLesson lessonText =
+    getWordsFromString lessonText
+        |> List.map String.trim
+        |> List.filter (not << String.isEmpty)
+        |> ListE.unique
+
+
+getWopsInLesson : String -> Dict String WOP -> List WOP
+getWopsInLesson lessonText wops =
+    getWordsInLesson lessonText
+        |> List.filterMap (\word -> WOP.get word wops)
+
+
+getUnidentifiedWordsInLesson : String -> Dict String WOP -> List String
+getUnidentifiedWordsInLesson lessonText wops =
+    getWordsInLesson lessonText
+        -- keep only those not appearing in our existing dict
+        |> List.filter (\word -> WOP.get word wops |> MaybeE.isNothing)
+
+
+{-| Given a list of text/lesson sentences, show only those that contain the target wop. Currently
+the work of getting the sentences is offloaded to ports.
+-}
+filterSentencesContainingWop : List String -> WOP -> List String
+filterSentencesContainingWop sentences wop =
+    List.filter
+        (\sentence ->
+            List.any
+                (WOP.tashkylEquivalent (WOP.key wop))
+                (getWordsFromString sentence)
+        )
+        sentences
+
+
+
+{- so now that we have our lesson words and -}
+
+
+{-| Any of these characters indicates the end of a sentence. NOTE: Perhaps useful for a future Elm-side implementation of sentence-finding.
+-}
+terminalCharSet : Set Char
+terminalCharSet =
+    Set.fromList [ '?', '؟', '.', '\n' ]
 
 
 {-| The process for in-place transliterating latin characters into corresponding arabic characters.
@@ -1050,6 +1171,13 @@ flashcardView model =
         ]
 
 
+{-| BUG: for some reason the elm splitting is taking FOREVER with positive lookahead to preserve the punctuation characters. I'm going to offload this job to JavaScript.
+-}
+terminalPunctuationRx : Regex
+terminalPunctuationRx =
+    "(?=[.?؟!\\n]+)" |> Regex.fromString |> Maybe.withDefault Regex.never
+
+
 {-| So this is the fun part of a flashcard: looking up an example sentence for it in the lessons.
 
 This is a simple algorithm that will return on the first match. If lessons are provided in a
@@ -1119,9 +1247,6 @@ getExampleSentenceForWop wop lessons wops =
 
                             ( match, afterMatch ) =
                                 ListE.uncons withMatch |> Maybe.withDefault ( DisplayWord "", [] )
-
-                            terminalPunctuationRx =
-                                ".?؟!" |> Regex.fromString |> Maybe.withDefault Regex.never
 
                             isSentenceTerminal displayWord =
                                 case displayWord of
@@ -1286,7 +1411,12 @@ selectedLessonView model title =
     div [ class "selected-lesson-view" ]
         [ h2 [] [ text <| "Title: " ++ title ]
         , audio [ controls True, src <| "http://localhost:3000/audio/" ++ title ++ "." ++ lessonAudioType ] []
-        , div [ class "lesson-words-and-lookup" ] [ div [ class "selected-word-edit-and-lesson-translation" ] [ selectedWordEdit model, lessonTranslationBox model ], displayWords model lessonText ]
+        , button [ onClick (PrepareForLessonWithFlashcards lessonText Nothing) ]
+            [ text "Prepare for Lesson with Flashcards" ]
+        , div [ class "lesson-words-and-lookup" ]
+            [ div [ class "selected-word-edit-and-lesson-translation" ] [ selectedWordEdit model, lessonTranslationBox model ]
+            , displayWords model lessonText
+            ]
         ]
 
 
@@ -1462,6 +1592,24 @@ markWordCharsFromNonWordChars lineOfText =
                     []
         )
         (Regex.find nonWordDetectorRx lineOfText)
+
+
+getWord : WordDisplayTypes -> Maybe String
+getWord wdt =
+    case wdt of
+        DisplayWord w ->
+            Just w
+
+        DisplayWordOfPhrase w ->
+            Just w
+
+        _ ->
+            Nothing
+
+
+getWordsFromString : String -> List String
+getWordsFromString str =
+    str |> markWordCharsFromNonWordChars |> List.filterMap getWord
 
 
 {-| This step should follow `markWordCharsFromNonWordChars`. It will mark words that belong to a
