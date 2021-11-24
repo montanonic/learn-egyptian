@@ -35,7 +35,9 @@
       return newData;
     }
     if (opt === "for real") {
+      storeLocally(`migrateDataAt_${key}_backup`, data);
       storeLocally(key, newData);
+      console.log(`data migrated; a backup was made at "migrateDataAt_${key}_backup" in the case of an issue`);
     }
   }
   // The following is book-keeping for our data in local storage. It's important to centralize
@@ -68,7 +70,7 @@
     backupNumber: 'backupNumber',
     newWopFlashcards: 'newWopFlashcards'
   };
-  const dataVersion = 4; // bump this when you change the data model in any way whatsoever, including adding or removing data.
+  const dataVersion = 5; // bump this when you change the data model in any way whatsoever, including adding or removing data.
 
   /// Returns an object with all the data.
   function getAllLocalData() {
@@ -147,9 +149,9 @@
       var blob = new Blob([JSON.stringify(getAllLocalData())], {
         type: "application/json;charset=utf-8"
       });
-      var backupNumber = getLocally(localKeys.backupNumber) || 1;
-      saveAs(blob, `learn_egyptian_backup_v${dataVersion}_${backupNumber}`);
-      storeLocally(localKeys.backupNumber, backupNumber + 1);
+      var nextBackupNumber = getLocally(localKeys.backupNumber) + 1 || 1;
+      saveAs(blob, `learn_egyptian_backup_v${dataVersion}_${nextBackupNumber}`);
+      storeLocally(localKeys.backupNumber, nextBackupNumber);
     });
 
 

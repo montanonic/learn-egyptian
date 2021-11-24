@@ -5659,7 +5659,6 @@ var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$init = function (_v0) {
 	var tick = _v0.tick;
-	var sm2FlashcardData = _v0.sm2FlashcardData;
 	var lessons = _v0.lessons;
 	var wops = _v0.wops;
 	var lessonTranslations = _v0.lessonTranslations;
@@ -5673,6 +5672,7 @@ var $author$project$Main$init = function (_v0) {
 			flashcardEnglishInput: '',
 			hoveredWord: '',
 			lastKalimniEvent: $elm$core$Maybe$Nothing,
+			lessonFlashcards: $elm$core$Maybe$Nothing,
 			lessonTranslations: $elm$core$Dict$fromList(lessonTranslations),
 			lessons: $elm$core$Dict$fromList(lessons),
 			mainWords: _List_Nil,
@@ -5695,7 +5695,6 @@ var $author$project$Main$init = function (_v0) {
 			selectedLesson: '',
 			selectedWop: '',
 			selectedWopTagsBuffer: '',
-			sm2FlashcardData: sm2FlashcardData,
 			startingRectangleCoordinate: $elm$core$Maybe$Nothing,
 			tick: $elm$time$Time$millisToPosix(tick),
 			wops: $elm$core$Dict$fromList(wops)
@@ -6047,13 +6046,164 @@ var $author$project$Main$BackendAudioUpdated = function (a) {
 var $author$project$Main$DisplayNonWord = function (a) {
 	return {$: 'DisplayNonWord', a: a};
 };
+var $author$project$Main$GetCurrentTimeAndThen = function (a) {
+	return {$: 'GetCurrentTimeAndThen', a: a};
+};
 var $author$project$Main$MakeNewWopFlashcardSet = F2(
 	function (a, b) {
 		return {$: 'MakeNewWopFlashcardSet', a: a, b: b};
 	});
+var $author$project$Main$SelectWOP = F2(
+	function (a, b) {
+		return {$: 'SelectWOP', a: a, b: b};
+	});
 var $author$project$Main$SetSelectedWOPFamiliarityLevel = function (a) {
 	return {$: 'SetSelectedWOPFamiliarityLevel', a: a};
 };
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$core$List$takeReverse = F3(
+	function (n, list, kept) {
+		takeReverse:
+		while (true) {
+			if (n <= 0) {
+				return kept;
+			} else {
+				if (!list.b) {
+					return kept;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs,
+						$temp$kept = A2($elm$core$List$cons, x, kept);
+					n = $temp$n;
+					list = $temp$list;
+					kept = $temp$kept;
+					continue takeReverse;
+				}
+			}
+		}
+	});
+var $elm$core$List$takeTailRec = F2(
+	function (n, list) {
+		return $elm$core$List$reverse(
+			A3($elm$core$List$takeReverse, n, list, _List_Nil));
+	});
+var $elm$core$List$takeFast = F3(
+	function (ctr, n, list) {
+		if (n <= 0) {
+			return _List_Nil;
+		} else {
+			var _v0 = _Utils_Tuple2(n, list);
+			_v0$1:
+			while (true) {
+				_v0$5:
+				while (true) {
+					if (!_v0.b.b) {
+						return list;
+					} else {
+						if (_v0.b.b.b) {
+							switch (_v0.a) {
+								case 1:
+									break _v0$1;
+								case 2:
+									var _v2 = _v0.b;
+									var x = _v2.a;
+									var _v3 = _v2.b;
+									var y = _v3.a;
+									return _List_fromArray(
+										[x, y]);
+								case 3:
+									if (_v0.b.b.b.b) {
+										var _v4 = _v0.b;
+										var x = _v4.a;
+										var _v5 = _v4.b;
+										var y = _v5.a;
+										var _v6 = _v5.b;
+										var z = _v6.a;
+										return _List_fromArray(
+											[x, y, z]);
+									} else {
+										break _v0$5;
+									}
+								default:
+									if (_v0.b.b.b.b && _v0.b.b.b.b.b) {
+										var _v7 = _v0.b;
+										var x = _v7.a;
+										var _v8 = _v7.b;
+										var y = _v8.a;
+										var _v9 = _v8.b;
+										var z = _v9.a;
+										var _v10 = _v9.b;
+										var w = _v10.a;
+										var tl = _v10.b;
+										return (ctr > 1000) ? A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A2($elm$core$List$takeTailRec, n - 4, tl))))) : A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A3($elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
+									} else {
+										break _v0$5;
+									}
+							}
+						} else {
+							if (_v0.a === 1) {
+								break _v0$1;
+							} else {
+								break _v0$5;
+							}
+						}
+					}
+				}
+				return list;
+			}
+			var _v1 = _v0.b;
+			var x = _v1.a;
+			return _List_fromArray(
+				[x]);
+		}
+	});
+var $elm$core$List$take = F2(
+	function (n, list) {
+		return A3($elm$core$List$takeFast, 0, n, list);
+	});
+var $author$project$WordOrPhrase$addReviewTime = F2(
+	function (time, wop) {
+		return _Utils_update(
+			wop,
+			{
+				reviewHistory: A2(
+					$elm$core$List$take,
+					3,
+					A2(
+						$elm$core$List$cons,
+						$elm$time$Time$posixToMillis(time),
+						wop.reviewHistory))
+			});
+	});
 var $elm$core$List$any = F2(
 	function (isOkay, list) {
 		any:
@@ -6706,6 +6856,199 @@ var $author$project$Main$extractSentences = function (text) {
 			$author$project$Main$unsplitFromCleanLines(
 				$author$project$Main$splitIntoCleanLines(text))));
 };
+var $wernerdegroot$listzipper$List$Zipper$fromList = function (xs) {
+	if (!xs.b) {
+		return $elm$core$Maybe$Nothing;
+	} else {
+		var y = xs.a;
+		var ys = xs.b;
+		return $elm$core$Maybe$Just(
+			A3($wernerdegroot$listzipper$List$Zipper$Zipper, _List_Nil, y, ys));
+	}
+};
+var $elm$core$Basics$ge = _Utils_ge;
+var $elm$random$Random$Generate = function (a) {
+	return {$: 'Generate', a: a};
+};
+var $elm$random$Random$Seed = F2(
+	function (a, b) {
+		return {$: 'Seed', a: a, b: b};
+	});
+var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
+var $elm$random$Random$next = function (_v0) {
+	var state0 = _v0.a;
+	var incr = _v0.b;
+	return A2($elm$random$Random$Seed, ((state0 * 1664525) + incr) >>> 0, incr);
+};
+var $elm$random$Random$initialSeed = function (x) {
+	var _v0 = $elm$random$Random$next(
+		A2($elm$random$Random$Seed, 0, 1013904223));
+	var state1 = _v0.a;
+	var incr = _v0.b;
+	var state2 = (state1 + x) >>> 0;
+	return $elm$random$Random$next(
+		A2($elm$random$Random$Seed, state2, incr));
+};
+var $elm$time$Time$Name = function (a) {
+	return {$: 'Name', a: a};
+};
+var $elm$time$Time$Offset = function (a) {
+	return {$: 'Offset', a: a};
+};
+var $elm$time$Time$Zone = F2(
+	function (a, b) {
+		return {$: 'Zone', a: a, b: b};
+	});
+var $elm$time$Time$customZone = $elm$time$Time$Zone;
+var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
+var $elm$random$Random$init = A2(
+	$elm$core$Task$andThen,
+	function (time) {
+		return $elm$core$Task$succeed(
+			$elm$random$Random$initialSeed(
+				$elm$time$Time$posixToMillis(time)));
+	},
+	$elm$time$Time$now);
+var $elm$random$Random$step = F2(
+	function (_v0, seed) {
+		var generator = _v0.a;
+		return generator(seed);
+	});
+var $elm$random$Random$onEffects = F3(
+	function (router, commands, seed) {
+		if (!commands.b) {
+			return $elm$core$Task$succeed(seed);
+		} else {
+			var generator = commands.a.a;
+			var rest = commands.b;
+			var _v1 = A2($elm$random$Random$step, generator, seed);
+			var value = _v1.a;
+			var newSeed = _v1.b;
+			return A2(
+				$elm$core$Task$andThen,
+				function (_v2) {
+					return A3($elm$random$Random$onEffects, router, rest, newSeed);
+				},
+				A2($elm$core$Platform$sendToApp, router, value));
+		}
+	});
+var $elm$random$Random$onSelfMsg = F3(
+	function (_v0, _v1, seed) {
+		return $elm$core$Task$succeed(seed);
+	});
+var $elm$random$Random$Generator = function (a) {
+	return {$: 'Generator', a: a};
+};
+var $elm$random$Random$map = F2(
+	function (func, _v0) {
+		var genA = _v0.a;
+		return $elm$random$Random$Generator(
+			function (seed0) {
+				var _v1 = genA(seed0);
+				var a = _v1.a;
+				var seed1 = _v1.b;
+				return _Utils_Tuple2(
+					func(a),
+					seed1);
+			});
+	});
+var $elm$random$Random$cmdMap = F2(
+	function (func, _v0) {
+		var generator = _v0.a;
+		return $elm$random$Random$Generate(
+			A2($elm$random$Random$map, func, generator));
+	});
+_Platform_effectManagers['Random'] = _Platform_createManager($elm$random$Random$init, $elm$random$Random$onEffects, $elm$random$Random$onSelfMsg, $elm$random$Random$cmdMap);
+var $elm$random$Random$command = _Platform_leaf('Random');
+var $elm$random$Random$generate = F2(
+	function (tagger, generator) {
+		return $elm$random$Random$command(
+			$elm$random$Random$Generate(
+				A2($elm$random$Random$map, tagger, generator)));
+	});
+var $elm_community$list_extra$List$Extra$filterNot = F2(
+	function (pred, list) {
+		return A2(
+			$elm$core$List$filter,
+			A2($elm$core$Basics$composeL, $elm$core$Basics$not, pred),
+			list);
+	});
+var $elm$core$String$fromList = _String_fromList;
+var $elm$core$Dict$member = F2(
+	function (key, dict) {
+		var _v0 = A2($elm$core$Dict$get, key, dict);
+		if (_v0.$ === 'Just') {
+			return true;
+		} else {
+			return false;
+		}
+	});
+var $elm$core$Set$member = F2(
+	function (key, _v0) {
+		var dict = _v0.a;
+		return A2($elm$core$Dict$member, key, dict);
+	});
+var $elm$core$Set$Set_elm_builtin = function (a) {
+	return {$: 'Set_elm_builtin', a: a};
+};
+var $elm$core$Set$empty = $elm$core$Set$Set_elm_builtin($elm$core$Dict$empty);
+var $elm$core$Set$insert = F2(
+	function (key, _v0) {
+		var dict = _v0.a;
+		return $elm$core$Set$Set_elm_builtin(
+			A3($elm$core$Dict$insert, key, _Utils_Tuple0, dict));
+	});
+var $elm$core$Set$fromList = function (list) {
+	return A3($elm$core$List$foldl, $elm$core$Set$insert, $elm$core$Set$empty, list);
+};
+var $author$project$WordOrPhrase$tashkylSet = $elm$core$Set$fromList(
+	_List_fromArray(
+		[
+			_Utils_chr('َ'),
+			_Utils_chr('ِ'),
+			_Utils_chr('ُ'),
+			_Utils_chr('ْ')
+		]));
+var $elm$core$String$foldr = _String_foldr;
+var $elm$core$String$toList = function (string) {
+	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
+};
+var $author$project$WordOrPhrase$splitOffTashkyl = function (string) {
+	var chars = $elm$core$String$toList(string);
+	var justTashkyl = A2(
+		$elm$core$List$filter,
+		function (ch) {
+			return A2($elm$core$Set$member, ch, $author$project$WordOrPhrase$tashkylSet);
+		},
+		chars);
+	var withoutTashkyl = $elm$core$String$fromList(
+		A2(
+			$elm_community$list_extra$List$Extra$filterNot,
+			function (ch) {
+				return A2($elm$core$Set$member, ch, $author$project$WordOrPhrase$tashkylSet);
+			},
+			chars));
+	return _Utils_Tuple2(withoutTashkyl, justTashkyl);
+};
+var $author$project$WordOrPhrase$removeFKD = A2($elm$core$Basics$composeR, $author$project$WordOrPhrase$splitOffTashkyl, $elm$core$Tuple$first);
+var $author$project$WordOrPhrase$get = function (wopKey) {
+	return $elm$core$Dict$get(
+		$author$project$WordOrPhrase$removeFKD(wopKey));
+};
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $elm_community$list_extra$List$Extra$getAt = F2(
+	function (idx, xs) {
+		return (idx < 0) ? $elm$core$Maybe$Nothing : $elm$core$List$head(
+			A2($elm$core$List$drop, idx, xs));
+	});
 var $author$project$Main$getWord = function (wdt) {
 	switch (wdt.$) {
 		case 'DisplayWord':
@@ -6786,274 +7129,6 @@ var $author$project$Main$getWordsFromString = function (str) {
 		$author$project$Main$getWord,
 		$author$project$Main$markWordCharsFromNonWordChars(str));
 };
-var $author$project$WordOrPhrase$wordOrPhraseToKey = function (wordOrPhrase) {
-	return A2($elm$core$String$join, ' ', wordOrPhrase);
-};
-var $author$project$WordOrPhrase$key = function (_v0) {
-	var wordOrPhrase = _v0.wordOrPhrase;
-	return $author$project$WordOrPhrase$wordOrPhraseToKey(wordOrPhrase);
-};
-var $elm$core$List$isEmpty = function (xs) {
-	if (!xs.b) {
-		return true;
-	} else {
-		return false;
-	}
-};
-var $elm_community$list_extra$List$Extra$isSubsequenceOf = F2(
-	function (subseq, list) {
-		isSubsequenceOf:
-		while (true) {
-			var _v0 = _Utils_Tuple2(subseq, list);
-			if (!_v0.a.b) {
-				return true;
-			} else {
-				if (!_v0.b.b) {
-					return false;
-				} else {
-					var _v1 = _v0.a;
-					var x = _v1.a;
-					var xs = _v1.b;
-					var _v2 = _v0.b;
-					var y = _v2.a;
-					var ys = _v2.b;
-					if (_Utils_eq(x, y)) {
-						var $temp$subseq = xs,
-							$temp$list = ys;
-						subseq = $temp$subseq;
-						list = $temp$list;
-						continue isSubsequenceOf;
-					} else {
-						var $temp$subseq = subseq,
-							$temp$list = ys;
-						subseq = $temp$subseq;
-						list = $temp$list;
-						continue isSubsequenceOf;
-					}
-				}
-			}
-		}
-	});
-var $elm_community$list_extra$List$Extra$filterNot = F2(
-	function (pred, list) {
-		return A2(
-			$elm$core$List$filter,
-			A2($elm$core$Basics$composeL, $elm$core$Basics$not, pred),
-			list);
-	});
-var $elm$core$String$fromList = _String_fromList;
-var $elm$core$Dict$member = F2(
-	function (key, dict) {
-		var _v0 = A2($elm$core$Dict$get, key, dict);
-		if (_v0.$ === 'Just') {
-			return true;
-		} else {
-			return false;
-		}
-	});
-var $elm$core$Set$member = F2(
-	function (key, _v0) {
-		var dict = _v0.a;
-		return A2($elm$core$Dict$member, key, dict);
-	});
-var $elm$core$Set$Set_elm_builtin = function (a) {
-	return {$: 'Set_elm_builtin', a: a};
-};
-var $elm$core$Set$empty = $elm$core$Set$Set_elm_builtin($elm$core$Dict$empty);
-var $elm$core$Set$insert = F2(
-	function (key, _v0) {
-		var dict = _v0.a;
-		return $elm$core$Set$Set_elm_builtin(
-			A3($elm$core$Dict$insert, key, _Utils_Tuple0, dict));
-	});
-var $elm$core$Set$fromList = function (list) {
-	return A3($elm$core$List$foldl, $elm$core$Set$insert, $elm$core$Set$empty, list);
-};
-var $author$project$WordOrPhrase$tashkylSet = $elm$core$Set$fromList(
-	_List_fromArray(
-		[
-			_Utils_chr('َ'),
-			_Utils_chr('ِ'),
-			_Utils_chr('ُ'),
-			_Utils_chr('ْ')
-		]));
-var $elm$core$String$foldr = _String_foldr;
-var $elm$core$String$toList = function (string) {
-	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
-};
-var $author$project$WordOrPhrase$splitOffTashkyl = function (string) {
-	var chars = $elm$core$String$toList(string);
-	var justTashkyl = A2(
-		$elm$core$List$filter,
-		function (ch) {
-			return A2($elm$core$Set$member, ch, $author$project$WordOrPhrase$tashkylSet);
-		},
-		chars);
-	var withoutTashkyl = $elm$core$String$fromList(
-		A2(
-			$elm_community$list_extra$List$Extra$filterNot,
-			function (ch) {
-				return A2($elm$core$Set$member, ch, $author$project$WordOrPhrase$tashkylSet);
-			},
-			chars));
-	return _Utils_Tuple2(withoutTashkyl, justTashkyl);
-};
-var $author$project$WordOrPhrase$tashkylEquivalent = F2(
-	function (wop1, wop2) {
-		var _v0 = $author$project$WordOrPhrase$splitOffTashkyl(wop2);
-		var wt2 = _v0.a;
-		var jt2 = _v0.b;
-		var _v1 = $author$project$WordOrPhrase$splitOffTashkyl(wop1);
-		var wt1 = _v1.a;
-		var jt1 = _v1.b;
-		return _Utils_eq(wt1, wt2) && ($elm$core$List$isEmpty(jt1) || ($elm$core$List$isEmpty(jt2) || (A2($elm_community$list_extra$List$Extra$isSubsequenceOf, jt1, jt2) || A2($elm_community$list_extra$List$Extra$isSubsequenceOf, jt2, jt1))));
-	});
-var $author$project$Main$filterSentencesContainingWop = F2(
-	function (sentences, wop) {
-		return A2(
-			$elm$core$List$filter,
-			function (sentence) {
-				return A2(
-					$elm$core$List$any,
-					$author$project$WordOrPhrase$tashkylEquivalent(
-						$author$project$WordOrPhrase$key(wop)),
-					$author$project$Main$getWordsFromString(sentence));
-			},
-			sentences);
-	});
-var $wernerdegroot$listzipper$List$Zipper$fromList = function (xs) {
-	if (!xs.b) {
-		return $elm$core$Maybe$Nothing;
-	} else {
-		var y = xs.a;
-		var ys = xs.b;
-		return $elm$core$Maybe$Just(
-			A3($wernerdegroot$listzipper$List$Zipper$Zipper, _List_Nil, y, ys));
-	}
-};
-var $elm$core$Basics$ge = _Utils_ge;
-var $elm$random$Random$Generate = function (a) {
-	return {$: 'Generate', a: a};
-};
-var $elm$random$Random$Seed = F2(
-	function (a, b) {
-		return {$: 'Seed', a: a, b: b};
-	});
-var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
-var $elm$random$Random$next = function (_v0) {
-	var state0 = _v0.a;
-	var incr = _v0.b;
-	return A2($elm$random$Random$Seed, ((state0 * 1664525) + incr) >>> 0, incr);
-};
-var $elm$random$Random$initialSeed = function (x) {
-	var _v0 = $elm$random$Random$next(
-		A2($elm$random$Random$Seed, 0, 1013904223));
-	var state1 = _v0.a;
-	var incr = _v0.b;
-	var state2 = (state1 + x) >>> 0;
-	return $elm$random$Random$next(
-		A2($elm$random$Random$Seed, state2, incr));
-};
-var $elm$time$Time$Name = function (a) {
-	return {$: 'Name', a: a};
-};
-var $elm$time$Time$Offset = function (a) {
-	return {$: 'Offset', a: a};
-};
-var $elm$time$Time$Zone = F2(
-	function (a, b) {
-		return {$: 'Zone', a: a, b: b};
-	});
-var $elm$time$Time$customZone = $elm$time$Time$Zone;
-var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
-var $elm$time$Time$posixToMillis = function (_v0) {
-	var millis = _v0.a;
-	return millis;
-};
-var $elm$random$Random$init = A2(
-	$elm$core$Task$andThen,
-	function (time) {
-		return $elm$core$Task$succeed(
-			$elm$random$Random$initialSeed(
-				$elm$time$Time$posixToMillis(time)));
-	},
-	$elm$time$Time$now);
-var $elm$random$Random$step = F2(
-	function (_v0, seed) {
-		var generator = _v0.a;
-		return generator(seed);
-	});
-var $elm$random$Random$onEffects = F3(
-	function (router, commands, seed) {
-		if (!commands.b) {
-			return $elm$core$Task$succeed(seed);
-		} else {
-			var generator = commands.a.a;
-			var rest = commands.b;
-			var _v1 = A2($elm$random$Random$step, generator, seed);
-			var value = _v1.a;
-			var newSeed = _v1.b;
-			return A2(
-				$elm$core$Task$andThen,
-				function (_v2) {
-					return A3($elm$random$Random$onEffects, router, rest, newSeed);
-				},
-				A2($elm$core$Platform$sendToApp, router, value));
-		}
-	});
-var $elm$random$Random$onSelfMsg = F3(
-	function (_v0, _v1, seed) {
-		return $elm$core$Task$succeed(seed);
-	});
-var $elm$random$Random$Generator = function (a) {
-	return {$: 'Generator', a: a};
-};
-var $elm$random$Random$map = F2(
-	function (func, _v0) {
-		var genA = _v0.a;
-		return $elm$random$Random$Generator(
-			function (seed0) {
-				var _v1 = genA(seed0);
-				var a = _v1.a;
-				var seed1 = _v1.b;
-				return _Utils_Tuple2(
-					func(a),
-					seed1);
-			});
-	});
-var $elm$random$Random$cmdMap = F2(
-	function (func, _v0) {
-		var generator = _v0.a;
-		return $elm$random$Random$Generate(
-			A2($elm$random$Random$map, func, generator));
-	});
-_Platform_effectManagers['Random'] = _Platform_createManager($elm$random$Random$init, $elm$random$Random$onEffects, $elm$random$Random$onSelfMsg, $elm$random$Random$cmdMap);
-var $elm$random$Random$command = _Platform_leaf('Random');
-var $elm$random$Random$generate = F2(
-	function (tagger, generator) {
-		return $elm$random$Random$command(
-			$elm$random$Random$Generate(
-				A2($elm$random$Random$map, tagger, generator)));
-	});
-var $author$project$WordOrPhrase$removeFKD = A2($elm$core$Basics$composeR, $author$project$WordOrPhrase$splitOffTashkyl, $elm$core$Tuple$first);
-var $author$project$WordOrPhrase$get = function (wopKey) {
-	return $elm$core$Dict$get(
-		$author$project$WordOrPhrase$removeFKD(wopKey));
-};
-var $elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(x);
-	} else {
-		return $elm$core$Maybe$Nothing;
-	}
-};
-var $elm_community$list_extra$List$Extra$getAt = F2(
-	function (idx, xs) {
-		return (idx < 0) ? $elm$core$Maybe$Nothing : $elm$core$List$head(
-			A2($elm$core$List$drop, idx, xs));
-	});
 var $elm$core$List$member = F2(
 	function (x, xs) {
 		return A2(
@@ -7127,6 +7202,15 @@ var $author$project$Main$getUnidentifiedWordsInLesson = F2(
 			},
 			$author$project$Main$getWordsInLesson(lessonText));
 	});
+var $author$project$Main$getWopsInLesson = F2(
+	function (lessonText, wops) {
+		return A2(
+			$elm$core$List$filterMap,
+			function (word) {
+				return A2($author$project$WordOrPhrase$get, word, wops);
+			},
+			$author$project$Main$getWordsInLesson(lessonText));
+	});
 var $author$project$Main$impure = F2(
 	function (model, effect) {
 		return _Utils_Tuple2(
@@ -7158,6 +7242,7 @@ var $author$project$WordOrPhrase$makeWOP = F2(
 				[definition]),
 			familiarityLevel: 1,
 			notes: '',
+			reviewHistory: _List_Nil,
 			romanization: '',
 			tags: _List_Nil,
 			wordOrPhrase: wordOrPhrase
@@ -7351,423 +7436,15 @@ var $elm$http$Http$post = function (r) {
 	return $elm$http$Http$request(
 		{body: r.body, expect: r.expect, headers: _List_Nil, method: 'POST', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
 };
-var $elm$core$List$takeReverse = F3(
-	function (n, list, kept) {
-		takeReverse:
-		while (true) {
-			if (n <= 0) {
-				return kept;
-			} else {
-				if (!list.b) {
-					return kept;
-				} else {
-					var x = list.a;
-					var xs = list.b;
-					var $temp$n = n - 1,
-						$temp$list = xs,
-						$temp$kept = A2($elm$core$List$cons, x, kept);
-					n = $temp$n;
-					list = $temp$list;
-					kept = $temp$kept;
-					continue takeReverse;
-				}
-			}
-		}
-	});
-var $elm$core$List$takeTailRec = F2(
-	function (n, list) {
-		return $elm$core$List$reverse(
-			A3($elm$core$List$takeReverse, n, list, _List_Nil));
-	});
-var $elm$core$List$takeFast = F3(
-	function (ctr, n, list) {
-		if (n <= 0) {
-			return _List_Nil;
-		} else {
-			var _v0 = _Utils_Tuple2(n, list);
-			_v0$1:
-			while (true) {
-				_v0$5:
-				while (true) {
-					if (!_v0.b.b) {
-						return list;
-					} else {
-						if (_v0.b.b.b) {
-							switch (_v0.a) {
-								case 1:
-									break _v0$1;
-								case 2:
-									var _v2 = _v0.b;
-									var x = _v2.a;
-									var _v3 = _v2.b;
-									var y = _v3.a;
-									return _List_fromArray(
-										[x, y]);
-								case 3:
-									if (_v0.b.b.b.b) {
-										var _v4 = _v0.b;
-										var x = _v4.a;
-										var _v5 = _v4.b;
-										var y = _v5.a;
-										var _v6 = _v5.b;
-										var z = _v6.a;
-										return _List_fromArray(
-											[x, y, z]);
-									} else {
-										break _v0$5;
-									}
-								default:
-									if (_v0.b.b.b.b && _v0.b.b.b.b.b) {
-										var _v7 = _v0.b;
-										var x = _v7.a;
-										var _v8 = _v7.b;
-										var y = _v8.a;
-										var _v9 = _v8.b;
-										var z = _v9.a;
-										var _v10 = _v9.b;
-										var w = _v10.a;
-										var tl = _v10.b;
-										return (ctr > 1000) ? A2(
-											$elm$core$List$cons,
-											x,
-											A2(
-												$elm$core$List$cons,
-												y,
-												A2(
-													$elm$core$List$cons,
-													z,
-													A2(
-														$elm$core$List$cons,
-														w,
-														A2($elm$core$List$takeTailRec, n - 4, tl))))) : A2(
-											$elm$core$List$cons,
-											x,
-											A2(
-												$elm$core$List$cons,
-												y,
-												A2(
-													$elm$core$List$cons,
-													z,
-													A2(
-														$elm$core$List$cons,
-														w,
-														A3($elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
-									} else {
-										break _v0$5;
-									}
-							}
-						} else {
-							if (_v0.a === 1) {
-								break _v0$1;
-							} else {
-								break _v0$5;
-							}
-						}
-					}
-				}
-				return list;
-			}
-			var _v1 = _v0.b;
-			var x = _v1.a;
-			return _List_fromArray(
-				[x]);
-		}
-	});
-var $elm$core$List$take = F2(
-	function (n, list) {
-		return A3($elm$core$List$takeFast, 0, n, list);
-	});
-var $elm_community$list_extra$List$Extra$groupsOfWithStep = F3(
-	function (size, step, xs) {
-		var xs_ = A2($elm$core$List$drop, step, xs);
-		var thisGroup = A2($elm$core$List$take, size, xs);
-		var okayLength = _Utils_eq(
-			size,
-			$elm$core$List$length(thisGroup));
-		var okayArgs = (size > 0) && (step > 0);
-		return (okayArgs && okayLength) ? A2(
-			$elm$core$List$cons,
-			thisGroup,
-			A3($elm_community$list_extra$List$Extra$groupsOfWithStep, size, step, xs_)) : _List_Nil;
-	});
-var $elm_community$list_extra$List$Extra$last = function (items) {
-	last:
-	while (true) {
-		if (!items.b) {
-			return $elm$core$Maybe$Nothing;
-		} else {
-			if (!items.b.b) {
-				var x = items.a;
-				return $elm$core$Maybe$Just(x);
-			} else {
-				var rest = items.b;
-				var $temp$items = rest;
-				items = $temp$items;
-				continue last;
-			}
-		}
-	}
-};
-var $author$project$Main$oneLatinCharToArabicDict = $elm$core$Dict$fromList(
-	_List_fromArray(
-		[
-			_Utils_Tuple2(
-			_Utils_chr(' '),
-			_Utils_chr(' ')),
-			_Utils_Tuple2(
-			_Utils_chr('\\'),
-			_Utils_chr('\u061C')),
-			_Utils_Tuple2(
-			_Utils_chr('.'),
-			_Utils_chr('.')),
-			_Utils_Tuple2(
-			_Utils_chr(','),
-			_Utils_chr('،')),
-			_Utils_Tuple2(
-			_Utils_chr('?'),
-			_Utils_chr('؟')),
-			_Utils_Tuple2(
-			_Utils_chr('a'),
-			_Utils_chr('َ')),
-			_Utils_Tuple2(
-			_Utils_chr('A'),
-			_Utils_chr('ع')),
-			_Utils_Tuple2(
-			_Utils_chr('b'),
-			_Utils_chr('ب')),
-			_Utils_Tuple2(
-			_Utils_chr('d'),
-			_Utils_chr('د')),
-			_Utils_Tuple2(
-			_Utils_chr('D'),
-			_Utils_chr('ض')),
-			_Utils_Tuple2(
-			_Utils_chr('e'),
-			_Utils_chr('ِ')),
-			_Utils_Tuple2(
-			_Utils_chr('f'),
-			_Utils_chr('ف')),
-			_Utils_Tuple2(
-			_Utils_chr('g'),
-			_Utils_chr('ج')),
-			_Utils_Tuple2(
-			_Utils_chr('G'),
-			_Utils_chr('غ')),
-			_Utils_Tuple2(
-			_Utils_chr('h'),
-			_Utils_chr('ه')),
-			_Utils_Tuple2(
-			_Utils_chr('H'),
-			_Utils_chr('ح')),
-			_Utils_Tuple2(
-			_Utils_chr('i'),
-			_Utils_chr('ِ')),
-			_Utils_Tuple2(
-			_Utils_chr('k'),
-			_Utils_chr('ك')),
-			_Utils_Tuple2(
-			_Utils_chr('K'),
-			_Utils_chr('خ')),
-			_Utils_Tuple2(
-			_Utils_chr('l'),
-			_Utils_chr('ل')),
-			_Utils_Tuple2(
-			_Utils_chr('m'),
-			_Utils_chr('م')),
-			_Utils_Tuple2(
-			_Utils_chr('n'),
-			_Utils_chr('ن')),
-			_Utils_Tuple2(
-			_Utils_chr('o'),
-			_Utils_chr('ُ')),
-			_Utils_Tuple2(
-			_Utils_chr('q'),
-			_Utils_chr('ق')),
-			_Utils_Tuple2(
-			_Utils_chr('r'),
-			_Utils_chr('ر')),
-			_Utils_Tuple2(
-			_Utils_chr('s'),
-			_Utils_chr('س')),
-			_Utils_Tuple2(
-			_Utils_chr('S'),
-			_Utils_chr('ص')),
-			_Utils_Tuple2(
-			_Utils_chr('t'),
-			_Utils_chr('ت')),
-			_Utils_Tuple2(
-			_Utils_chr('u'),
-			_Utils_chr('ُ')),
-			_Utils_Tuple2(
-			_Utils_chr('w'),
-			_Utils_chr('و')),
-			_Utils_Tuple2(
-			_Utils_chr('W'),
-			_Utils_chr('ّ')),
-			_Utils_Tuple2(
-			_Utils_chr('y'),
-			_Utils_chr('ي')),
-			_Utils_Tuple2(
-			_Utils_chr('Y'),
-			_Utils_chr('ى')),
-			_Utils_Tuple2(
-			_Utils_chr('z'),
-			_Utils_chr('ز')),
-			_Utils_Tuple2(
-			_Utils_chr('Z'),
-			_Utils_chr('ظ'))
-		]));
-var $author$project$Main$twoLatinCharToArabicDict = $elm$core$Dict$fromList(
-	_List_fromArray(
-		[
-			_Utils_Tuple2(
-			'; ',
-			_Utils_chr('؛')),
-			_Utils_Tuple2(
-			';-',
-			_Utils_chr('ا')),
-			_Utils_Tuple2(
-			';a',
-			_Utils_chr('أ')),
-			_Utils_Tuple2(
-			';i',
-			_Utils_chr('إ')),
-			_Utils_Tuple2(
-			';e',
-			_Utils_chr('إ')),
-			_Utils_Tuple2(
-			';u',
-			_Utils_chr('أ')),
-			_Utils_Tuple2(
-			';~',
-			_Utils_chr('آ')),
-			_Utils_Tuple2(
-			'c-',
-			_Utils_chr('ء')),
-			_Utils_Tuple2(
-			'\'m',
-			_Utils_chr('ة')),
-			_Utils_Tuple2(
-			'\'d',
-			_Utils_chr('ذ')),
-			_Utils_Tuple2(
-			'\'t',
-			_Utils_chr('ث')),
-			_Utils_Tuple2(
-			'\'s',
-			_Utils_chr('ش'))
-		]));
-var $elm$core$Dict$values = function (dict) {
-	return A3(
-		$elm$core$Dict$foldr,
-		F3(
-			function (key, value, valueList) {
-				return A2($elm$core$List$cons, value, valueList);
-			}),
-		_List_Nil,
-		dict);
-};
-var $author$project$Main$supportedArabicChars = $elm$core$Set$fromList(
-	_Utils_ap(
-		$elm$core$Dict$values($author$project$Main$oneLatinCharToArabicDict),
-		$elm$core$Dict$values($author$project$Main$twoLatinCharToArabicDict)));
-var $elm_community$maybe_extra$Maybe$Extra$unwrap = F3(
-	function (_default, f, m) {
-		if (m.$ === 'Nothing') {
-			return _default;
-		} else {
-			var a = m.a;
-			return f(a);
-		}
-	});
-var $author$project$Main$process = function (str) {
-	var unprocessedPairs = _Utils_ap(
-		A3(
-			$elm_community$list_extra$List$Extra$groupsOfWithStep,
-			2,
-			1,
-			$elm$core$String$toList(str)),
-		function () {
-			var _v2 = $elm_community$list_extra$List$Extra$last(
-				$elm$core$String$toList(str));
-			if (_v2.$ === 'Just') {
-				var lastChar = _v2.a;
-				return _List_fromArray(
-					[
-						_List_fromArray(
-						[lastChar])
-					]);
-			} else {
-				return _List_Nil;
-			}
-		}());
-	var firstOfPair = function (pair) {
-		return A2(
-			$elm$core$Maybe$withDefault,
-			_Utils_chr(' '),
-			$elm$core$List$head(pair));
-	};
-	var pairs = A2(
-		$elm$core$List$map,
-		function (pair) {
-			if (!A2(
-				$elm$core$Set$member,
-				firstOfPair(pair),
-				$author$project$Main$supportedArabicChars)) {
-				var _v0 = A2(
-					$elm$core$Dict$get,
-					$elm$core$String$fromList(pair),
-					$author$project$Main$twoLatinCharToArabicDict);
-				if (_v0.$ === 'Just') {
-					var aMatch = _v0.a;
-					return _List_fromArray(
-						[aMatch]);
-				} else {
-					var _v1 = A2(
-						$elm$core$Dict$get,
-						firstOfPair(pair),
-						$author$project$Main$oneLatinCharToArabicDict);
-					if (_v1.$ === 'Just') {
-						var aMatch = _v1.a;
-						return _List_fromArray(
-							[aMatch]);
-					} else {
-						return A2(
-							$elm$core$List$any,
-							function (key) {
-								return A3(
-									$elm_community$maybe_extra$Maybe$Extra$unwrap,
-									false,
-									function (ch) {
-										return _Utils_eq(
-											ch,
-											firstOfPair(pair));
-									},
-									$elm$core$List$head(
-										$elm$core$String$toList(key)));
-							},
-							$elm$core$Dict$keys($author$project$Main$twoLatinCharToArabicDict)) ? pair : _List_Nil;
-					}
-				}
-			} else {
-				return pair;
-			}
-		},
-		unprocessedPairs);
-	return $elm$core$String$fromList(
-		A2(
-			$elm$core$List$filterMap,
-			$elm$core$Basics$identity,
-			A2(
-				$elm$core$List$map,
-				function (pair) {
-					return $elm$core$List$head(pair);
-				},
-				pairs)));
-};
 var $author$project$Main$pure = function (model) {
 	return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 };
+var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $author$project$Main$saveLocalStorageToClipboard = _Platform_outgoingPort(
+	'saveLocalStorageToClipboard',
+	function ($) {
+		return $elm$json$Json$Encode$null;
+	});
 var $elm_community$list_extra$List$Extra$removeAt = F2(
 	function (index, l) {
 		if (index < 0) {
@@ -7783,12 +7460,6 @@ var $elm_community$list_extra$List$Extra$removeAt = F2(
 					rest);
 			}
 		}
-	});
-var $elm$json$Json$Encode$null = _Json_encodeNull;
-var $author$project$Main$saveLocalStorageToClipboard = _Platform_outgoingPort(
-	'saveLocalStorageToClipboard',
-	function ($) {
-		return $elm$json$Json$Encode$null;
 	});
 var $elm$core$Basics$always = F2(
 	function (a, _v0) {
@@ -7888,7 +7559,7 @@ var $author$project$WordOrPhrase$setTags = F2(
 				tags: $author$project$WordOrPhrase$stringToTags(tagString)
 			});
 	});
-var $elm$json$Json$Encode$int = _Json_wrap;
+var $elm$core$List$sortBy = _List_sortBy;
 var $elm$json$Json$Encode$list = F2(
 	function (func, entries) {
 		return _Json_wrap(
@@ -7897,26 +7568,6 @@ var $elm$json$Json$Encode$list = F2(
 				_Json_addEntry(func),
 				_Json_emptyArray(_Utils_Tuple0),
 				entries));
-	});
-var $author$project$Main$storeFlashcardEntry = _Platform_outgoingPort(
-	'storeFlashcardEntry',
-	function ($) {
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'egyptian',
-					$elm$json$Json$Encode$string($.egyptian)),
-					_Utils_Tuple2(
-					'egyptianData',
-					$elm$json$Json$Encode$list($elm$json$Json$Encode$int)($.egyptianData)),
-					_Utils_Tuple2(
-					'english',
-					$elm$json$Json$Encode$string($.english)),
-					_Utils_Tuple2(
-					'englishData',
-					$elm$json$Json$Encode$list($elm$json$Json$Encode$int)($.englishData))
-				]));
 	});
 var $author$project$Main$storeLessonTranslations = _Platform_outgoingPort(
 	'storeLessonTranslations',
@@ -7968,6 +7619,7 @@ var $elm$core$Maybe$destruct = F3(
 			return _default;
 		}
 	});
+var $elm$json$Json$Encode$int = _Json_wrap;
 var $author$project$Main$storeNewWopFlashcards = _Platform_outgoingPort(
 	'storeNewWopFlashcards',
 	function ($) {
@@ -7994,6 +7646,9 @@ var $author$project$Main$storeNewWopFlashcards = _Platform_outgoingPort(
 												_Utils_Tuple2(
 												'notes',
 												$elm$json$Json$Encode$string($.notes)),
+												_Utils_Tuple2(
+												'reviewHistory',
+												$elm$json$Json$Encode$list($elm$json$Json$Encode$int)($.reviewHistory)),
 												_Utils_Tuple2(
 												'romanization',
 												$elm$json$Json$Encode$string($.romanization)),
@@ -8022,6 +7677,9 @@ var $author$project$Main$storeNewWopFlashcards = _Platform_outgoingPort(
 												'notes',
 												$elm$json$Json$Encode$string($.notes)),
 												_Utils_Tuple2(
+												'reviewHistory',
+												$elm$json$Json$Encode$list($elm$json$Json$Encode$int)($.reviewHistory)),
+												_Utils_Tuple2(
 												'romanization',
 												$elm$json$Json$Encode$string($.romanization)),
 												_Utils_Tuple2(
@@ -8047,6 +7705,9 @@ var $author$project$Main$storeNewWopFlashcards = _Platform_outgoingPort(
 											_Utils_Tuple2(
 											'notes',
 											$elm$json$Json$Encode$string($.notes)),
+											_Utils_Tuple2(
+											'reviewHistory',
+											$elm$json$Json$Encode$list($elm$json$Json$Encode$int)($.reviewHistory)),
 											_Utils_Tuple2(
 											'romanization',
 											$elm$json$Json$Encode$string($.romanization)),
@@ -8088,6 +7749,9 @@ var $author$project$Main$storeWops = _Platform_outgoingPort(
 									'notes',
 									$elm$json$Json$Encode$string($.notes)),
 									_Utils_Tuple2(
+									'reviewHistory',
+									$elm$json$Json$Encode$list($elm$json$Json$Encode$int)($.reviewHistory)),
+									_Utils_Tuple2(
 									'romanization',
 									$elm$json$Json$Encode$string($.romanization)),
 									_Utils_Tuple2(
@@ -8100,66 +7764,13 @@ var $author$project$Main$storeWops = _Platform_outgoingPort(
 					}(b)
 					]));
 		}));
-var $elm_community$list_extra$List$Extra$splitAt = F2(
-	function (n, xs) {
-		return _Utils_Tuple2(
-			A2($elm$core$List$take, n, xs),
-			A2($elm$core$List$drop, n, xs));
-	});
-var $elm_community$list_extra$List$Extra$uncons = function (list) {
-	if (!list.b) {
-		return $elm$core$Maybe$Nothing;
-	} else {
-		var first = list.a;
-		var rest = list.b;
-		return $elm$core$Maybe$Just(
-			_Utils_Tuple2(first, rest));
-	}
-};
-var $elm_community$list_extra$List$Extra$swapAt = F3(
-	function (index1, index2, l) {
-		swapAt:
-		while (true) {
-			if (_Utils_eq(index1, index2) || (index1 < 0)) {
-				return l;
-			} else {
-				if (_Utils_cmp(index1, index2) > 0) {
-					var $temp$index1 = index2,
-						$temp$index2 = index1,
-						$temp$l = l;
-					index1 = $temp$index1;
-					index2 = $temp$index2;
-					l = $temp$l;
-					continue swapAt;
-				} else {
-					var _v0 = A2($elm_community$list_extra$List$Extra$splitAt, index1, l);
-					var part1 = _v0.a;
-					var tail1 = _v0.b;
-					var _v1 = A2($elm_community$list_extra$List$Extra$splitAt, index2 - index1, tail1);
-					var head2 = _v1.a;
-					var tail2 = _v1.b;
-					var _v2 = _Utils_Tuple2(
-						$elm_community$list_extra$List$Extra$uncons(head2),
-						$elm_community$list_extra$List$Extra$uncons(tail2));
-					if ((_v2.a.$ === 'Just') && (_v2.b.$ === 'Just')) {
-						var _v3 = _v2.a.a;
-						var value1 = _v3.a;
-						var part2 = _v3.b;
-						var _v4 = _v2.b.a;
-						var value2 = _v4.a;
-						var part3 = _v4.b;
-						return $elm$core$List$concat(
-							_List_fromArray(
-								[
-									part1,
-									A2($elm$core$List$cons, value2, part2),
-									A2($elm$core$List$cons, value1, part3)
-								]));
-					} else {
-						return l;
-					}
-				}
-			}
+var $elm_community$maybe_extra$Maybe$Extra$unwrap = F3(
+	function (_default, f, m) {
+		if (m.$ === 'Nothing') {
+			return _default;
+		} else {
+			var a = m.a;
+			return f(a);
 		}
 	});
 var $author$project$WordOrPhrase$update = function (wopKey) {
@@ -8168,627 +7779,614 @@ var $author$project$WordOrPhrase$update = function (wopKey) {
 };
 var $author$project$Main$update = F2(
 	function (msg, model) {
-		switch (msg.$) {
-			case 'Tick':
-				var posix = msg.a;
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{tick: posix}));
-			case 'GotKalimniEvent':
-				var kalimniEvent = msg.a;
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{
-							lastKalimniEvent: $elm$core$Maybe$Just(kalimniEvent)
-						}));
-			case 'ToggleDrawInLesson':
-				return $author$project$Main$pure(
-					model.drawInLesson ? _Utils_update(
-						model,
-						{drawInLesson: !model.drawInLesson}) : _Utils_update(
-						model,
-						{drawInLesson: !model.drawInLesson, startingRectangleCoordinate: $elm$core$Maybe$Nothing}));
-			case 'LessonImageClick':
-				if (model.drawInLesson) {
-					var _v1 = model.startingRectangleCoordinate;
-					if (_v1.$ === 'Just') {
-						var topLeft = _v1.a;
-						return $author$project$Main$pure(
-							A2(
-								$elm$core$Maybe$withDefault,
-								model,
-								A2(
-									$elm$core$Maybe$map,
-									function (_v2) {
-										var relativeX = _v2.relativeX;
-										var relativeY = _v2.relativeY;
-										return _Utils_update(
-											model,
-											{
-												selectedKalimniLessonPage: A2(
-													$elm$core$Debug$log,
-													'blah',
-													A2(
-														$elm$core$Maybe$map,
-														function (lessonPage) {
-															return _Utils_update(
-																lessonPage,
-																{
-																	textBoxes: A2(
-																		$elm$core$List$cons,
-																		{
-																			bottomRight: _Utils_Tuple2(relativeX, relativeY),
-																			text: '',
-																			topLeft: topLeft
-																		},
-																		lessonPage.textBoxes)
-																});
-														},
-														model.selectedKalimniLessonPage)),
-												startingRectangleCoordinate: $elm$core$Maybe$Nothing
-											});
-									},
-									model.lastKalimniEvent)));
-					} else {
-						return $author$project$Main$pure(
-							_Utils_update(
-								model,
-								{
-									startingRectangleCoordinate: A2(
-										$elm$core$Maybe$andThen,
-										function (ke) {
-											return $elm$core$Maybe$Just(
-												_Utils_Tuple2(ke.relativeX, ke.relativeY));
-										},
-										model.lastKalimniEvent)
-								}));
-					}
-				} else {
-					return $author$project$Main$pure(model);
-				}
-			case 'KeyPress':
-				var key = msg.a;
-				return ((!$elm$core$String$isEmpty(model.selectedWop)) && _Utils_eq(model.selectedWop, model.hoveredWord)) ? A3(
-					$elm_community$maybe_extra$Maybe$Extra$unwrap,
-					$author$project$Main$pure(model),
-					$elm$core$Basics$identity,
-					A2(
-						$elm$core$Maybe$andThen,
-						function (n) {
-							return ((n >= 1) && (n <= 4)) ? $elm$core$Maybe$Just(
-								A2(
-									$author$project$Main$update,
-									$author$project$Main$SetSelectedWOPFamiliarityLevel(n),
-									model)) : $elm$core$Maybe$Nothing;
-						},
-						$elm$core$String$toInt(key))) : $author$project$Main$pure(model);
-			case 'WordHoverStart':
-				var word = msg.a;
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{hoveredWord: word}));
-			case 'WordHoverLeave':
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{hoveredWord: ''}));
-			case 'SaveDataModelToClipboard':
-				return _Utils_Tuple2(
-					model,
-					$author$project$Main$saveLocalStorageToClipboard(_Utils_Tuple0));
-			case 'DraftChanged':
-				var draft = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							draft: $author$project$Main$process(draft)
-						}),
-					$elm$core$Platform$Cmd$none);
-			case 'MainWordEntered':
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{
-							draft: '',
-							mainWords: _Utils_ap(
-								model.mainWords,
-								A2($elm$core$String$split, ' ', model.draft))
-						}));
-			case 'MainWordDelete':
-				var i = msg.a;
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{
-							mainWords: A2($elm_community$list_extra$List$Extra$removeAt, i, model.mainWords)
-						}));
-			case 'MainWordUp':
-				var i = msg.a;
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{
-							mainWords: A3($elm_community$list_extra$List$Extra$swapAt, i - 1, i, model.mainWords)
-						}));
-			case 'MainWordDown':
-				var i = msg.a;
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{
-							mainWords: A3($elm_community$list_extra$List$Extra$swapAt, i, i + 1, model.mainWords)
-						}));
-			case 'StoreSM2FlashcardEntry':
-				var egyptian = msg.a.egyptian;
-				var english = msg.a.english;
-				var entry = {egyptian: egyptian, egyptianData: _List_Nil, english: english, englishData: _List_Nil};
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							flashcardEgyptianInput: '',
-							flashcardEnglishInput: '',
-							sm2FlashcardData: A2($elm$core$List$cons, entry, model.sm2FlashcardData)
-						}),
-					$author$project$Main$storeFlashcardEntry(entry));
-			case 'FlashcardEgyptianInput':
-				var str = msg.a;
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{flashcardEgyptianInput: str}));
-			case 'FlashcardEnglishInput':
-				var str = msg.a;
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{flashcardEnglishInput: str}));
-			case 'ChangeNewLessonText':
-				var text = msg.a;
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{newLessonText: text}));
-			case 'ChangeNewLessonTitle':
-				var title = msg.a;
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{newLessonTitle: title}));
-			case 'CreateNewLesson':
-				return A2(
-					$author$project$Main$impure,
-					_Utils_update(
-						model,
-						{
-							lessons: A3(
-								$elm$core$Dict$insert,
-								model.newLessonTitle,
-								$author$project$Main$makeLesson(model.newLessonText),
-								model.lessons),
-							newLessonText: '',
-							newLessonTitle: ''
-						}),
-					A2(
-						$elm$core$Basics$composeR,
-						function ($) {
-							return $.lessons;
-						},
-						A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeLessons)));
-			case 'UpdateLesson':
-				var _v3 = msg.a;
-				var existingTitle = _v3.a;
-				var newTitle = _v3.b;
-				var processTitleChange = function (m) {
-					return (!_Utils_eq(existingTitle, newTitle)) ? _Utils_update(
-						m,
-						{
-							lessonTranslations: A2($elm$core$Dict$remove, existingTitle, m.lessonTranslations),
-							lessons: A2($elm$core$Dict$remove, existingTitle, m.lessons),
-							selectedLesson: newTitle
-						}) : m;
-				};
-				var existingTranslation = A2($elm$core$Dict$get, existingTitle, model.lessonTranslations);
-				var newModel = processTitleChange(
-					_Utils_update(
-						model,
-						{
-							lessonTranslations: A2(
-								$elm$core$Maybe$withDefault,
-								model.lessonTranslations,
-								A2(
-									$elm$core$Maybe$map,
-									function (et) {
-										return A3($elm$core$Dict$insert, newTitle, et, model.lessonTranslations);
-									},
-									existingTranslation)),
-							lessons: A3(
-								$elm$core$Dict$update,
-								newTitle,
-								$elm$core$Maybe$map(
-									function (lesson) {
-										return _Utils_update(
-											lesson,
-											{text: model.newLessonText});
-									}),
-								model.lessons)
-						}));
-				var updateAudioName = (!_Utils_eq(existingTitle, newTitle)) ? $elm$http$Http$post(
-					{
-						body: $elm$http$Http$jsonBody(
-							$elm$json$Json$Encode$object(
-								_List_fromArray(
-									[
-										_Utils_Tuple2(
-										'old',
-										$elm$json$Json$Encode$string(existingTitle)),
-										_Utils_Tuple2(
-										'new',
-										$elm$json$Json$Encode$string(newTitle)),
-										_Utils_Tuple2(
-										'type',
-										$elm$json$Json$Encode$string(
-											A2(
-												$elm$core$Maybe$withDefault,
-												'wav',
-												A2(
-													$elm$core$Maybe$map,
-													function ($) {
-														return $.audioFileType;
-													},
-													A2($elm$core$Dict$get, newTitle, newModel.lessons)))))
-									]))),
-						expect: $elm$http$Http$expectString($author$project$Main$BackendAudioUpdated),
-						url: 'http://localhost:3000/updateAudioName'
-					}) : $elm$core$Platform$Cmd$none;
-				return _Utils_Tuple2(
-					newModel,
-					$elm$core$Platform$Cmd$batch(
-						_List_fromArray(
-							[
-								$author$project$Main$storeLessons(
-								$elm$core$Dict$toList(newModel.lessons)),
-								$author$project$Main$storeLessonTranslations(
-								$elm$core$Dict$toList(newModel.lessonTranslations)),
-								updateAudioName
-							])));
-			case 'ChangeLessonAudioFileType':
-				var newFileType = msg.a;
-				return A2(
-					$author$project$Main$impure,
-					_Utils_update(
-						model,
-						{
-							lessons: A3(
-								$elm$core$Dict$update,
-								model.selectedLesson,
-								$elm$core$Maybe$map(
-									function (lesson) {
-										return _Utils_update(
-											lesson,
-											{audioFileType: newFileType});
-									}),
-								model.lessons)
-						}),
-					A2(
-						$elm$core$Basics$composeR,
-						function ($) {
-							return $.lessons;
-						},
-						A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeLessons)));
-			case 'BackendAudioUpdated':
-				var response = msg.a;
-				return $author$project$Main$pure(model);
-			case 'SelectLesson':
-				var title = msg.a;
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{
-							newLessonText: A2(
-								$elm$core$Maybe$withDefault,
-								'',
-								A2(
-									$elm$core$Maybe$map,
-									function ($) {
-										return $.text;
-									},
-									A2($elm$core$Dict$get, title, model.lessons))),
-							newLessonTitle: title,
-							selectedLesson: title,
-							selectedWop: ''
-						}));
-			case 'DeselectLesson':
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{newLessonText: '', newLessonTitle: '', selectedLesson: '', selectedWop: ''}));
-			case 'SelectWord':
-				var word = msg.a;
-				return A2(
-					$author$project$Main$impure,
-					_Utils_update(
-						model,
-						{selectedWop: word, selectedWopTagsBuffer: ''}),
-					function (_v4) {
-						var selectedWop = _v4.selectedWop;
-						var _v5 = A2($author$project$WordOrPhrase$get, selectedWop, model.wops);
-						if (_v5.$ === 'Just') {
-							return $elm$core$Platform$Cmd$none;
-						} else {
-							return $author$project$Main$autofocusId('newWopDefinition');
-						}
-					});
-			case 'DeselectWOP':
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{selectedWop: ''}));
-			case 'EditSelectedWOPDefinition':
-				var defNumber = msg.a;
-				var definition = msg.b;
-				return A2(
-					$author$project$Main$impure,
-					_Utils_update(
-						model,
-						{
-							wops: A3(
-								$author$project$WordOrPhrase$update,
-								model.selectedWop,
-								$elm$core$Maybe$map(
-									A2($author$project$WordOrPhrase$setDefinition, defNumber, definition)),
-								model.wops)
-						}),
-					A2(
-						$elm$core$Basics$composeR,
-						function ($) {
-							return $.wops;
-						},
-						A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
-			case 'EditSelectedWOPNotes':
-				var notes = msg.a;
-				return A2(
-					$author$project$Main$impure,
-					_Utils_update(
-						model,
-						{
-							wops: A3(
-								$author$project$WordOrPhrase$update,
-								model.selectedWop,
-								$elm$core$Maybe$map(
-									$author$project$WordOrPhrase$setNotes(notes)),
-								model.wops)
-						}),
-					A2(
-						$elm$core$Basics$composeR,
-						function ($) {
-							return $.wops;
-						},
-						A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
-			case 'SetSelectedWOPFamiliarityLevel':
-				var familiarityLevel = msg.a;
-				return A2(
-					$author$project$Main$impure,
-					_Utils_update(
-						model,
-						{
-							wops: A3(
-								$author$project$WordOrPhrase$update,
-								model.selectedWop,
-								$elm$core$Maybe$andThen(
-									$author$project$WordOrPhrase$setFamiliarityLevel(familiarityLevel)),
-								model.wops)
-						}),
-					A2(
-						$elm$core$Basics$composeR,
-						function ($) {
-							return $.wops;
-						},
-						A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
-			case 'EditSelectedWOPRomanization':
-				var romanization = msg.a;
-				return A2(
-					$author$project$Main$impure,
-					_Utils_update(
-						model,
-						{
-							wops: A3(
-								$author$project$WordOrPhrase$update,
-								model.selectedWop,
-								$elm$core$Maybe$map(
-									function (wop) {
-										return _Utils_update(
-											wop,
-											{romanization: romanization});
-									}),
-								model.wops)
-						}),
-					A2(
-						$elm$core$Basics$composeR,
-						function ($) {
-							return $.wops;
-						},
-						A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
-			case 'EditSelectedWOPTagsBuffer':
-				var tagString = msg.a;
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{selectedWopTagsBuffer: tagString}));
-			case 'SetSelectedWOPTags':
-				var tagString = msg.a;
-				return A2(
-					$author$project$Main$impure,
-					_Utils_update(
-						model,
-						{
-							selectedWopTagsBuffer: '',
-							wops: A3(
-								$author$project$WordOrPhrase$update,
-								model.selectedWop,
-								$elm$core$Maybe$map(
-									$author$project$WordOrPhrase$setTags(tagString)),
-								model.wops)
-						}),
-					A2(
-						$elm$core$Basics$composeR,
-						function ($) {
-							return $.wops;
-						},
-						A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
-			case 'EditSelectedNewWOPDefinition':
-				var definition = msg.a;
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{newWopDefinition: definition}));
-			case 'SaveSelectedNewWOP':
-				var wopKeyList = $author$project$WordOrPhrase$keyIsPhrase(model.selectedWop) ? A2($elm$core$String$split, ' ', model.selectedWop) : _List_fromArray(
-					[model.selectedWop]);
-				return A2(
-					$author$project$Main$impure,
-					_Utils_update(
-						model,
-						{
-							newWopDefinition: '',
-							wops: A3(
-								$author$project$WordOrPhrase$insert,
-								model.selectedWop,
-								A2($author$project$WordOrPhrase$makeWOP, wopKeyList, model.newWopDefinition),
-								model.wops)
-						}),
-					A2(
-						$elm$core$Basics$composeR,
-						function ($) {
-							return $.wops;
-						},
-						A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
-			case 'AddTranslationToSelectedLesson':
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{
-							lessonTranslations: A3($elm$core$Dict$insert, model.selectedLesson, '', model.lessonTranslations)
-						}));
-			case 'EditTranslationOfSelectedLesson':
-				var newTranslation = msg.a;
-				return A2(
-					$author$project$Main$impure,
-					_Utils_update(
-						model,
-						{
-							lessonTranslations: A3($elm$core$Dict$insert, model.selectedLesson, newTranslation, model.lessonTranslations)
-						}),
-					A2(
-						$elm$core$Basics$composeR,
-						function ($) {
-							return $.lessonTranslations;
-						},
-						A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeLessonTranslations)));
-			case 'MouseDownOnWord':
-				var lineIndex = msg.a;
-				var wordIndex = msg.b;
-				var word = msg.c;
-				return $author$project$Main$pure(
-					_Utils_update(
-						model,
-						{
-							mouseDownWord: _Utils_Tuple3(lineIndex, wordIndex, word)
-						}));
-			case 'OpenPhraseCreationUI':
-				var lineIndexEnd = msg.a;
-				var wordIndexEnd = msg.b;
-				var _v6 = model.mouseDownWord;
-				var lineIndexStart = _v6.a;
-				var wordIndexStart = _v6.b;
-				if ((!_Utils_eq(wordIndexEnd, wordIndexStart)) && _Utils_eq(lineIndexEnd, lineIndexStart)) {
-					var selectedLessonText = A2(
-						$elm$core$Maybe$withDefault,
-						'',
-						A2(
-							$elm$core$Maybe$map,
-							function ($) {
-								return $.text;
-							},
-							A2($elm$core$Dict$get, model.selectedLesson, model.lessons)));
-					var line = A2(
-						$elm$core$Maybe$withDefault,
-						'',
-						A2(
-							$elm_community$list_extra$List$Extra$getAt,
-							lineIndexEnd,
-							$author$project$Main$splitIntoCleanLines(selectedLessonText)));
-					var wordsAndNonWordsInPhraseSegment = function () {
-						var smaller = A2($elm$core$Basics$min, wordIndexStart, wordIndexEnd);
-						var larger = A2($elm$core$Basics$max, wordIndexStart, wordIndexEnd);
-						return A2(
-							$elm$core$List$filter,
-							function (wordOrNonWord) {
-								return !_Utils_eq(
-									wordOrNonWord,
-									$author$project$Main$DisplayNonWord(' '));
-							},
-							A2(
-								$elm$core$List$take,
-								(larger - smaller) + 1,
-								A2(
-									$elm$core$List$drop,
-									smaller,
-									$author$project$Main$markWordCharsFromNonWordChars(line))));
-					}();
-					var canConstructPhrase = A2(
-						$elm$core$List$all,
-						function (wordOrNonWord) {
-							if (wordOrNonWord.$ === 'DisplayNonWord') {
-								return false;
-							} else {
-								return true;
-							}
-						},
-						wordsAndNonWordsInPhraseSegment);
-					return canConstructPhrase ? $author$project$Main$pure(
+		update:
+		while (true) {
+			switch (msg.$) {
+				case 'Tick':
+					var posix = msg.a;
+					return $author$project$Main$pure(
+						_Utils_update(
+							model,
+							{tick: posix}));
+				case 'GotKalimniEvent':
+					var kalimniEvent = msg.a;
+					return $author$project$Main$pure(
 						_Utils_update(
 							model,
 							{
-								selectedWop: A2(
-									$elm$core$String$join,
-									' ',
+								lastKalimniEvent: $elm$core$Maybe$Just(kalimniEvent)
+							}));
+				case 'ToggleDrawInLesson':
+					return $author$project$Main$pure(
+						model.drawInLesson ? _Utils_update(
+							model,
+							{drawInLesson: !model.drawInLesson}) : _Utils_update(
+							model,
+							{drawInLesson: !model.drawInLesson, startingRectangleCoordinate: $elm$core$Maybe$Nothing}));
+				case 'LessonImageClick':
+					if (model.drawInLesson) {
+						var _v1 = model.startingRectangleCoordinate;
+						if (_v1.$ === 'Just') {
+							var topLeft = _v1.a;
+							return $author$project$Main$pure(
+								A2(
+									$elm$core$Maybe$withDefault,
+									model,
 									A2(
-										$elm$core$List$map,
-										function (word) {
-											if (word.$ === 'DisplayWord') {
-												var w = word.a;
-												return w;
-											} else {
-												return '';
-											}
+										$elm$core$Maybe$map,
+										function (_v2) {
+											var relativeX = _v2.relativeX;
+											var relativeY = _v2.relativeY;
+											return _Utils_update(
+												model,
+												{
+													selectedKalimniLessonPage: A2(
+														$elm$core$Debug$log,
+														'blah',
+														A2(
+															$elm$core$Maybe$map,
+															function (lessonPage) {
+																return _Utils_update(
+																	lessonPage,
+																	{
+																		textBoxes: A2(
+																			$elm$core$List$cons,
+																			{
+																				bottomRight: _Utils_Tuple2(relativeX, relativeY),
+																				text: '',
+																				topLeft: topLeft
+																			},
+																			lessonPage.textBoxes)
+																	});
+															},
+															model.selectedKalimniLessonPage)),
+													startingRectangleCoordinate: $elm$core$Maybe$Nothing
+												});
 										},
-										wordsAndNonWordsInPhraseSegment))
-							})) : $author$project$Main$pure(model);
-				} else {
-					return $author$project$Main$pure(model);
-				}
-			case 'NavigateToFlashcardPage':
-				return $author$project$Main$pure(
-					_Utils_update(
+										model.lastKalimniEvent)));
+						} else {
+							return $author$project$Main$pure(
+								_Utils_update(
+									model,
+									{
+										startingRectangleCoordinate: A2(
+											$elm$core$Maybe$andThen,
+											function (ke) {
+												return $elm$core$Maybe$Just(
+													_Utils_Tuple2(ke.relativeX, ke.relativeY));
+											},
+											model.lastKalimniEvent)
+									}));
+						}
+					} else {
+						return $author$project$Main$pure(model);
+					}
+				case 'KeyPress':
+					var key = msg.a;
+					return ((!$elm$core$String$isEmpty(model.selectedWop)) && _Utils_eq(model.selectedWop, model.hoveredWord)) ? A3(
+						$elm_community$maybe_extra$Maybe$Extra$unwrap,
+						$author$project$Main$pure(model),
+						$elm$core$Basics$identity,
+						A2(
+							$elm$core$Maybe$andThen,
+							function (n) {
+								return ((n >= 1) && (n <= 4)) ? $elm$core$Maybe$Just(
+									A2(
+										$author$project$Main$update,
+										$author$project$Main$SetSelectedWOPFamiliarityLevel(n),
+										model)) : $elm$core$Maybe$Nothing;
+							},
+							$elm$core$String$toInt(key))) : $author$project$Main$pure(model);
+				case 'WordHoverStart':
+					var word = msg.a;
+					return $author$project$Main$pure(
+						_Utils_update(
+							model,
+							{hoveredWord: word}));
+				case 'WordHoverLeave':
+					return $author$project$Main$pure(
+						_Utils_update(
+							model,
+							{hoveredWord: ''}));
+				case 'SaveDataModelToClipboard':
+					return _Utils_Tuple2(
 						model,
-						{onFlashcardPage: true}));
-			case 'MakeNewWopFlashcardSet':
-				var maybeRandomizedWops = msg.a;
-				var randomizedWopsGenerator = msg.b;
-				if (maybeRandomizedWops.$ === 'Just') {
-					var wops = maybeRandomizedWops.a;
+						$author$project$Main$saveLocalStorageToClipboard(_Utils_Tuple0));
+				case 'ChangeNewLessonText':
+					var text = msg.a;
+					return $author$project$Main$pure(
+						_Utils_update(
+							model,
+							{newLessonText: text}));
+				case 'ChangeNewLessonTitle':
+					var title = msg.a;
+					return $author$project$Main$pure(
+						_Utils_update(
+							model,
+							{newLessonTitle: title}));
+				case 'CreateNewLesson':
 					return A2(
 						$author$project$Main$impure,
 						_Utils_update(
 							model,
 							{
-								newWopFlashcards: $wernerdegroot$listzipper$List$Zipper$fromList(
-									A2($elm$core$List$take, 100, wops))
+								lessons: A3(
+									$elm$core$Dict$insert,
+									model.newLessonTitle,
+									$author$project$Main$makeLesson(model.newLessonText),
+									model.lessons),
+								newLessonText: '',
+								newLessonTitle: ''
+							}),
+						A2(
+							$elm$core$Basics$composeR,
+							function ($) {
+								return $.lessons;
+							},
+							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeLessons)));
+				case 'UpdateLesson':
+					var _v3 = msg.a;
+					var existingTitle = _v3.a;
+					var newTitle = _v3.b;
+					var processTitleChange = function (m) {
+						return (!_Utils_eq(existingTitle, newTitle)) ? _Utils_update(
+							m,
+							{
+								lessonTranslations: A2($elm$core$Dict$remove, existingTitle, m.lessonTranslations),
+								lessons: A2($elm$core$Dict$remove, existingTitle, m.lessons),
+								selectedLesson: newTitle
+							}) : m;
+					};
+					var existingTranslation = A2($elm$core$Dict$get, existingTitle, model.lessonTranslations);
+					var newModel = processTitleChange(
+						_Utils_update(
+							model,
+							{
+								lessonTranslations: A2(
+									$elm$core$Maybe$withDefault,
+									model.lessonTranslations,
+									A2(
+										$elm$core$Maybe$map,
+										function (et) {
+											return A3($elm$core$Dict$insert, newTitle, et, model.lessonTranslations);
+										},
+										existingTranslation)),
+								lessons: A3(
+									$elm$core$Dict$update,
+									newTitle,
+									$elm$core$Maybe$map(
+										function (lesson) {
+											return _Utils_update(
+												lesson,
+												{text: model.newLessonText});
+										}),
+									model.lessons)
+							}));
+					var updateAudioName = (!_Utils_eq(existingTitle, newTitle)) ? $elm$http$Http$post(
+						{
+							body: $elm$http$Http$jsonBody(
+								$elm$json$Json$Encode$object(
+									_List_fromArray(
+										[
+											_Utils_Tuple2(
+											'old',
+											$elm$json$Json$Encode$string(existingTitle)),
+											_Utils_Tuple2(
+											'new',
+											$elm$json$Json$Encode$string(newTitle)),
+											_Utils_Tuple2(
+											'type',
+											$elm$json$Json$Encode$string(
+												A2(
+													$elm$core$Maybe$withDefault,
+													'wav',
+													A2(
+														$elm$core$Maybe$map,
+														function ($) {
+															return $.audioFileType;
+														},
+														A2($elm$core$Dict$get, newTitle, newModel.lessons)))))
+										]))),
+							expect: $elm$http$Http$expectString($author$project$Main$BackendAudioUpdated),
+							url: 'http://localhost:3000/updateAudioName'
+						}) : $elm$core$Platform$Cmd$none;
+					return _Utils_Tuple2(
+						newModel,
+						$elm$core$Platform$Cmd$batch(
+							_List_fromArray(
+								[
+									$author$project$Main$storeLessons(
+									$elm$core$Dict$toList(newModel.lessons)),
+									$author$project$Main$storeLessonTranslations(
+									$elm$core$Dict$toList(newModel.lessonTranslations)),
+									updateAudioName
+								])));
+				case 'ChangeLessonAudioFileType':
+					var newFileType = msg.a;
+					return A2(
+						$author$project$Main$impure,
+						_Utils_update(
+							model,
+							{
+								lessons: A3(
+									$elm$core$Dict$update,
+									model.selectedLesson,
+									$elm$core$Maybe$map(
+										function (lesson) {
+											return _Utils_update(
+												lesson,
+												{audioFileType: newFileType});
+										}),
+									model.lessons)
+							}),
+						A2(
+							$elm$core$Basics$composeR,
+							function ($) {
+								return $.lessons;
+							},
+							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeLessons)));
+				case 'BackendAudioUpdated':
+					var response = msg.a;
+					return $author$project$Main$pure(model);
+				case 'SelectLesson':
+					var title = msg.a;
+					return $author$project$Main$pure(
+						_Utils_update(
+							model,
+							{
+								newLessonText: A2(
+									$elm$core$Maybe$withDefault,
+									'',
+									A2(
+										$elm$core$Maybe$map,
+										function ($) {
+											return $.text;
+										},
+										A2($elm$core$Dict$get, title, model.lessons))),
+								newLessonTitle: title,
+								selectedLesson: title,
+								selectedWop: ''
+							}));
+				case 'DeselectLesson':
+					return $author$project$Main$pure(
+						_Utils_update(
+							model,
+							{newLessonText: '', newLessonTitle: '', selectedLesson: '', selectedWop: ''}));
+				case 'SelectWOP':
+					var word = msg.a;
+					var timestamp = msg.b;
+					return A2(
+						$author$project$Main$impure,
+						_Utils_update(
+							model,
+							{
+								selectedWop: word,
+								selectedWopTagsBuffer: '',
+								wops: A3(
+									$elm$core$Dict$update,
+									word,
+									$elm$core$Maybe$map(
+										$author$project$WordOrPhrase$addReviewTime(timestamp)),
+									model.wops)
+							}),
+						function (_v4) {
+							var selectedWop = _v4.selectedWop;
+							return $elm$core$Platform$Cmd$batch(
+								_List_fromArray(
+									[
+										$author$project$Main$storeWops(
+										$elm$core$Dict$toList(model.wops)),
+										function () {
+										var _v5 = A2($author$project$WordOrPhrase$get, selectedWop, model.wops);
+										if (_v5.$ === 'Just') {
+											return $elm$core$Platform$Cmd$none;
+										} else {
+											return $author$project$Main$autofocusId('newWopDefinition');
+										}
+									}()
+									]));
+						});
+				case 'DeselectWOP':
+					return $author$project$Main$pure(
+						_Utils_update(
+							model,
+							{selectedWop: ''}));
+				case 'EditSelectedWOPDefinition':
+					var defNumber = msg.a;
+					var definition = msg.b;
+					return A2(
+						$author$project$Main$impure,
+						_Utils_update(
+							model,
+							{
+								wops: A3(
+									$author$project$WordOrPhrase$update,
+									model.selectedWop,
+									$elm$core$Maybe$map(
+										A2($author$project$WordOrPhrase$setDefinition, defNumber, definition)),
+									model.wops)
+							}),
+						A2(
+							$elm$core$Basics$composeR,
+							function ($) {
+								return $.wops;
+							},
+							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
+				case 'EditSelectedWOPNotes':
+					var notes = msg.a;
+					return A2(
+						$author$project$Main$impure,
+						_Utils_update(
+							model,
+							{
+								wops: A3(
+									$author$project$WordOrPhrase$update,
+									model.selectedWop,
+									$elm$core$Maybe$map(
+										$author$project$WordOrPhrase$setNotes(notes)),
+									model.wops)
+							}),
+						A2(
+							$elm$core$Basics$composeR,
+							function ($) {
+								return $.wops;
+							},
+							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
+				case 'SetSelectedWOPFamiliarityLevel':
+					var familiarityLevel = msg.a;
+					return A2(
+						$author$project$Main$impure,
+						_Utils_update(
+							model,
+							{
+								wops: A3(
+									$author$project$WordOrPhrase$update,
+									model.selectedWop,
+									$elm$core$Maybe$andThen(
+										$author$project$WordOrPhrase$setFamiliarityLevel(familiarityLevel)),
+									model.wops)
+							}),
+						A2(
+							$elm$core$Basics$composeR,
+							function ($) {
+								return $.wops;
+							},
+							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
+				case 'EditSelectedWOPRomanization':
+					var romanization = msg.a;
+					return A2(
+						$author$project$Main$impure,
+						_Utils_update(
+							model,
+							{
+								wops: A3(
+									$author$project$WordOrPhrase$update,
+									model.selectedWop,
+									$elm$core$Maybe$map(
+										function (wop) {
+											return _Utils_update(
+												wop,
+												{romanization: romanization});
+										}),
+									model.wops)
+							}),
+						A2(
+							$elm$core$Basics$composeR,
+							function ($) {
+								return $.wops;
+							},
+							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
+				case 'EditSelectedWOPTagsBuffer':
+					var tagString = msg.a;
+					return $author$project$Main$pure(
+						_Utils_update(
+							model,
+							{selectedWopTagsBuffer: tagString}));
+				case 'SetSelectedWOPTags':
+					var tagString = msg.a;
+					return A2(
+						$author$project$Main$impure,
+						_Utils_update(
+							model,
+							{
+								selectedWopTagsBuffer: '',
+								wops: A3(
+									$author$project$WordOrPhrase$update,
+									model.selectedWop,
+									$elm$core$Maybe$map(
+										$author$project$WordOrPhrase$setTags(tagString)),
+									model.wops)
+							}),
+						A2(
+							$elm$core$Basics$composeR,
+							function ($) {
+								return $.wops;
+							},
+							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
+				case 'EditSelectedNewWOPDefinition':
+					var definition = msg.a;
+					return $author$project$Main$pure(
+						_Utils_update(
+							model,
+							{newWopDefinition: definition}));
+				case 'SaveSelectedNewWOP':
+					var wopKeyList = $author$project$WordOrPhrase$keyIsPhrase(model.selectedWop) ? A2($elm$core$String$split, ' ', model.selectedWop) : _List_fromArray(
+						[model.selectedWop]);
+					return A2(
+						$author$project$Main$impure,
+						_Utils_update(
+							model,
+							{
+								newWopDefinition: '',
+								wops: A3(
+									$author$project$WordOrPhrase$insert,
+									model.selectedWop,
+									A2($author$project$WordOrPhrase$makeWOP, wopKeyList, model.newWopDefinition),
+									model.wops)
+							}),
+						A2(
+							$elm$core$Basics$composeR,
+							function ($) {
+								return $.wops;
+							},
+							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
+				case 'AddTranslationToSelectedLesson':
+					return $author$project$Main$pure(
+						_Utils_update(
+							model,
+							{
+								lessonTranslations: A3($elm$core$Dict$insert, model.selectedLesson, '', model.lessonTranslations)
+							}));
+				case 'EditTranslationOfSelectedLesson':
+					var newTranslation = msg.a;
+					return A2(
+						$author$project$Main$impure,
+						_Utils_update(
+							model,
+							{
+								lessonTranslations: A3($elm$core$Dict$insert, model.selectedLesson, newTranslation, model.lessonTranslations)
+							}),
+						A2(
+							$elm$core$Basics$composeR,
+							function ($) {
+								return $.lessonTranslations;
+							},
+							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeLessonTranslations)));
+				case 'MouseDownOnWord':
+					var lineIndex = msg.a;
+					var wordIndex = msg.b;
+					var word = msg.c;
+					return $author$project$Main$pure(
+						_Utils_update(
+							model,
+							{
+								mouseDownWord: _Utils_Tuple3(lineIndex, wordIndex, word)
+							}));
+				case 'OpenPhraseCreationUI':
+					var lineIndexEnd = msg.a;
+					var wordIndexEnd = msg.b;
+					var _v6 = model.mouseDownWord;
+					var lineIndexStart = _v6.a;
+					var wordIndexStart = _v6.b;
+					if ((!_Utils_eq(wordIndexEnd, wordIndexStart)) && _Utils_eq(lineIndexEnd, lineIndexStart)) {
+						var selectedLessonText = A2(
+							$elm$core$Maybe$withDefault,
+							'',
+							A2(
+								$elm$core$Maybe$map,
+								function ($) {
+									return $.text;
+								},
+								A2($elm$core$Dict$get, model.selectedLesson, model.lessons)));
+						var line = A2(
+							$elm$core$Maybe$withDefault,
+							'',
+							A2(
+								$elm_community$list_extra$List$Extra$getAt,
+								lineIndexEnd,
+								$author$project$Main$splitIntoCleanLines(selectedLessonText)));
+						var wordsAndNonWordsInPhraseSegment = function () {
+							var smaller = A2($elm$core$Basics$min, wordIndexStart, wordIndexEnd);
+							var larger = A2($elm$core$Basics$max, wordIndexStart, wordIndexEnd);
+							return A2(
+								$elm$core$List$filter,
+								function (wordOrNonWord) {
+									return !_Utils_eq(
+										wordOrNonWord,
+										$author$project$Main$DisplayNonWord(' '));
+								},
+								A2(
+									$elm$core$List$take,
+									(larger - smaller) + 1,
+									A2(
+										$elm$core$List$drop,
+										smaller,
+										$author$project$Main$markWordCharsFromNonWordChars(line))));
+						}();
+						var canConstructPhrase = A2(
+							$elm$core$List$all,
+							function (wordOrNonWord) {
+								if (wordOrNonWord.$ === 'DisplayNonWord') {
+									return false;
+								} else {
+									return true;
+								}
+							},
+							wordsAndNonWordsInPhraseSegment);
+						if (canConstructPhrase) {
+							var $temp$msg = $author$project$Main$GetCurrentTimeAndThen(
+								$author$project$Main$SelectWOP(
+									A2(
+										$elm$core$String$join,
+										' ',
+										A2(
+											$elm$core$List$map,
+											function (word) {
+												if (word.$ === 'DisplayWord') {
+													var w = word.a;
+													return w;
+												} else {
+													return '';
+												}
+											},
+											wordsAndNonWordsInPhraseSegment)))),
+								$temp$model = model;
+							msg = $temp$msg;
+							model = $temp$model;
+							continue update;
+						} else {
+							return $author$project$Main$pure(model);
+						}
+					} else {
+						return $author$project$Main$pure(model);
+					}
+				case 'NavigateToFlashcardPage':
+					return $author$project$Main$pure(
+						_Utils_update(
+							model,
+							{onFlashcardPage: true}));
+				case 'MakeNewWopFlashcardSet':
+					var maybeRandomizedWops = msg.a;
+					var randomizedWopsGenerator = msg.b;
+					if (maybeRandomizedWops.$ === 'Just') {
+						var wops = maybeRandomizedWops.a;
+						return A2(
+							$author$project$Main$impure,
+							_Utils_update(
+								model,
+								{
+									newWopFlashcards: $wernerdegroot$listzipper$List$Zipper$fromList(
+										A2($elm$core$List$take, 100, wops))
+								}),
+							A2(
+								$elm$core$Basics$composeR,
+								function ($) {
+									return $.newWopFlashcards;
+								},
+								A2(
+									$elm$core$Basics$composeR,
+									$elm$core$Maybe$map($author$project$Utils$deconstructZipper),
+									$author$project$Main$storeNewWopFlashcards)));
+					} else {
+						return _Utils_Tuple2(
+							model,
+							A2(
+								$elm$random$Random$generate,
+								function (wops) {
+									return A2(
+										$author$project$Main$MakeNewWopFlashcardSet,
+										$elm$core$Maybe$Just(wops),
+										randomizedWopsGenerator);
+								},
+								randomizedWopsGenerator));
+					}
+				case 'NextFlashcard':
+					return A2(
+						$author$project$Main$impure,
+						_Utils_update(
+							model,
+							{
+								newWopFlashcards: A2($elm$core$Maybe$andThen, $wernerdegroot$listzipper$List$Zipper$next, model.newWopFlashcards)
 							}),
 						A2(
 							$elm$core$Basics$composeR,
@@ -8799,61 +8397,40 @@ var $author$project$Main$update = F2(
 								$elm$core$Basics$composeR,
 								$elm$core$Maybe$map($author$project$Utils$deconstructZipper),
 								$author$project$Main$storeNewWopFlashcards)));
-				} else {
+				case 'PrepareForLessonWithFlashcards':
+					var lessonText = msg.a;
+					var wops = A2(
+						$elm$core$Debug$log,
+						'sorted wops',
+						A2(
+							$elm$core$List$sortBy,
+							function ($) {
+								return $.familiarityLevel;
+							},
+							A2($author$project$Main$getWopsInLesson, lessonText, model.wops)));
+					var unidentifiedWops = A2(
+						$elm$core$List$map,
+						function (word) {
+							return A2(
+								$author$project$WordOrPhrase$makeWOP,
+								_List_fromArray(
+									[word]),
+								'');
+						},
+						A2($author$project$Main$getUnidentifiedWordsInLesson, lessonText, model.wops));
+					var sentences = $author$project$Main$extractSentences(lessonText);
+					return $author$project$Main$pure(
+						_Utils_update(
+							model,
+							{
+								lessonFlashcards: $elm$core$Maybe$Just(wops)
+							}));
+				default:
+					var toMsg = msg.a;
 					return _Utils_Tuple2(
 						model,
-						A2(
-							$elm$random$Random$generate,
-							function (wops) {
-								return A2(
-									$author$project$Main$MakeNewWopFlashcardSet,
-									$elm$core$Maybe$Just(wops),
-									randomizedWopsGenerator);
-							},
-							randomizedWopsGenerator));
-				}
-			case 'NextFlashcard':
-				return A2(
-					$author$project$Main$impure,
-					_Utils_update(
-						model,
-						{
-							newWopFlashcards: A2($elm$core$Maybe$andThen, $wernerdegroot$listzipper$List$Zipper$next, model.newWopFlashcards)
-						}),
-					A2(
-						$elm$core$Basics$composeR,
-						function ($) {
-							return $.newWopFlashcards;
-						},
-						A2(
-							$elm$core$Basics$composeR,
-							$elm$core$Maybe$map($author$project$Utils$deconstructZipper),
-							$author$project$Main$storeNewWopFlashcards)));
-			default:
-				var lessonText = msg.a;
-				var unidentifiedWops = A2(
-					$elm$core$List$map,
-					function (word) {
-						return A2(
-							$author$project$WordOrPhrase$makeWOP,
-							_List_fromArray(
-								[word]),
-							'');
-					},
-					A2($author$project$Main$getUnidentifiedWordsInLesson, lessonText, model.wops));
-				var sentences = $author$project$Main$extractSentences(lessonText);
-				var _v10 = A2(
-					$elm$core$Debug$log,
-					'unidentifiedWops with sentences',
-					A2(
-						$elm$core$List$map,
-						function (wop) {
-							return _Utils_Tuple2(
-								$author$project$WordOrPhrase$key(wop),
-								A2($author$project$Main$filterSentencesContainingWop, sentences, wop));
-						},
-						unidentifiedWops));
-				return $author$project$Main$pure(model);
+						A2($elm$core$Task$perform, toMsg, $elm$time$Time$now));
+			}
 		}
 	});
 var $author$project$Main$NavigateToFlashcardPage = {$: 'NavigateToFlashcardPage'};
@@ -8947,6 +8524,12 @@ var $author$project$WordOrPhrase$isPhrase = function (_v0) {
 };
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$html$Html$span = _VirtualDom_node('span');
+var $elm_community$list_extra$List$Extra$splitAt = F2(
+	function (n, xs) {
+		return _Utils_Tuple2(
+			A2($elm$core$List$take, n, xs),
+			A2($elm$core$List$drop, n, xs));
+	});
 var $elm_community$list_extra$List$Extra$splitWhen = F2(
 	function (predicate, list) {
 		return A2(
@@ -8973,6 +8556,57 @@ var $elm_community$list_extra$List$Extra$takeWhileRight = function (p) {
 			step,
 			_Utils_Tuple2(_List_Nil, true)));
 };
+var $elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $elm_community$list_extra$List$Extra$isSubsequenceOf = F2(
+	function (subseq, list) {
+		isSubsequenceOf:
+		while (true) {
+			var _v0 = _Utils_Tuple2(subseq, list);
+			if (!_v0.a.b) {
+				return true;
+			} else {
+				if (!_v0.b.b) {
+					return false;
+				} else {
+					var _v1 = _v0.a;
+					var x = _v1.a;
+					var xs = _v1.b;
+					var _v2 = _v0.b;
+					var y = _v2.a;
+					var ys = _v2.b;
+					if (_Utils_eq(x, y)) {
+						var $temp$subseq = xs,
+							$temp$list = ys;
+						subseq = $temp$subseq;
+						list = $temp$list;
+						continue isSubsequenceOf;
+					} else {
+						var $temp$subseq = subseq,
+							$temp$list = ys;
+						subseq = $temp$subseq;
+						list = $temp$list;
+						continue isSubsequenceOf;
+					}
+				}
+			}
+		}
+	});
+var $author$project$WordOrPhrase$tashkylEquivalent = F2(
+	function (wop1, wop2) {
+		var _v0 = $author$project$WordOrPhrase$splitOffTashkyl(wop2);
+		var wt2 = _v0.a;
+		var jt2 = _v0.b;
+		var _v1 = $author$project$WordOrPhrase$splitOffTashkyl(wop1);
+		var wt1 = _v1.a;
+		var jt1 = _v1.b;
+		return _Utils_eq(wt1, wt2) && ($elm$core$List$isEmpty(jt1) || ($elm$core$List$isEmpty(jt2) || (A2($elm_community$list_extra$List$Extra$isSubsequenceOf, jt1, jt2) || A2($elm_community$list_extra$List$Extra$isSubsequenceOf, jt2, jt1))));
+	});
 var $author$project$Main$terminalPunctuationRx = A2(
 	$elm$core$Maybe$withDefault,
 	$elm$regex$Regex$never,
@@ -8980,6 +8614,16 @@ var $author$project$Main$terminalPunctuationRx = A2(
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$core$String$toLower = _String_toLower;
+var $elm_community$list_extra$List$Extra$uncons = function (list) {
+	if (!list.b) {
+		return $elm$core$Maybe$Nothing;
+	} else {
+		var first = list.a;
+		var rest = list.b;
+		return $elm$core$Maybe$Just(
+			_Utils_Tuple2(first, rest));
+	}
+};
 var $author$project$Main$getExampleSentenceForWop = F3(
 	function (wop, lessons, wops) {
 		if ($author$project$WordOrPhrase$isPhrase(wop)) {
@@ -9134,6 +8778,16 @@ var $author$project$Main$getExampleSentenceForWop = F3(
 			}
 		}
 	});
+var $elm$core$Dict$values = function (dict) {
+	return A3(
+		$elm$core$Dict$foldr,
+		F3(
+			function (key, value, valueList) {
+				return A2($elm$core$List$cons, value, valueList);
+			}),
+		_List_Nil,
+		dict);
+};
 var $author$project$WordOrPhrase$listWopsOfLevel = function (familiarityLevel) {
 	return A2(
 		$elm$core$Basics$composeR,
@@ -9244,7 +8898,6 @@ var $elm$core$Tuple$second = function (_v0) {
 	var y = _v0.b;
 	return y;
 };
-var $elm$core$List$sortBy = _List_sortBy;
 var $elm_community$random_extra$Random$List$shuffle = function (list) {
 	return A2(
 		$elm$random$Random$map,
@@ -9742,9 +9395,6 @@ var $author$project$Main$OpenPhraseCreationUI = F3(
 	function (a, b, c) {
 		return {$: 'OpenPhraseCreationUI', a: a, b: b, c: c};
 	});
-var $author$project$Main$SelectWord = function (a) {
-	return {$: 'SelectWord', a: a};
-};
 var $author$project$Main$WordHoverLeave = {$: 'WordHoverLeave'};
 var $author$project$Main$WordHoverStart = function (a) {
 	return {$: 'WordHoverStart', a: a};
@@ -9779,6 +9429,37 @@ var $elm_community$maybe_extra$Maybe$Extra$isJust = function (m) {
 };
 var $author$project$Main$DisplayWordOfPhrase = function (a) {
 	return {$: 'DisplayWordOfPhrase', a: a};
+};
+var $elm_community$list_extra$List$Extra$groupsOfWithStep = F3(
+	function (size, step, xs) {
+		var xs_ = A2($elm$core$List$drop, step, xs);
+		var thisGroup = A2($elm$core$List$take, size, xs);
+		var okayLength = _Utils_eq(
+			size,
+			$elm$core$List$length(thisGroup));
+		var okayArgs = (size > 0) && (step > 0);
+		return (okayArgs && okayLength) ? A2(
+			$elm$core$List$cons,
+			thisGroup,
+			A3($elm_community$list_extra$List$Extra$groupsOfWithStep, size, step, xs_)) : _List_Nil;
+	});
+var $elm_community$list_extra$List$Extra$last = function (items) {
+	last:
+	while (true) {
+		if (!items.b) {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			if (!items.b.b) {
+				var x = items.a;
+				return $elm$core$Maybe$Just(x);
+			} else {
+				var rest = items.b;
+				var $temp$items = rest;
+				items = $temp$items;
+				continue last;
+			}
+		}
+	}
 };
 var $author$project$WordOrPhrase$member = function (wopKey) {
 	return $elm$core$Set$member(
@@ -9979,7 +9660,8 @@ var $author$project$Main$displayWords = F2(
 								$author$project$WordOrPhrase$displayFamiliarityLevel(
 									A2($author$project$WordOrPhrase$getFamiliarityLevel, word, model.wops)))),
 							$elm$html$Html$Events$onClick(
-							_Utils_eq(model.selectedWop, word) ? $author$project$Main$DeselectWOP : $author$project$Main$SelectWord(word)),
+							_Utils_eq(model.selectedWop, word) ? $author$project$Main$DeselectWOP : $author$project$Main$GetCurrentTimeAndThen(
+								$author$project$Main$SelectWOP(word))),
 							$elm$html$Html$Events$onMouseDown(
 							A3($author$project$Main$MouseDownOnWord, li, wi, word)),
 							$elm$html$Html$Events$onMouseUp(
@@ -10322,21 +10004,32 @@ var $author$project$Main$selectedLessonView = F2(
 						[
 							$elm$html$Html$Attributes$class('lesson-words-and-lookup')
 						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
+					function () {
+						var _v0 = model.lessonFlashcards;
+						if (_v0.$ === 'Nothing') {
+							return _List_fromArray(
 								[
-									$elm$html$Html$Attributes$class('selected-word-edit-and-lesson-translation')
-								]),
-							_List_fromArray(
+									A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('selected-word-edit-and-lesson-translation')
+										]),
+									_List_fromArray(
+										[
+											$author$project$Main$selectedWordEdit(model),
+											$author$project$Main$lessonTranslationBox(model)
+										])),
+									A2($author$project$Main$displayWords, model, lessonText)
+								]);
+						} else {
+							var wops = _v0.a;
+							return _List_fromArray(
 								[
-									$author$project$Main$selectedWordEdit(model),
-									$author$project$Main$lessonTranslationBox(model)
-								])),
-							A2($author$project$Main$displayWords, model, lessonText)
-						]))
+									A2($elm$html$Html$div, _List_Nil, _List_Nil)
+								]);
+						}
+					}())
 				]));
 	});
 var $author$project$Main$view = function (model) {
@@ -10388,39 +10081,19 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 				function (tick) {
 					return A2(
 						$elm$json$Json$Decode$andThen,
-						function (sm2FlashcardData) {
+						function (newWopFlashcards) {
 							return A2(
 								$elm$json$Json$Decode$andThen,
-								function (newWopFlashcards) {
+								function (lessons) {
 									return A2(
 										$elm$json$Json$Decode$andThen,
-										function (lessons) {
-											return A2(
-												$elm$json$Json$Decode$andThen,
-												function (lessonTranslations) {
-													return $elm$json$Json$Decode$succeed(
-														{lessonTranslations: lessonTranslations, lessons: lessons, newWopFlashcards: newWopFlashcards, sm2FlashcardData: sm2FlashcardData, tick: tick, wops: wops});
-												},
-												A2(
-													$elm$json$Json$Decode$field,
-													'lessonTranslations',
-													$elm$json$Json$Decode$list(
-														A2(
-															$elm$json$Json$Decode$andThen,
-															function (_v0) {
-																return A2(
-																	$elm$json$Json$Decode$andThen,
-																	function (_v1) {
-																		return $elm$json$Json$Decode$succeed(
-																			_Utils_Tuple2(_v0, _v1));
-																	},
-																	A2($elm$json$Json$Decode$index, 1, $elm$json$Json$Decode$string));
-															},
-															A2($elm$json$Json$Decode$index, 0, $elm$json$Json$Decode$string)))));
+										function (lessonTranslations) {
+											return $elm$json$Json$Decode$succeed(
+												{lessonTranslations: lessonTranslations, lessons: lessons, newWopFlashcards: newWopFlashcards, tick: tick, wops: wops});
 										},
 										A2(
 											$elm$json$Json$Decode$field,
-											'lessons',
+											'lessonTranslations',
 											$elm$json$Json$Decode$list(
 												A2(
 													$elm$json$Json$Decode$andThen,
@@ -10431,95 +10104,66 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 																return $elm$json$Json$Decode$succeed(
 																	_Utils_Tuple2(_v0, _v1));
 															},
-															A2(
-																$elm$json$Json$Decode$index,
-																1,
-																A2(
-																	$elm$json$Json$Decode$andThen,
-																	function (text) {
-																		return A2(
-																			$elm$json$Json$Decode$andThen,
-																			function (audioFileType) {
-																				return $elm$json$Json$Decode$succeed(
-																					{audioFileType: audioFileType, text: text});
-																			},
-																			A2($elm$json$Json$Decode$field, 'audioFileType', $elm$json$Json$Decode$string));
-																	},
-																	A2($elm$json$Json$Decode$field, 'text', $elm$json$Json$Decode$string))));
+															A2($elm$json$Json$Decode$index, 1, $elm$json$Json$Decode$string));
 													},
 													A2($elm$json$Json$Decode$index, 0, $elm$json$Json$Decode$string)))));
 								},
 								A2(
 									$elm$json$Json$Decode$field,
-									'newWopFlashcards',
-									$elm$json$Json$Decode$oneOf(
-										_List_fromArray(
-											[
-												$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
-												A2(
-												$elm$json$Json$Decode$map,
-												$elm$core$Maybe$Just,
-												A2(
+									'lessons',
+									$elm$json$Json$Decode$list(
+										A2(
+											$elm$json$Json$Decode$andThen,
+											function (_v0) {
+												return A2(
 													$elm$json$Json$Decode$andThen,
-													function (current) {
-														return A2(
+													function (_v1) {
+														return $elm$json$Json$Decode$succeed(
+															_Utils_Tuple2(_v0, _v1));
+													},
+													A2(
+														$elm$json$Json$Decode$index,
+														1,
+														A2(
 															$elm$json$Json$Decode$andThen,
-															function (before) {
+															function (text) {
 																return A2(
 																	$elm$json$Json$Decode$andThen,
-																	function (after) {
+																	function (audioFileType) {
 																		return $elm$json$Json$Decode$succeed(
-																			{after: after, before: before, current: current});
+																			{audioFileType: audioFileType, text: text});
 																	},
-																	A2(
-																		$elm$json$Json$Decode$field,
-																		'after',
-																		$elm$json$Json$Decode$list(
-																			A2(
-																				$elm$json$Json$Decode$andThen,
-																				function (wordOrPhrase) {
-																					return A2(
-																						$elm$json$Json$Decode$andThen,
-																						function (tags) {
-																							return A2(
-																								$elm$json$Json$Decode$andThen,
-																								function (romanization) {
-																									return A2(
-																										$elm$json$Json$Decode$andThen,
-																										function (notes) {
-																											return A2(
-																												$elm$json$Json$Decode$andThen,
-																												function (familiarityLevel) {
-																													return A2(
-																														$elm$json$Json$Decode$andThen,
-																														function (definitions) {
-																															return $elm$json$Json$Decode$succeed(
-																																{definitions: definitions, familiarityLevel: familiarityLevel, notes: notes, romanization: romanization, tags: tags, wordOrPhrase: wordOrPhrase});
-																														},
-																														A2(
-																															$elm$json$Json$Decode$field,
-																															'definitions',
-																															$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
-																												},
-																												A2($elm$json$Json$Decode$field, 'familiarityLevel', $elm$json$Json$Decode$int));
-																										},
-																										A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string));
-																								},
-																								A2($elm$json$Json$Decode$field, 'romanization', $elm$json$Json$Decode$string));
-																						},
-																						A2(
-																							$elm$json$Json$Decode$field,
-																							'tags',
-																							$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
-																				},
-																				A2(
-																					$elm$json$Json$Decode$field,
-																					'wordOrPhrase',
-																					$elm$json$Json$Decode$list($elm$json$Json$Decode$string))))));
+																	A2($elm$json$Json$Decode$field, 'audioFileType', $elm$json$Json$Decode$string));
+															},
+															A2($elm$json$Json$Decode$field, 'text', $elm$json$Json$Decode$string))));
+											},
+											A2($elm$json$Json$Decode$index, 0, $elm$json$Json$Decode$string)))));
+						},
+						A2(
+							$elm$json$Json$Decode$field,
+							'newWopFlashcards',
+							$elm$json$Json$Decode$oneOf(
+								_List_fromArray(
+									[
+										$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
+										A2(
+										$elm$json$Json$Decode$map,
+										$elm$core$Maybe$Just,
+										A2(
+											$elm$json$Json$Decode$andThen,
+											function (current) {
+												return A2(
+													$elm$json$Json$Decode$andThen,
+													function (before) {
+														return A2(
+															$elm$json$Json$Decode$andThen,
+															function (after) {
+																return $elm$json$Json$Decode$succeed(
+																	{after: after, before: before, current: current});
 															},
 															A2(
 																$elm$json$Json$Decode$field,
-																'before',
+																'after',
 																$elm$json$Json$Decode$list(
 																	A2(
 																		$elm$json$Json$Decode$andThen,
@@ -10532,24 +10176,32 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 																						function (romanization) {
 																							return A2(
 																								$elm$json$Json$Decode$andThen,
-																								function (notes) {
+																								function (reviewHistory) {
 																									return A2(
 																										$elm$json$Json$Decode$andThen,
-																										function (familiarityLevel) {
+																										function (notes) {
 																											return A2(
 																												$elm$json$Json$Decode$andThen,
-																												function (definitions) {
-																													return $elm$json$Json$Decode$succeed(
-																														{definitions: definitions, familiarityLevel: familiarityLevel, notes: notes, romanization: romanization, tags: tags, wordOrPhrase: wordOrPhrase});
+																												function (familiarityLevel) {
+																													return A2(
+																														$elm$json$Json$Decode$andThen,
+																														function (definitions) {
+																															return $elm$json$Json$Decode$succeed(
+																																{definitions: definitions, familiarityLevel: familiarityLevel, notes: notes, reviewHistory: reviewHistory, romanization: romanization, tags: tags, wordOrPhrase: wordOrPhrase});
+																														},
+																														A2(
+																															$elm$json$Json$Decode$field,
+																															'definitions',
+																															$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
 																												},
-																												A2(
-																													$elm$json$Json$Decode$field,
-																													'definitions',
-																													$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
+																												A2($elm$json$Json$Decode$field, 'familiarityLevel', $elm$json$Json$Decode$int));
 																										},
-																										A2($elm$json$Json$Decode$field, 'familiarityLevel', $elm$json$Json$Decode$int));
+																										A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string));
 																								},
-																								A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string));
+																								A2(
+																									$elm$json$Json$Decode$field,
+																									'reviewHistory',
+																									$elm$json$Json$Decode$list($elm$json$Json$Decode$int)));
 																						},
 																						A2($elm$json$Json$Decode$field, 'romanization', $elm$json$Json$Decode$string));
 																				},
@@ -10565,16 +10217,73 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 													},
 													A2(
 														$elm$json$Json$Decode$field,
-														'current',
-														A2(
+														'before',
+														$elm$json$Json$Decode$list(
+															A2(
+																$elm$json$Json$Decode$andThen,
+																function (wordOrPhrase) {
+																	return A2(
+																		$elm$json$Json$Decode$andThen,
+																		function (tags) {
+																			return A2(
+																				$elm$json$Json$Decode$andThen,
+																				function (romanization) {
+																					return A2(
+																						$elm$json$Json$Decode$andThen,
+																						function (reviewHistory) {
+																							return A2(
+																								$elm$json$Json$Decode$andThen,
+																								function (notes) {
+																									return A2(
+																										$elm$json$Json$Decode$andThen,
+																										function (familiarityLevel) {
+																											return A2(
+																												$elm$json$Json$Decode$andThen,
+																												function (definitions) {
+																													return $elm$json$Json$Decode$succeed(
+																														{definitions: definitions, familiarityLevel: familiarityLevel, notes: notes, reviewHistory: reviewHistory, romanization: romanization, tags: tags, wordOrPhrase: wordOrPhrase});
+																												},
+																												A2(
+																													$elm$json$Json$Decode$field,
+																													'definitions',
+																													$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
+																										},
+																										A2($elm$json$Json$Decode$field, 'familiarityLevel', $elm$json$Json$Decode$int));
+																								},
+																								A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string));
+																						},
+																						A2(
+																							$elm$json$Json$Decode$field,
+																							'reviewHistory',
+																							$elm$json$Json$Decode$list($elm$json$Json$Decode$int)));
+																				},
+																				A2($elm$json$Json$Decode$field, 'romanization', $elm$json$Json$Decode$string));
+																		},
+																		A2(
+																			$elm$json$Json$Decode$field,
+																			'tags',
+																			$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
+																},
+																A2(
+																	$elm$json$Json$Decode$field,
+																	'wordOrPhrase',
+																	$elm$json$Json$Decode$list($elm$json$Json$Decode$string))))));
+											},
+											A2(
+												$elm$json$Json$Decode$field,
+												'current',
+												A2(
+													$elm$json$Json$Decode$andThen,
+													function (wordOrPhrase) {
+														return A2(
 															$elm$json$Json$Decode$andThen,
-															function (wordOrPhrase) {
+															function (tags) {
 																return A2(
 																	$elm$json$Json$Decode$andThen,
-																	function (tags) {
+																	function (romanization) {
 																		return A2(
 																			$elm$json$Json$Decode$andThen,
-																			function (romanization) {
+																			function (reviewHistory) {
 																				return A2(
 																					$elm$json$Json$Decode$andThen,
 																					function (notes) {
@@ -10585,7 +10294,7 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 																									$elm$json$Json$Decode$andThen,
 																									function (definitions) {
 																										return $elm$json$Json$Decode$succeed(
-																											{definitions: definitions, familiarityLevel: familiarityLevel, notes: notes, romanization: romanization, tags: tags, wordOrPhrase: wordOrPhrase});
+																											{definitions: definitions, familiarityLevel: familiarityLevel, notes: notes, reviewHistory: reviewHistory, romanization: romanization, tags: tags, wordOrPhrase: wordOrPhrase});
 																									},
 																									A2(
 																										$elm$json$Json$Decode$field,
@@ -10596,51 +10305,23 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 																					},
 																					A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string));
 																			},
-																			A2($elm$json$Json$Decode$field, 'romanization', $elm$json$Json$Decode$string));
+																			A2(
+																				$elm$json$Json$Decode$field,
+																				'reviewHistory',
+																				$elm$json$Json$Decode$list($elm$json$Json$Decode$int)));
 																	},
-																	A2(
-																		$elm$json$Json$Decode$field,
-																		'tags',
-																		$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
+																	A2($elm$json$Json$Decode$field, 'romanization', $elm$json$Json$Decode$string));
 															},
 															A2(
 																$elm$json$Json$Decode$field,
-																'wordOrPhrase',
-																$elm$json$Json$Decode$list($elm$json$Json$Decode$string))))))
-											]))));
-						},
-						A2(
-							$elm$json$Json$Decode$field,
-							'sm2FlashcardData',
-							$elm$json$Json$Decode$list(
-								A2(
-									$elm$json$Json$Decode$andThen,
-									function (englishData) {
-										return A2(
-											$elm$json$Json$Decode$andThen,
-											function (english) {
-												return A2(
-													$elm$json$Json$Decode$andThen,
-													function (egyptianData) {
-														return A2(
-															$elm$json$Json$Decode$andThen,
-															function (egyptian) {
-																return $elm$json$Json$Decode$succeed(
-																	{egyptian: egyptian, egyptianData: egyptianData, english: english, englishData: englishData});
-															},
-															A2($elm$json$Json$Decode$field, 'egyptian', $elm$json$Json$Decode$string));
+																'tags',
+																$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
 													},
 													A2(
 														$elm$json$Json$Decode$field,
-														'egyptianData',
-														$elm$json$Json$Decode$list($elm$json$Json$Decode$int)));
-											},
-											A2($elm$json$Json$Decode$field, 'english', $elm$json$Json$Decode$string));
-									},
-									A2(
-										$elm$json$Json$Decode$field,
-										'englishData',
-										$elm$json$Json$Decode$list($elm$json$Json$Decode$int))))));
+														'wordOrPhrase',
+														$elm$json$Json$Decode$list($elm$json$Json$Decode$string))))))
+									]))));
 				},
 				A2($elm$json$Json$Decode$field, 'tick', $elm$json$Json$Decode$int));
 		},
@@ -10671,24 +10352,32 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 													function (romanization) {
 														return A2(
 															$elm$json$Json$Decode$andThen,
-															function (notes) {
+															function (reviewHistory) {
 																return A2(
 																	$elm$json$Json$Decode$andThen,
-																	function (familiarityLevel) {
+																	function (notes) {
 																		return A2(
 																			$elm$json$Json$Decode$andThen,
-																			function (definitions) {
-																				return $elm$json$Json$Decode$succeed(
-																					{definitions: definitions, familiarityLevel: familiarityLevel, notes: notes, romanization: romanization, tags: tags, wordOrPhrase: wordOrPhrase});
+																			function (familiarityLevel) {
+																				return A2(
+																					$elm$json$Json$Decode$andThen,
+																					function (definitions) {
+																						return $elm$json$Json$Decode$succeed(
+																							{definitions: definitions, familiarityLevel: familiarityLevel, notes: notes, reviewHistory: reviewHistory, romanization: romanization, tags: tags, wordOrPhrase: wordOrPhrase});
+																					},
+																					A2(
+																						$elm$json$Json$Decode$field,
+																						'definitions',
+																						$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
 																			},
-																			A2(
-																				$elm$json$Json$Decode$field,
-																				'definitions',
-																				$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
+																			A2($elm$json$Json$Decode$field, 'familiarityLevel', $elm$json$Json$Decode$int));
 																	},
-																	A2($elm$json$Json$Decode$field, 'familiarityLevel', $elm$json$Json$Decode$int));
+																	A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string));
 															},
-															A2($elm$json$Json$Decode$field, 'notes', $elm$json$Json$Decode$string));
+															A2(
+																$elm$json$Json$Decode$field,
+																'reviewHistory',
+																$elm$json$Json$Decode$list($elm$json$Json$Decode$int)));
 													},
 													A2($elm$json$Json$Decode$field, 'romanization', $elm$json$Json$Decode$string));
 											},

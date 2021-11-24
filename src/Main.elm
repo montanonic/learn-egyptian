@@ -1,8 +1,7 @@
 port module Main exposing (..)
 
-import Basics.Extra exposing (curry)
 import Browser
-import Browser.Events exposing (onKeyPress, onMouseMove)
+import Browser.Events exposing (onKeyPress)
 import Debug exposing (toString)
 import Dict exposing (Dict)
 import Dict.Extra as DictE
@@ -18,10 +17,9 @@ import Maybe.Extra as MaybeE
 import Random
 import Random.List as RandomList
 import Regex exposing (Regex)
-import SM2Flashcards exposing (SM2FlashcardData)
 import Set exposing (Set)
-import String.Extra exposing (toSentence)
-import Time
+import Task
+import Time exposing (Posix)
 import Utils
 import WordOrPhrase as WOP exposing (WOP, update)
 
@@ -32,7 +30,6 @@ import WordOrPhrase as WOP exposing (WOP, update)
 
 type alias Flags =
     { tick : Int
-    , sm2FlashcardData : List SM2FlashcardData
     , lessons : List ( String, Lesson )
     , lessonTranslations : List ( String, String )
     , wops : List ( String, WOP )
@@ -65,9 +62,6 @@ main =
 
 
 -- PORTS
-
-
-port storeFlashcardEntry : SM2FlashcardData -> Cmd msg
 
 
 port storeLessonTranslations : List ( String, String ) -> Cmd msg
@@ -203,10 +197,9 @@ intToPx n =
 
 
 type alias Model =
-    { tick : Time.Posix
+    { tick : Posix
     , draft : String
     , mainWords : List String -- all arabic
-    , sm2FlashcardData : List SM2FlashcardData
     , flashcardEgyptianInput : String
     , flashcardEnglishInput : String
 
@@ -226,6 +219,7 @@ type alias Model =
     -- new flashcard impl
     , onFlashcardPage : Bool
     , newWopFlashcards : Maybe (Zipper WOP)
+    , lessonFlashcards : Maybe (List WOP)
 
     -- kalimni stuff
     , lastKalimniEvent : Maybe KalimniEvent
@@ -237,11 +231,10 @@ type alias Model =
 
 
 init : Flags -> ( Model, Cmd Msg )
-init { tick, sm2FlashcardData, lessons, wops, lessonTranslations, newWopFlashcards } =
+init { tick, lessons, wops, lessonTranslations, newWopFlashcards } =
     ( { tick = Time.millisToPosix tick
       , draft = ""
       , mainWords = []
-      , sm2FlashcardData = sm2FlashcardData
       , flashcardEgyptianInput = ""
       , flashcardEnglishInput = ""
       , newLessonText = ""
@@ -255,8 +248,11 @@ init { tick, sm2FlashcardData, lessons, wops, lessonTranslations, newWopFlashcar
       , newWopDefinition = ""
       , mouseDownWord = ( 0, 0, "" )
       , hoveredWord = ""
+
+      -- new flashcard impl
       , onFlashcardPage = False
       , newWopFlashcards = Maybe.map (\{ before, current, after } -> Zipper.from before current after) newWopFlashcards
+      , lessonFlashcards = Nothing
 
       -- kalimni stuff
       , lastKalimniEvent = Nothing
@@ -282,16 +278,7 @@ init { tick, sm2FlashcardData, lessons, wops, lessonTranslations, newWopFlashcar
 type Msg
     = SaveDataModelToClipboard
       -- Time
-    | Tick Time.Posix
-      -- Flashcard stuff, currently not used *at all*, and needs to be repurposed.
-    | DraftChanged String
-    | MainWordEntered
-    | MainWordUp Int
-    | MainWordDown Int
-    | MainWordDelete Int
-    | StoreSM2FlashcardEntry { egyptian : String, english : String }
-    | FlashcardEgyptianInput String
-    | FlashcardEnglishInput String
+    | Tick Posix
       -- Lesson stuff
     | ChangeNewLessonText String
     | ChangeNewLessonTitle String
@@ -301,7 +288,7 @@ type Msg
     | SelectLesson String
     | DeselectLesson -- useful in this development design at least, not a good long-term design
     | BackendAudioUpdated (Result Http.Error String)
-    | SelectWord String
+    | SelectWOP String Posix
     | EditSelectedWOPDefinition Int String
     | EditSelectedWOPNotes String
     | SetSelectedWOPFamiliarityLevel Int
@@ -328,6 +315,7 @@ type Msg
     | KeyPress String
     | WordHoverStart String
     | WordHoverLeave
+    | GetCurrentTimeAndThen (Posix -> Msg)
 
 
 
@@ -419,38 +407,6 @@ update msg model =
 
         SaveDataModelToClipboard ->
             ( model, saveLocalStorageToClipboard () )
-
-        DraftChanged draft ->
-            ( { model | draft = process draft }
-            , Cmd.none
-            )
-
-        MainWordEntered ->
-            pure { model | mainWords = model.mainWords ++ String.split " " model.draft, draft = "" }
-
-        MainWordDelete i ->
-            pure { model | mainWords = ListE.removeAt i model.mainWords }
-
-        MainWordUp i ->
-            -- [a, b, c, d, e]
-            -- [a, c, b, d, e]
-            pure { model | mainWords = ListE.swapAt (i - 1) i model.mainWords }
-
-        MainWordDown i ->
-            pure { model | mainWords = ListE.swapAt i (i + 1) model.mainWords }
-
-        StoreSM2FlashcardEntry { egyptian, english } ->
-            let
-                entry =
-                    { egyptian = egyptian, english = english, englishData = [], egyptianData = [] }
-            in
-            ( { model | flashcardEgyptianInput = "", flashcardEnglishInput = "", sm2FlashcardData = entry :: model.sm2FlashcardData }, storeFlashcardEntry entry )
-
-        FlashcardEgyptianInput str ->
-            pure { model | flashcardEgyptianInput = str }
-
-        FlashcardEnglishInput str ->
-            pure { model | flashcardEnglishInput = str }
 
         ChangeNewLessonText text ->
             pure { model | newLessonText = text }
@@ -568,16 +524,24 @@ update msg model =
         DeselectLesson ->
             pure { model | selectedLesson = "", newLessonText = "", newLessonTitle = "", selectedWop = "" }
 
-        SelectWord word ->
-            impure { model | selectedWop = word, selectedWopTagsBuffer = "" }
+        SelectWOP word timestamp ->
+            impure
+                { model
+                    | selectedWop = word
+                    , selectedWopTagsBuffer = ""
+                    , wops = Dict.update word (Maybe.map (WOP.addReviewTime timestamp)) model.wops
+                }
                 (\{ selectedWop } ->
-                    -- autofocus the definition field if the word is not known
-                    case WOP.get selectedWop model.wops of
-                        Just _ ->
-                            Cmd.none
+                    Cmd.batch
+                        [ model.wops |> Dict.toList |> storeWops
+                        , -- autofocus the definition field if the word is not known
+                          case WOP.get selectedWop model.wops of
+                            Just _ ->
+                                Cmd.none
 
-                        Nothing ->
-                            autofocusId "newWopDefinition"
+                            Nothing ->
+                                autofocusId "newWopDefinition"
+                        ]
                 )
 
         DeselectWOP ->
@@ -715,10 +679,10 @@ update msg model =
                             wordsAndNonWordsInPhraseSegment
                 in
                 if canConstructPhrase then
-                    pure
-                        { model
-                            | selectedWop =
-                                wordsAndNonWordsInPhraseSegment
+                    update
+                        (GetCurrentTimeAndThen
+                            (SelectWOP
+                                (wordsAndNonWordsInPhraseSegment
                                     |> List.map
                                         (\word ->
                                             case word of
@@ -729,7 +693,10 @@ update msg model =
                                                     ""
                                         )
                                     |> String.join " "
-                        }
+                                )
+                            )
+                        )
+                        model
 
                 else
                     pure model
@@ -771,17 +738,15 @@ update msg model =
                     getUnidentifiedWordsInLesson lessonText model.wops
                         |> List.map (\word -> WOP.makeWOP [ word ] "")
 
-                _ =
-                    unidentifiedWops
-                        |> List.map
-                            (\wop ->
-                                ( WOP.key wop
-                                , filterSentencesContainingWop sentences wop
-                                )
-                            )
-                        |> Debug.log "unidentifiedWops with sentences"
+                wops =
+                    getWopsInLesson lessonText model.wops
+                        |> List.sortBy .familiarityLevel
+                        |> Debug.log "sorted wops"
             in
-            pure model
+            pure { model | lessonFlashcards = Just wops }
+
+        GetCurrentTimeAndThen toMsg ->
+            ( model, Task.perform toMsg Time.now )
 
 
 pure : Model -> ( Model, Cmd Msg )
@@ -1407,10 +1372,43 @@ selectedLessonView model title =
         , button [ onClick (PrepareForLessonWithFlashcards lessonText) ]
             [ text "Prepare for Lesson with Flashcards" ]
         , div [ class "lesson-words-and-lookup" ]
-            [ div [ class "selected-word-edit-and-lesson-translation" ] [ selectedWordEdit model, lessonTranslationBox model ]
-            , displayWords model lessonText
-            ]
+            (case model.lessonFlashcards of
+                Nothing ->
+                    [ div [ class "selected-word-edit-and-lesson-translation" ]
+                        [ selectedWordEdit
+                            model
+                        , lessonTranslationBox model
+                        ]
+                    , displayWords model lessonText
+                    ]
+
+                Just wops ->
+                    [ div [] [] ]
+            )
         ]
+
+
+lessonPrepFlashcardsView : Model -> List WOP -> Html Msg
+lessonPrepFlashcardsView model familiaritySortedWops =
+    let
+        wops =
+            familiaritySortedWops
+                |> List.filter (\{ familiarityLevel } -> familiarityLevel <= 2)
+    in
+    div [ class "flashcard-page" ]
+        []
+
+
+
+-- [ p [ class "word new" ] [ text (String.join ", " wop.wordOrPhrase) ]
+-- , p []
+--     [ text (List.head wop.definitions |> Maybe.withDefault "no definition") ]
+-- , button
+--     [ onClick NextFlashcard ]
+--     [ text "Next Card" ]
+-- , p [] [ text ("on flashcard " ++ currentFlashcardNumber ++ "/" ++ totalSize) ]
+-- , getExampleSentenceForWop wop (Dict.values model.lessons |> List.map .text) model.wops
+-- ]
 
 
 lessonTranslationBox : Model -> Html Msg
@@ -1748,7 +1746,7 @@ displayWords model lessonText =
                         DeselectWOP
 
                      else
-                        SelectWord word
+                        GetCurrentTimeAndThen (SelectWOP word)
                     )
                 , onMouseDown (MouseDownOnWord li wi word)
                 , onMouseUp (OpenPhraseCreationUI li wi word)
@@ -1784,55 +1782,6 @@ displayWords model lessonText =
                         )
                 )
         )
-
-
-oldView : Model -> Html Msg
-oldView model =
-    div []
-        [ h2 [] [ text "Enter Vocab (Eg, Eng)" ]
-        , input [ onInput FlashcardEgyptianInput, value model.flashcardEgyptianInput ] []
-        , input [ onInput FlashcardEnglishInput, value model.flashcardEnglishInput ] []
-        , button
-            [ onClick <|
-                StoreSM2FlashcardEntry
-                    { egyptian = model.flashcardEgyptianInput, english = model.flashcardEnglishInput }
-            ]
-            [ text "add to SM2 vocab" ]
-        , ul []
-            (List.map
-                (\flash -> li [ style "display" "flex" ] [ div [ style "margin-right" "8px" ] [ text flash.egyptian ], div [] [ text flash.english ] ])
-                model.sm2FlashcardData
-            )
-        , h2 [] [ text "Type Egyptian" ]
-        , input
-            [ type_ "text"
-            , placeholder "Draft"
-            , onInput DraftChanged
-            , value model.draft
-            , style "font-size" "16px"
-            , attribute "dir" "rtl"
-            , on "keydown" (ifIsEnter MainWordEntered)
-            ]
-            []
-        , h3 [] [ text "Full Sentence:" ]
-        , p [ style "font-size" "26px", attribute "dir" "rtl" ] [ text <| String.join " " <| model.mainWords ]
-        , ul []
-            (List.indexedMap
-                (\i word ->
-                    let
-                        btn a b =
-                            button (style "height" "18px" :: a) b
-                    in
-                    div [ style "display" "flex" ]
-                        [ li [ style "font-size" "20px", style "margin-right" "8px" ] [ text word ]
-                        , btn [ onClick <| MainWordUp i ] [ text "Up" ]
-                        , btn [ onClick <| MainWordDown i ] [ text "Down" ]
-                        , btn [ onClick <| MainWordDelete i ] [ text "Delete" ]
-                        ]
-                )
-                model.mainWords
-            )
-        ]
 
 
 {-| Detect Enter.

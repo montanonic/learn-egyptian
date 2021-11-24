@@ -2,9 +2,9 @@ module WordOrPhrase exposing (..)
 
 import Dict exposing (Dict)
 import List.Extra as ListE
-import Maybe.Extra as MaybeE
 import Set exposing (Set)
 import String.Extra as StringE
+import Time exposing (Posix)
 
 
 
@@ -41,6 +41,9 @@ type alias WOP =
     , tags : List String
     , familiarityLevel : Int -- currently 1 through 4
     , romanization : String -- optional guide for pronunciation
+
+    {- TODO: reviewHistory should contain the context of where the item was reviewed. was it a lesson, a flashcard? etc... it's also easier to think about multiple reviews in terms of number of times rather than discrete entries, so if a word is clicked on 12 times in a lesson, that lesson's review history could have that number stored, rather than having 12 events. -}
+    , reviewHistory : List Int -- Posix stored as a milliseconds Int for port-friendliness; helps to track what words are due for looking at again; list length can be truncated to some value because it's not necessary to store all review history (fun but not useful currently).
     }
 
 
@@ -68,7 +71,7 @@ for this, but I think it's slightly overkill for now.
 -}
 makeWOP : List String -> String -> WOP
 makeWOP wordOrPhrase definition =
-    { wordOrPhrase = wordOrPhrase, definitions = [ definition ], romanization = "", notes = "", tags = [], familiarityLevel = 1 }
+    { wordOrPhrase = wordOrPhrase, definitions = [ definition ], romanization = "", notes = "", tags = [], familiarityLevel = 1, reviewHistory = [] }
 
 
 setDefinition : Int -> String -> WOP -> WOP
@@ -100,6 +103,20 @@ setFamiliarityLevel level wop =
 
     else
         Nothing
+
+
+{-| Currently truncates to 3 reviews: further reviews will push off the oldest one.
+-}
+addReviewTime : Posix -> WOP -> WOP
+addReviewTime time wop =
+    { wop | reviewHistory = List.take 3 <| Time.posixToMillis time :: wop.reviewHistory }
+
+
+{-| Will return between 0 and 3 values.
+-}
+getReviewHistory : WOP -> List Posix
+getReviewHistory wop =
+    wop.reviewHistory |> List.map Time.millisToPosix
 
 
 setTags : String -> WOP -> WOP
