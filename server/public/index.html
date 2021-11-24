@@ -241,17 +241,18 @@
     //     return storeLocally(`lesson-${title}`, text);
     // }
 
-    app.ports.getSentencesFromTextBlobFinal.subscribe(function ([originalText, lines]) {
-      let sentences = [];
-      for (let line of lines) {
-        const lineMatches = line.match(/[^.?!؟]+[.!?؟]+[\])'"`’”]*|.+/g);
-        sentences.push(...(lineMatches || []));
-      }
-      // remove excess whitespace and drop any blank sentences.
-      sentences = sentences.map(x => x.trim());
-      sentences = sentences.filter(x => x !== "");
-      app.ports.receiveSentencesFromTextBlob.send([originalText, sentences]);
-    });
+    // app.ports.getSentencesFromTextBlobFinal.subscribe(function ([originalText, lines]) {
+    //   let sentences = [];
+    //   for (let line of lines) {
+    //     const lineMatches = line.match(/[^.?!؟]+[.!?؟]+[\])'"`’”]*|.+/g);
+    //     sentences.push(...(lineMatches || []));
+    //   }
+    //   // remove excess whitespace and drop any blank sentences.
+    //   sentences = sentences.map(x => x.trim());
+    //   sentences = sentences.filter(x => x !== "");
+    //   console.log("js sentences", sentences);
+    //   app.ports.receiveSentencesFromTextBlob.send([originalText, sentences]);
+    // });
 
     // TODO: Bad code
     app.ports.storeFlashcardEntry.subscribe(function (entry) {

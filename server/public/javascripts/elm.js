@@ -5710,10 +5710,6 @@ var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Main$GotKalimniEvent = function (a) {
 	return {$: 'GotKalimniEvent', a: a};
 };
-var $author$project$Main$PrepareForLessonWithFlashcards = F2(
-	function (a, b) {
-		return {$: 'PrepareForLessonWithFlashcards', a: a, b: b};
-	});
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $author$project$Main$KeyPress = function (a) {
 	return {$: 'KeyPress', a: a};
@@ -6036,39 +6032,13 @@ var $author$project$Main$receiveKalimniEvents = _Platform_incomingPort(
 				A2($elm$json$Json$Decode$field, 'relativeY', $elm$json$Json$Decode$float));
 		},
 		A2($elm$json$Json$Decode$field, 'width', $elm$json$Json$Decode$int)));
-var $author$project$Main$receiveSentencesFromTextBlob = _Platform_incomingPort(
-	'receiveSentencesFromTextBlob',
-	A2(
-		$elm$json$Json$Decode$andThen,
-		function (_v0) {
-			return A2(
-				$elm$json$Json$Decode$andThen,
-				function (_v1) {
-					return $elm$json$Json$Decode$succeed(
-						_Utils_Tuple2(_v0, _v1));
-				},
-				A2(
-					$elm$json$Json$Decode$index,
-					1,
-					$elm$json$Json$Decode$list($elm$json$Json$Decode$string)));
-		},
-		A2($elm$json$Json$Decode$index, 0, $elm$json$Json$Decode$string)));
 var $author$project$Main$subscriptions = function (_v0) {
 	var drawInLesson = _v0.drawInLesson;
 	return $elm$core$Platform$Sub$batch(
 		_List_fromArray(
 			[
 				$elm$browser$Browser$Events$onKeyPress($author$project$Main$keyDecoder),
-				drawInLesson ? $author$project$Main$receiveKalimniEvents($author$project$Main$GotKalimniEvent) : $elm$core$Platform$Sub$none,
-				$author$project$Main$receiveSentencesFromTextBlob(
-				function (_v1) {
-					var a = _v1.a;
-					var b = _v1.b;
-					return A2(
-						$author$project$Main$PrepareForLessonWithFlashcards,
-						a,
-						$elm$core$Maybe$Just(b));
-				})
+				drawInLesson ? $author$project$Main$receiveKalimniEvents($author$project$Main$GotKalimniEvent) : $elm$core$Platform$Sub$none
 			]));
 };
 var $author$project$Main$BackendAudioUpdated = function (a) {
@@ -6117,10 +6087,6 @@ var $elm$core$List$all = F2(
 			$elm$core$List$any,
 			A2($elm$core$Basics$composeL, $elm$core$Basics$not, isOkay),
 			list);
-	});
-var $elm$core$Basics$always = F2(
-	function (a, _v0) {
-		return a;
 	});
 var $elm$core$Maybe$andThen = F2(
 	function (callback, maybeValue) {
@@ -6667,6 +6633,19 @@ var $elm$http$Http$expectString = function (toMsg) {
 		toMsg,
 		$elm$http$Http$resolve($elm$core$Result$Ok));
 };
+var $elm$regex$Regex$Match = F4(
+	function (match, index, number, submatches) {
+		return {index: index, match: match, number: number, submatches: submatches};
+	});
+var $elm$regex$Regex$find = _Regex_findAtMost(_Regex_infinity);
+var $elm$regex$Regex$fromStringWith = _Regex_fromStringWith;
+var $elm$regex$Regex$fromString = function (string) {
+	return A2(
+		$elm$regex$Regex$fromStringWith,
+		{caseInsensitive: false, multiline: false},
+		string);
+};
+var $elm$regex$Regex$never = _Regex_never;
 var $elm$core$List$filter = F2(
 	function (isGood, list) {
 		return A3(
@@ -6678,6 +6657,55 @@ var $elm$core$List$filter = F2(
 			_List_Nil,
 			list);
 	});
+var $elm$core$String$trim = _String_trim;
+var $author$project$Main$splitIntoCleanLines = function (text) {
+	var uniformSpacing = function (line) {
+		return A2(
+			$elm$core$String$join,
+			' ',
+			A2(
+				$elm$core$List$filter,
+				A2($elm$core$Basics$composeL, $elm$core$Basics$not, $elm$core$String$isEmpty),
+				A2($elm$core$String$split, ' ', line)));
+	};
+	return A2(
+		$elm$core$List$map,
+		uniformSpacing,
+		A2(
+			$elm$core$List$filter,
+			A2($elm$core$Basics$composeL, $elm$core$Basics$not, $elm$core$String$isEmpty),
+			A2(
+				$elm$core$List$map,
+				$elm$core$String$trim,
+				A2($elm$core$String$split, '\n', text))));
+};
+var $author$project$Main$unsplitFromCleanLines = function (cleanLines) {
+	return A2($elm$core$String$join, '\n', cleanLines);
+};
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $author$project$Main$extractSentences = function (text) {
+	return A2(
+		$elm$core$List$map,
+		function ($) {
+			return $.match;
+		},
+		A2(
+			$elm$regex$Regex$find,
+			A2(
+				$elm$core$Maybe$withDefault,
+				$elm$regex$Regex$never,
+				$elm$regex$Regex$fromString('[^.?!؟]+[.!?؟]+[\\])\'\"`’”]*|.+')),
+			$author$project$Main$unsplitFromCleanLines(
+				$author$project$Main$splitIntoCleanLines(text))));
+};
 var $author$project$Main$getWord = function (wdt) {
 	switch (wdt.$) {
 		case 'DisplayWord':
@@ -6708,28 +6736,6 @@ var $elm$core$List$concatMap = F2(
 	function (f, list) {
 		return $elm$core$List$concat(
 			A2($elm$core$List$map, f, list));
-	});
-var $elm$regex$Regex$Match = F4(
-	function (match, index, number, submatches) {
-		return {index: index, match: match, number: number, submatches: submatches};
-	});
-var $elm$regex$Regex$find = _Regex_findAtMost(_Regex_infinity);
-var $elm$regex$Regex$fromStringWith = _Regex_fromStringWith;
-var $elm$regex$Regex$fromString = function (string) {
-	return A2(
-		$elm$regex$Regex$fromStringWith,
-		{caseInsensitive: false, multiline: false},
-		string);
-};
-var $elm$regex$Regex$never = _Regex_never;
-var $elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
 	});
 var $author$project$Main$markWordCharsFromNonWordChars = function (lineOfText) {
 	var rxString = ' *():.?؟!,”،=\\-';
@@ -7048,60 +7054,6 @@ var $elm_community$list_extra$List$Extra$getAt = F2(
 		return (idx < 0) ? $elm$core$Maybe$Nothing : $elm$core$List$head(
 			A2($elm$core$List$drop, idx, xs));
 	});
-var $elm_community$basics_extra$Basics$Extra$curry = F3(
-	function (f, a, b) {
-		return f(
-			_Utils_Tuple2(a, b));
-	});
-var $elm$json$Json$Encode$list = F2(
-	function (func, entries) {
-		return _Json_wrap(
-			A3(
-				$elm$core$List$foldl,
-				_Json_addEntry(func),
-				_Json_emptyArray(_Utils_Tuple0),
-				entries));
-	});
-var $author$project$Main$getSentencesFromTextBlobFinal = _Platform_outgoingPort(
-	'getSentencesFromTextBlobFinal',
-	function ($) {
-		var a = $.a;
-		var b = $.b;
-		return A2(
-			$elm$json$Json$Encode$list,
-			$elm$core$Basics$identity,
-			_List_fromArray(
-				[
-					$elm$json$Json$Encode$string(a),
-					$elm$json$Json$Encode$list($elm$json$Json$Encode$string)(b)
-				]));
-	});
-var $elm$core$String$trim = _String_trim;
-var $author$project$Main$splitIntoCleanLines = function (text) {
-	var uniformSpacing = function (line) {
-		return A2(
-			$elm$core$String$join,
-			' ',
-			A2(
-				$elm$core$List$filter,
-				A2($elm$core$Basics$composeL, $elm$core$Basics$not, $elm$core$String$isEmpty),
-				A2($elm$core$String$split, ' ', line)));
-	};
-	return A2(
-		$elm$core$List$map,
-		uniformSpacing,
-		A2(
-			$elm$core$List$map,
-			$elm$core$String$trim,
-			A2($elm$core$String$split, '\n', text)));
-};
-var $author$project$Main$getSentencesFromTextBlob = function (str) {
-	return A3(
-		$elm_community$basics_extra$Basics$Extra$curry,
-		$author$project$Main$getSentencesFromTextBlobFinal,
-		str,
-		$author$project$Main$splitIntoCleanLines(str));
-};
 var $elm$core$List$member = F2(
 	function (x, xs) {
 		return A2(
@@ -7838,6 +7790,10 @@ var $author$project$Main$saveLocalStorageToClipboard = _Platform_outgoingPort(
 	function ($) {
 		return $elm$json$Json$Encode$null;
 	});
+var $elm$core$Basics$always = F2(
+	function (a, _v0) {
+		return a;
+	});
 var $elm_community$list_extra$List$Extra$updateAt = F3(
 	function (index, fn, list) {
 		if (index < 0) {
@@ -7933,6 +7889,15 @@ var $author$project$WordOrPhrase$setTags = F2(
 			});
 	});
 var $elm$json$Json$Encode$int = _Json_wrap;
+var $elm$json$Json$Encode$list = F2(
+	function (func, entries) {
+		return _Json_wrap(
+			A3(
+				$elm$core$List$foldl,
+				_Json_addEntry(func),
+				_Json_emptyArray(_Utils_Tuple0),
+				entries));
+	});
 var $author$project$Main$storeFlashcardEntry = _Platform_outgoingPort(
 	'storeFlashcardEntry',
 	function ($) {
@@ -8866,38 +8831,29 @@ var $author$project$Main$update = F2(
 							$author$project$Main$storeNewWopFlashcards)));
 			default:
 				var lessonText = msg.a;
-				var maybeSentences = msg.b;
-				if (maybeSentences.$ === 'Just') {
-					var sentences = maybeSentences.a;
-					var unidentifiedWops = A2(
+				var unidentifiedWops = A2(
+					$elm$core$List$map,
+					function (word) {
+						return A2(
+							$author$project$WordOrPhrase$makeWOP,
+							_List_fromArray(
+								[word]),
+							'');
+					},
+					A2($author$project$Main$getUnidentifiedWordsInLesson, lessonText, model.wops));
+				var sentences = $author$project$Main$extractSentences(lessonText);
+				var _v10 = A2(
+					$elm$core$Debug$log,
+					'unidentifiedWops with sentences',
+					A2(
 						$elm$core$List$map,
-						function (word) {
-							return A2(
-								$author$project$WordOrPhrase$makeWOP,
-								_List_fromArray(
-									[word]),
-								'');
+						function (wop) {
+							return _Utils_Tuple2(
+								$author$project$WordOrPhrase$key(wop),
+								A2($author$project$Main$filterSentencesContainingWop, sentences, wop));
 						},
-						A2($author$project$Main$getUnidentifiedWordsInLesson, lessonText, model.wops));
-					var _v11 = A2(
-						$elm$core$Debug$log,
-						'ting',
-						A2(
-							$elm$core$List$map,
-							function (wop) {
-								return _Utils_Tuple2(
-									$author$project$WordOrPhrase$key(wop),
-									A2($author$project$Main$filterSentencesContainingWop, sentences, wop));
-							},
-							unidentifiedWops));
-					return $author$project$Main$pure(model);
-				} else {
-					return A2(
-						$author$project$Main$impure,
-						model,
-						$elm$core$Basics$always(
-							$author$project$Main$getSentencesFromTextBlob(lessonText)));
-				}
+						unidentifiedWops));
+				return $author$project$Main$pure(model);
 		}
 	});
 var $author$project$Main$NavigateToFlashcardPage = {$: 'NavigateToFlashcardPage'};
@@ -9772,6 +9728,9 @@ var $author$project$Main$newAndEditLessonView = function (model) {
 					]))
 			]));
 };
+var $author$project$Main$PrepareForLessonWithFlashcards = function (a) {
+	return {$: 'PrepareForLessonWithFlashcards', a: a};
+};
 var $elm$html$Html$audio = _VirtualDom_node('audio');
 var $elm$html$Html$Attributes$controls = $elm$html$Html$Attributes$boolProperty('controls');
 var $author$project$Main$DeselectWOP = {$: 'DeselectWOP'};
@@ -10351,7 +10310,7 @@ var $author$project$Main$selectedLessonView = F2(
 					_List_fromArray(
 						[
 							$elm$html$Html$Events$onClick(
-							A2($author$project$Main$PrepareForLessonWithFlashcards, lessonText, $elm$core$Maybe$Nothing))
+							$author$project$Main$PrepareForLessonWithFlashcards(lessonText))
 						]),
 					_List_fromArray(
 						[

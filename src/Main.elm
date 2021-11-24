@@ -96,21 +96,6 @@ port autofocusId : String -> Cmd msg
 port receiveKalimniEvents : (KalimniEvent -> msg) -> Sub msg
 
 
-{-| Currently I'm unhappy with Elm's lackluster Regex support and want to solve this problem
-efficiently. The problem: correctly breaking off a chunk of text into sentences. This should
-preserve the terminal characters, and newlines should be considered their own sentences.
--}
-port getSentencesFromTextBlobFinal : ( String, List String ) -> Cmd msg
-
-
-getSentencesFromTextBlob : String -> Cmd msg
-getSentencesFromTextBlob str =
-    splitIntoCleanLines str |> curry getSentencesFromTextBlobFinal str
-
-
-port receiveSentencesFromTextBlob : (( String, List String ) -> msg) -> Sub msg
-
-
 
 -- SUBSCRIPTIONS
 
@@ -138,7 +123,6 @@ subscriptions { drawInLesson } =
            important for now, I stick with a 100ms tick.
         -}
         -- , Time.every 100 Tick
-        , receiveSentencesFromTextBlob (\( a, b ) -> PrepareForLessonWithFlashcards a (Just b))
         ]
 
 
@@ -335,7 +319,7 @@ type Msg
     | NavigateToFlashcardPage -- open up the flashcard view
     | MakeNewWopFlashcardSet (Maybe (List WOP)) (Random.Generator (List WOP))
     | NextFlashcard
-    | PrepareForLessonWithFlashcards String (Maybe (List String))
+    | PrepareForLessonWithFlashcards String
       -- kalimni arabi stuff
     | GotKalimniEvent KalimniEvent
     | ToggleDrawInLesson
@@ -778,28 +762,26 @@ update msg model =
             impure { model | newWopFlashcards = Maybe.andThen Zipper.next model.newWopFlashcards }
                 (.newWopFlashcards >> Maybe.map Utils.deconstructZipper >> storeNewWopFlashcards)
 
-        PrepareForLessonWithFlashcards lessonText maybeSentences ->
-            case maybeSentences of
-                Just sentences ->
-                    let
-                        unidentifiedWops =
-                            getUnidentifiedWordsInLesson lessonText model.wops
-                                |> List.map (\word -> WOP.makeWOP [ word ] "")
+        PrepareForLessonWithFlashcards lessonText ->
+            let
+                sentences =
+                    extractSentences lessonText
 
-                        _ =
-                            unidentifiedWops
-                                |> List.map
-                                    (\wop ->
-                                        ( WOP.key wop
-                                        , filterSentencesContainingWop sentences wop
-                                        )
-                                    )
-                                |> Debug.log "ting"
-                    in
-                    pure model
+                unidentifiedWops =
+                    getUnidentifiedWordsInLesson lessonText model.wops
+                        |> List.map (\word -> WOP.makeWOP [ word ] "")
 
-                Nothing ->
-                    impure model (always (getSentencesFromTextBlob lessonText))
+                _ =
+                    unidentifiedWops
+                        |> List.map
+                            (\wop ->
+                                ( WOP.key wop
+                                , filterSentencesContainingWop sentences wop
+                                )
+                            )
+                        |> Debug.log "unidentifiedWops with sentences"
+            in
+            pure model
 
 
 pure : Model -> ( Model, Cmd Msg )
@@ -822,6 +804,17 @@ impure model effect =
 
    for starters I want to get the first feature working.
 -}
+
+
+extractSentences : String -> List String
+extractSentences text =
+    splitIntoCleanLines text
+        |> unsplitFromCleanLines
+        |> Regex.find
+            (Maybe.withDefault Regex.never <|
+                Regex.fromString "[^.?!؟]+[.!?؟]+[\\])'\"`’”]*|.+"
+            )
+        |> List.map .match
 
 
 {-| In order of first appearance, no duplicates.
@@ -1411,7 +1404,7 @@ selectedLessonView model title =
     div [ class "selected-lesson-view" ]
         [ h2 [] [ text <| "Title: " ++ title ]
         , audio [ controls True, src <| "http://localhost:3000/audio/" ++ title ++ "." ++ lessonAudioType ] []
-        , button [ onClick (PrepareForLessonWithFlashcards lessonText Nothing) ]
+        , button [ onClick (PrepareForLessonWithFlashcards lessonText) ]
             [ text "Prepare for Lesson with Flashcards" ]
         , div [ class "lesson-words-and-lookup" ]
             [ div [ class "selected-word-edit-and-lesson-translation" ] [ selectedWordEdit model, lessonTranslationBox model ]
@@ -1532,7 +1525,19 @@ splitIntoCleanLines text =
     in
     String.split "\n" text
         |> List.map String.trim
+        |> List.filter (not << String.isEmpty)
+        -- remove any empty sections
         |> List.map uniformSpacing
+
+
+{-| Rejoins the clean lines into a single string entity, re-inserting newlines. This is not a
+lossless operation when following splitIntoCleanLines. Rather, it removes spacing structure in an
+attempt to standardize outputs. It's mainly useful in cleaning up input to extract information
+within it like words or sentences rather than creating a view to present to the user.
+-}
+unsplitFromCleanLines : List String -> String
+unsplitFromCleanLines cleanLines =
+    String.join "\n" cleanLines
 
 
 {-| without altering the spacing of the underlying text, list off words vs. non-words. it
