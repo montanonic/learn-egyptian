@@ -218,3 +218,41 @@ body {
     color: white;
     position: absolute;
 }
+
+
+/* flashcard stuff */
+.lesson-flashcard-view {
+    border: solid rgb(23, 109, 95);
+    padding: 20% 0;
+    margin: 8px 0;
+    margin-bottom: 40%;
+}
+
+.flashcard-view {
+    font-size: 40px;
+    text-align: center;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.flashcard-view .sentence {
+    direction: rtl;
+}
+
+.flashcard-view .target-wop {
+    background-color: rgb(44, 133, 44);
+    border-radius: 16px;
+    padding: 8px;
+}
+
+.flashcard-view .definitions {
+    margin-bottom: 16px;
+    font-size: 32px;
+    background-color: rgb(20, 67, 83);
+}
+
+.flashcard-view .romanization {
+    margin-top: 16px;
+    font-size: 24px;
+    color: gray;
+}

@@ -47,6 +47,17 @@ type alias WOP =
     }
 
 
+type ReviewLocation
+    = SentenceContext
+    | FlashcardContext
+
+
+type alias ReviewContext =
+    { location : ReviewLocation
+    , timestamp : Int
+    }
+
+
 displayFamiliarityLevel : Int -> String
 displayFamiliarityLevel familiarityLevel =
     case familiarityLevel of

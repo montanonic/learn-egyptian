@@ -139,7 +139,6 @@
       // TODO: also do a search of the English because we want to store one vocab PER meaning.
       // For English->Eg when there's multiple words that mean the same thing in English, when you're tested you should be asked if you can recall another word for it. Ideally though we should just have a better way to mark the english side of the vocab with a special note. We should be able to mark either EG or Eng side of vocab with a note.
       flags: {
-        sm2FlashcardData: Array.from(getEgyptianWords()).map(word => getLocally(word)),
         tick: Date.now(),
         ...getAllLocalData()
       }
@@ -255,36 +254,6 @@
     //   console.log("js sentences", sentences);
     //   app.ports.receiveSentencesFromTextBlob.send([originalText, sentences]);
     // });
-
-    // TODO: Bad code
-    app.ports.storeFlashcardEntry.subscribe(function (entry) {
-      const {
-        egyptian,
-        english,
-        englishData,
-        egyptianData
-      } = entry;
-
-      // Add entry to lookup table used to load data on app init.
-      const egyptianWords = getEgyptianWords();
-      egyptianWords.add(egyptian);
-      storeLocally('egyptianWords', Array.from(egyptianWords));
-      console.log(egyptianWords);
-
-      storeLocally(`word-${egyptian}`, entry);
-      console.log({
-        egyptian,
-        english,
-        englishData,
-        egyptianData
-      });
-    });
-
-    /// Lists all egyptian words stored in vocab.
-    function getEgyptianWords() {
-      return new Set(getLocally('egyptianWords') || []);
-    }
-
   }
 </script>
 

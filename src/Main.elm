@@ -5,6 +5,7 @@ import Browser.Events exposing (onKeyPress)
 import Debug exposing (toString)
 import Dict exposing (Dict)
 import Dict.Extra as DictE
+import Flashcard exposing (Flashcard)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -198,10 +199,6 @@ intToPx n =
 
 type alias Model =
     { tick : Posix
-    , draft : String
-    , mainWords : List String -- all arabic
-    , flashcardEgyptianInput : String
-    , flashcardEnglishInput : String
 
     -- lessons
     , newLessonText : String
@@ -219,7 +216,8 @@ type alias Model =
     -- new flashcard impl
     , onFlashcardPage : Bool
     , newWopFlashcards : Maybe (Zipper WOP)
-    , lessonFlashcards : Maybe (List WOP)
+    , lessonFlashcards : Maybe (List (Flashcard ( WOP, String )))
+    , flashcardFlipped : Bool
 
     -- kalimni stuff
     , lastKalimniEvent : Maybe KalimniEvent
@@ -233,10 +231,6 @@ type alias Model =
 init : Flags -> ( Model, Cmd Msg )
 init { tick, lessons, wops, lessonTranslations, newWopFlashcards } =
     ( { tick = Time.millisToPosix tick
-      , draft = ""
-      , mainWords = []
-      , flashcardEgyptianInput = ""
-      , flashcardEnglishInput = ""
       , newLessonText = ""
       , newLessonTitle = ""
       , lessons = Dict.fromList lessons
@@ -253,6 +247,7 @@ init { tick, lessons, wops, lessonTranslations, newWopFlashcards } =
       , onFlashcardPage = False
       , newWopFlashcards = Maybe.map (\{ before, current, after } -> Zipper.from before current after) newWopFlashcards
       , lessonFlashcards = Nothing
+      , flashcardFlipped = False
 
       -- kalimni stuff
       , lastKalimniEvent = Nothing
@@ -307,6 +302,9 @@ type Msg
     | MakeNewWopFlashcardSet (Maybe (List WOP)) (Random.Generator (List WOP))
     | NextFlashcard
     | PrepareForLessonWithFlashcards String
+    | FlipLessonFlashcard
+    | NextLessonFlashcard (Flashcard ( WOP, String )) Bool Posix
+    | FinishFlashcardSession
       -- kalimni arabi stuff
     | GotKalimniEvent KalimniEvent
     | ToggleDrawInLesson
@@ -725,6 +723,7 @@ update msg model =
                         randomizedWopsGenerator
                     )
 
+        {- I'm not sure if this will end up finished in lieu of lesson flashcards? -}
         NextFlashcard ->
             impure { model | newWopFlashcards = Maybe.andThen Zipper.next model.newWopFlashcards }
                 (.newWopFlashcards >> Maybe.map Utils.deconstructZipper >> storeNewWopFlashcards)
@@ -738,12 +737,58 @@ update msg model =
                     getUnidentifiedWordsInLesson lessonText model.wops
                         |> List.map (\word -> WOP.makeWOP [ word ] "")
 
-                wops =
+                getSentencesForWop =
+                    filterSentencesContainingWop <| extractSentences lessonText
+
+                wopsWithSentence : List ( WOP, String )
+                wopsWithSentence =
                     getWopsInLesson lessonText model.wops
+                        |> List.filter (\{ familiarityLevel } -> familiarityLevel <= 2)
                         |> List.sortBy .familiarityLevel
-                        |> Debug.log "sorted wops"
+                        -- show last words first for best spacing effect
+                        |> List.reverse
+                        |> List.indexedMap
+                            (\i wop ->
+                                let
+                                    sentences =
+                                        getSentencesForWop wop
+
+                                    {- using index with mod means we get a little more possible
+                                       variety by not always selecting the first sentence. a small
+                                       pseudorandom effect  w/out random
+                                    -}
+                                    chosenSentence =
+                                        ListE.getAt (remainderBy (List.length sentences) i) sentences
+                                            |> Maybe.withDefault "BAD SENTENCE"
+                                in
+                                ( wop, chosenSentence )
+                            )
+
+                flashcards =
+                    Flashcard.makeflashcards wopsWithSentence
             in
-            pure { model | lessonFlashcards = Just wops }
+            pure { model | lessonFlashcards = Just flashcards }
+
+        FlipLessonFlashcard ->
+            pure { model | flashcardFlipped = True }
+
+        NextLessonFlashcard flashcard remembered timestamp ->
+            {- this holds the criteria for when we're done with a card or not -}
+            let
+                updatedFlashcard =
+                    Flashcard.addHistoryEntry timestamp remembered flashcard
+
+                moveToEnd =
+                    (model.lessonFlashcards
+                        |> Maybe.withDefault []
+                        |> List.filter ((/=) flashcard)
+                    )
+                        ++ [ updatedFlashcard ]
+            in
+            pure { model | lessonFlashcards = Just moveToEnd, flashcardFlipped = False }
+
+        FinishFlashcardSession ->
+            pure { model | lessonFlashcards = Nothing }
 
         GetCurrentTimeAndThen toMsg ->
             ( model, Task.perform toMsg Time.now )
@@ -1334,6 +1379,16 @@ lessonsView model =
     let
         wordsOfLevel n =
             (WOP.listWopsOfLevel n model.wops |> List.length |> String.fromInt) ++ " " ++ WOP.displayFamiliarityLevel n
+
+        viewingFlashcards =
+            MaybeE.isJust model.lessonFlashcards
+
+        buttonTitle =
+            if viewingFlashcards then
+                "finish or cancel flashcards to change lesson"
+
+            else
+                ""
     in
     div [ class "lessons-view" ]
         [ h3 [] [ text "select a lesson" ]
@@ -1348,7 +1403,7 @@ lessonsView model =
         , div [ class "lesson-selector" ]
             (model.lessons
                 |> Dict.keys
-                |> List.map (\title -> button [ onClick <| SelectLesson title ] [ text title ])
+                |> List.map (\title -> button [ onClick <| SelectLesson title, disabled viewingFlashcards, Html.Attributes.title buttonTitle ] [ text title ])
             )
         ]
 
@@ -1368,11 +1423,15 @@ selectedLessonView model title =
     div [ class "selected-lesson-view" ]
         [ h2 [] [ text <| "Title: " ++ title ]
         , audio [ controls True, src <| "http://localhost:3000/audio/" ++ title ++ "." ++ lessonAudioType ] []
-        , button [ onClick (PrepareForLessonWithFlashcards lessonText) ]
-            [ text "Prepare for Lesson with Flashcards" ]
-        , div [ class "lesson-words-and-lookup" ]
-            (case model.lessonFlashcards of
-                Nothing ->
+        , if MaybeE.isNothing model.lessonFlashcards then
+            button [ onClick (PrepareForLessonWithFlashcards lessonText) ]
+                [ text "Prepare for Lesson with Flashcards" ]
+
+          else
+            span [] []
+        , case model.lessonFlashcards of
+            Nothing ->
+                div [ class "lesson-words-and-lookup" ]
                     [ div [ class "selected-word-edit-and-lesson-translation" ]
                         [ selectedWordEdit
                             model
@@ -1381,21 +1440,61 @@ selectedLessonView model title =
                     , displayWords model lessonText
                     ]
 
-                Just _ ->
-                    [ div [] [] ]
-            )
+            Just flashcards ->
+                div [ class "lesson-flashcard-view" ] [ lessonPrepFlashcardsView model flashcards ]
         ]
 
 
-lessonPrepFlashcardsView : Model -> List WOP -> Html Msg
-lessonPrepFlashcardsView _ familiaritySortedWops =
-    let
-        _ =
-            familiaritySortedWops
-                |> List.filter (\{ familiarityLevel } -> familiarityLevel <= 2)
-    in
-    div [ class "flashcard-page" ]
-        []
+lessonPrepFlashcardsView : Model -> List (Flashcard ( WOP, String )) -> Html Msg
+lessonPrepFlashcardsView model flashcards =
+    div [ class "flashcard-view" ]
+        [ case Flashcard.getNextCard flashcards of
+            Just flashcard ->
+                let
+                    ( wop, sentence ) =
+                        flashcard.data
+
+                    sentenceView =
+                        markWordCharsFromNonWordChars sentence
+                            |> List.map
+                                (\wdt ->
+                                    case wdt of
+                                        DisplayWord w ->
+                                            if w == WOP.key wop then
+                                                span [ class "target-wop" ] [ text w ]
+
+                                            else
+                                                span [] [ text w ]
+
+                                        DisplayNonWord w ->
+                                            span [] [ text w ]
+
+                                        _ ->
+                                            span [] []
+                                )
+                in
+                if model.flashcardFlipped then
+                    div [ class "flashcard-back" ]
+                        [ div [ class "definitions" ] (List.map (\def -> text def) wop.definitions)
+                        , div [ class "sentence" ] sentenceView
+                        , div [ class "romanization" ] [ text wop.romanization ]
+                        , familiarityLevelSelectorView wop
+                        , div [ class "response-buttons" ]
+                            [ button [ onClick <| GetCurrentTimeAndThen <| NextLessonFlashcard flashcard True ] [ text "Remembered" ]
+                            , button [ onClick <| GetCurrentTimeAndThen <| NextLessonFlashcard flashcard False ] [ text "Forgot" ]
+                            ]
+                        ]
+
+                else
+                    div [ class "flashcard-front" ]
+                        [ div [ class "sentence" ] sentenceView
+                        , div [ class "romanization" ] [ text wop.romanization ]
+                        , button [ onClick FlipLessonFlashcard ] [ text "Flip Card" ]
+                        ]
+
+            Nothing ->
+                div [ onClick FinishFlashcardSession ] [ text "Continue to Lesson" ]
+        ]
 
 
 
@@ -1470,19 +1569,7 @@ selectedWordEdit model =
                            , textarea
                                 [ cols 20, rows 10, onInput EditSelectedWOPNotes, value wop.notes ]
                                 []
-                           , div [ class "familiarity-level-selector" ]
-                                (List.map
-                                    (\n ->
-                                        button
-                                            [ classList [ ( "selected", wop.familiarityLevel == n ) ]
-                                            , class <| String.toLower <| WOP.displayFamiliarityLevel n
-                                            , onClick <| SetSelectedWOPFamiliarityLevel n
-                                            , title <| WOP.displayFamiliarityLevel n
-                                            ]
-                                            [ text <| String.fromInt n ]
-                                    )
-                                    [ 1, 2, 3, 4 ]
-                                )
+                           , familiarityLevelSelectorView wop
                            ]
 
                 Nothing ->
@@ -1490,6 +1577,23 @@ selectedWordEdit model =
                     , input [ id "newWopDefinition", placeholder "add a definition", onInput EditSelectedNewWOPDefinition, value model.newWopDefinition ] []
                     , button [ onClick SaveSelectedNewWOP, disabled (String.isEmpty model.newWopDefinition) ] [ text "Save New Word" ]
                     ]
+        )
+
+
+familiarityLevelSelectorView : WOP -> Html Msg
+familiarityLevelSelectorView wop =
+    div [ class "familiarity-level-selector" ]
+        (List.map
+            (\n ->
+                button
+                    [ classList [ ( "selected", wop.familiarityLevel == n ) ]
+                    , class <| String.toLower <| WOP.displayFamiliarityLevel n
+                    , onClick <| SetSelectedWOPFamiliarityLevel n
+                    , title <| WOP.displayFamiliarityLevel n
+                    ]
+                    [ text <| String.fromInt n ]
+            )
+            [ 1, 2, 3, 4 ]
         )
 
 
@@ -1541,8 +1645,6 @@ unsplitFromCleanLines cleanLines =
 expects a line of text and doesn't support paragraphs simply because line spacing needs
 more manual handling in the HTML layout itself. So while I guess we could detect newlines
 here, it would muddle this code, and frankly it's easier to handle it outside.
-
-output is a list of ("word", theWordString) | ("non-word", theNonWordString)
 
 the importance of separating word from non-word as pure data is multitude, and allows us
 to do things like apply further processing to the words themselves by adding/removing
