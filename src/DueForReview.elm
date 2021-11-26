@@ -6,6 +6,10 @@ import Ordering
 import WordOrPhrase as WOP exposing (WOP)
 
 
+
+{- every New word that I studied today should be shown in a review again tomorrow. every familiar word should be shown in approx 5 days. -}
+
+
 {-| TODO: Integrate simple spaced repetition reviews for New and Recognized words. In general
 though, everytime you see a word you're learning it's really helpful to see it again the next day.
 -}

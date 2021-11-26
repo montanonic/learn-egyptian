@@ -281,10 +281,10 @@ type Msg
     | SelectLesson String
     | DeselectLesson -- useful in this development design at least, not a good long-term design
     | BackendAudioUpdated (Result Http.Error String)
-    | SelectWOP String Posix
+    | SelectWOP String String Posix -- lessonId, wopKey, timestamp
     | EditSelectedWOPDefinition Int String
     | EditSelectedWOPNotes String
-    | SetSelectedWOPFamiliarityLevel Int
+    | SetSelectedWOPFamiliarityLevel String Int
     | EditSelectedWOPRomanization String
     | EditSelectedWOPTagsBuffer String
     | SetSelectedWOPTags String
@@ -386,7 +386,7 @@ update msg model =
                     |> Maybe.andThen
                         (\n ->
                             if n >= 1 && n <= 4 then
-                                Just <| update (SetSelectedWOPFamiliarityLevel n) model
+                                Just <| update (SetSelectedWOPFamiliarityLevel model.selectedWop n) model
 
                             else
                                 Nothing
@@ -521,12 +521,12 @@ update msg model =
         DeselectLesson ->
             pure { model | selectedLesson = "", newLessonText = "", newLessonTitle = "", selectedWop = "" }
 
-        SelectWOP word timestamp ->
+        SelectWOP lessonId word timestamp ->
             impure
                 { model
                     | selectedWop = word
                     , selectedWopTagsBuffer = ""
-                    , wops = Dict.update word (Maybe.map (WOP.addReviewTime timestamp)) model.wops
+                    , wops = Dict.update word (Maybe.map (WOP.addReviewTime timestamp lessonId)) model.wops
                 }
                 (\{ selectedWop } ->
                     Cmd.batch
@@ -565,11 +565,11 @@ update msg model =
                 }
                 (.wops >> Dict.toList >> storeWops)
 
-        SetSelectedWOPFamiliarityLevel familiarityLevel ->
+        SetSelectedWOPFamiliarityLevel selectedWop familiarityLevel ->
             impure
                 { model
                     | wops =
-                        WOP.update model.selectedWop
+                        WOP.update selectedWop
                             (Maybe.andThen (WOP.setFamiliarityLevel familiarityLevel))
                             model.wops
                 }
@@ -679,6 +679,7 @@ update msg model =
                     update
                         (GetCurrentTimeAndThen
                             (SelectWOP
+                                model.selectedLesson
                                 (wordsAndNonWordsInPhraseSegment
                                     |> List.map
                                         (\word ->
@@ -715,7 +716,7 @@ update msg model =
                         (\wop ->
                             Dict.update
                                 (WOP.key wop)
-                                (Maybe.map (WOP.addReviewTime timestamp))
+                                (Maybe.map (WOP.addReviewTime timestamp model.selectedLesson))
                         )
                         model.wops
                         lessonWops
@@ -1388,9 +1389,9 @@ lessonsView model =
                 ""
 
         dueForReviewList =
+            {- TODO: The way this is calculated is just temporary. Once we have review data for most words, we can move to a more useful calculation. or at least have two: one for SRS-style it would be useful to review this again today, and then this more general review of words that you haven't seen for the longest time, useful at least for earlier stage vocabulary acquisition -}
             DueForReview.wopsDueForReview (Dict.values model.wops)
                 |> List.filter (\{ familiarityLevel } -> familiarityLevel <= 2)
-                |> List.take 50
 
         lessonsDueForReview =
             DueForReview.lessonsByReviewDensity model.wops model.lessons dueForReviewList
@@ -1462,7 +1463,7 @@ selectedLessonView model title =
                             model
                         , lessonTranslationBox model
                         ]
-                    , displayWords model lessonText
+                    , displayWords model lessonText title
                     ]
 
             Just flashcards ->
@@ -1502,7 +1503,9 @@ lessonPrepFlashcardsView model flashcards =
                     div [ class "flashcard-back" ]
                         [ div [ class "definitions" ] (List.map (\def -> text def) wop.definitions)
                         , div [ class "sentence" ] sentenceView
-                        , div [ class "romanization" ] [ text wop.romanization ]
+
+                        -- I'm going to omit romanization at first to force a more visual
+                        -- recognition of the word
                         , familiarityLevelSelectorView wop
                         , div [ class "response-buttons" ]
                             [ button [ onClick <| GetCurrentTimeAndThen <| NextLessonFlashcard flashcard True ] [ text "Remembered" ]
@@ -1613,7 +1616,7 @@ familiarityLevelSelectorView wop =
                 button
                     [ classList [ ( "selected", wop.familiarityLevel == n ) ]
                     , class <| String.toLower <| WOP.displayFamiliarityLevel n
-                    , onClick <| SetSelectedWOPFamiliarityLevel n
+                    , onClick <| SetSelectedWOPFamiliarityLevel (WOP.key wop) n
                     , title <| WOP.displayFamiliarityLevel n
                     ]
                     [ text <| String.fromInt n ]
@@ -1763,8 +1766,8 @@ markPhrases allPhrasesWithLengths list =
 
 {-| This is how we embellish our words with all of the nice app functionality.
 -}
-displayWords : Model -> String -> Html Msg
-displayWords model lessonText =
+displayWords : Model -> String -> String -> Html Msg
+displayWords model lessonText lessonTitle =
     let
         {- li = lineIndex, wi = wordIndex, partOfPhrase = HACK short term solution -}
         displayWord word li wi partOfPhrase =
@@ -1783,7 +1786,7 @@ displayWords model lessonText =
                         DeselectWOP
 
                      else
-                        GetCurrentTimeAndThen (SelectWOP word)
+                        GetCurrentTimeAndThen (SelectWOP word lessonTitle)
                     )
                 , onMouseDown (MouseDownOnWord li wi word)
                 , onMouseUp (OpenPhraseCreationUI li wi word)

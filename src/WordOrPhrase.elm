@@ -42,8 +42,18 @@ type alias WOP =
     , familiarityLevel : Int -- currently 1 through 4
     , romanization : String -- optional guide for pronunciation
 
-    {- TODO: reviewHistory should contain the context of where the item was reviewed. was it a lesson, a flashcard? etc... it's also easier to think about multiple reviews in terms of number of times rather than discrete entries, so if a word is clicked on 12 times in a lesson, that lesson's review history could have that number stored, rather than having 12 events. -}
-    , reviewHistory : List Int -- Posix stored as a milliseconds Int for port-friendliness; helps to track what words are due for looking at again; list length can be truncated to some value because it's not necessary to store all review history (fun but not useful currently).
+    {- TODO: reviewHistory should contain the context of where the item was reviewed. was it a
+       lesson, a flashcard? etc... it's also easier to think about multiple reviews in terms of
+       number of times rather than discrete entries, so if a word is clicked on 12 times in a
+       lesson, that lesson's review history could have that number stored, rather than having 12
+       events.
+
+       thinking about this more, I want to see ALL contexts in which a word was looked up, but
+       within a single lesson I think I'd like to just track the click timestamps of words within it
+       for a day rather than counting each click as a singular event. so the lesson event context is
+       built up by day, and then there will be vocab flash review contexts as well.
+    -}
+    , reviewHistory : List { timestamp : Int, lessonId : Maybe String } -- Posix stored as a milliseconds Int for port-friendliness; helps to track what words are due for looking at again. Existing entries didn't have an associated lesson so they're nulled out for now. Once we have more review data I can just delete those reviews but for now I don't want to lose that progress. Because clicking on a wop is done for many reasons, not just reviewing, a lot of clicks can happen in a short period of time in a lesson. Any number of clicks will be considered a review, and of course marking words as reviewed will tick-up the click counter for any words not clicked on during a lesson. In other words, it's like a "lesson session", cuz 100clicks in 1 lesson means WAY less than 2 clicks in that lesson, 3 clicks two hours later, 1 click five hours later. Right? So later on I'll want to condense all our timestamps into lesson sessions. A session might be as simple as: from the time of first click of a word within that lesson, any other clicked word will be considered a part of that lesson session if occuring within 30minutes to an hour, yes? What happens when you step away though, hmm. Well, I think since our minimal SRS interval is one day, maybe we'll just keep it simple by condensing reviews down into one days worth per separate lesson. Yeah, that's the right model. The last thing is to just track bedtime properly.
     }
 
 
@@ -121,29 +131,27 @@ setFamiliarityLevel level wop =
         Nothing
 
 
-{-| Currently truncates to 3 reviews: further reviews will push off the oldest one.
+{-| NOTE: By the way this is designed and used, we're probably better off just storing the LAST
+review time, since our metric isn't very elaborate. It's not worth changing really, because the
+current methodology isn't harmful beyond being more complex, but we also don't really use previous
+review history. It's far more useful to have things like which lessons a wop was reviewed in,
+because _that_ can be used to offer more review variety. That's what we should ultimately move
+towards. Another great one is: when doing flashcard reviews, track that a word was reviewed in that
+context, and also which sentence it was reviewed under. Again, useful information for variety sake.
 
-NOTE: By the way this is designed and used, we're probably better off just storing the LAST review
-time, since our metric isn't very elaborate. It's not worth changing really, because the current methodology isn't harmful beyond being more complex, but we also don't really use previous review history. It's far more useful to have things like which lessons a wop was reviewed in, because _that_ can be used to offer more review variety. That's what we should ultimately move towards. Another great one is: when doing flashcard reviews, track that a word was reviewed in that context, and also which sentence it was reviewed under. Again, useful information for variety sake.
+FOLLOWUP NOTE: Storing the review history also tied to which lesson a wop was reviewed in would be useful for showing the word in unique contexts for future reviews and in general ensuring we get sentence variety for a single wop. I think storing such data is useful, so I'm going to do so.
 
 -}
-addReviewTime : Posix -> WOP -> WOP
-addReviewTime time wop =
-    { wop | reviewHistory = List.take 3 <| Time.posixToMillis time :: wop.reviewHistory }
-
-
-{-| Will return between 0 and 3 values.
--}
-getReviewHistory : WOP -> List Posix
-getReviewHistory wop =
-    wop.reviewHistory |> List.map Time.millisToPosix
+addReviewTime : Posix -> String -> WOP -> WOP
+addReviewTime time lessonId wop =
+    { wop | reviewHistory = { timestamp = Time.posixToMillis time, lessonId = Just lessonId } :: wop.reviewHistory }
 
 
 {-| absolute ms timestamp
 -}
 lastReviewedOn : WOP -> Maybe Int
 lastReviewedOn wop =
-    wop.reviewHistory |> List.minimum
+    wop.reviewHistory |> List.map .timestamp |> List.minimum
 
 
 setTags : String -> WOP -> WOP

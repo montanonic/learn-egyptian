@@ -71,9 +71,15 @@ function's goal is to instead surface any cards you've gotten wrong the next tim
 because we want to keep the number of new cards you're seeing down so that you're not cycling
 through 20 cards you're learning before seeing the first again.
 
-so in other words, based upon the "time of last review", this function might jump past the next card to grab the first card in the list that has a most recent failure which has been past a minute due.
+so in other words, based upon the "time of last review", this function might jump past the next card
+to grab the first card in the list that has a most recent failure which has been past a minute due.
 
-currently there's no other jump-ahead, as the focus is on lesson-integrated flashcards where ideally we're not doing too many at once, but otherwise for longer reviews we definitely would want to jump ahead the 1 correct review items to be due at 10mins just like Anki, so that, again, you don't have too long pass before revisiting the stuff that you've already seen.
+currently there's no other jump-ahead, as the focus is on lesson-integrated flashcards where ideally
+we're not doing too many at once, but otherwise for longer reviews we definitely would want to jump
+ahead the 1 correct review items to be due at 10mins just like Anki, so that, again, you don't have
+too long pass before revisiting the stuff that you've already seen.
+
+maybe during review if a card is increased in level then we should omit it from further review until the very end, as a last check. then if I manage to have forgotten it, I will probably remember to decrease its level because I'll at least remember that I bumped it up earlier once I see the definition and the familiarity level.
 
 -}
 getNextCard : List (Flashcard a) -> Maybe (Flashcard a)

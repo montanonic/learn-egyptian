@@ -6050,13 +6050,14 @@ var $author$project$Main$MakeNewWopFlashcardSet = F2(
 	function (a, b) {
 		return {$: 'MakeNewWopFlashcardSet', a: a, b: b};
 	});
-var $author$project$Main$SelectWOP = F2(
-	function (a, b) {
-		return {$: 'SelectWOP', a: a, b: b};
+var $author$project$Main$SelectWOP = F3(
+	function (a, b, c) {
+		return {$: 'SelectWOP', a: a, b: b, c: c};
 	});
-var $author$project$Main$SetSelectedWOPFamiliarityLevel = function (a) {
-	return {$: 'SetSelectedWOPFamiliarityLevel', a: a};
-};
+var $author$project$Main$SetSelectedWOPFamiliarityLevel = F2(
+	function (a, b) {
+		return {$: 'SetSelectedWOPFamiliarityLevel', a: a, b: b};
+	});
 var $elm$time$Time$posixToMillis = function (_v0) {
 	var millis = _v0.a;
 	return millis;
@@ -6075,144 +6076,18 @@ var $author$project$Flashcard$addHistoryEntry = F3(
 					flashcard.history)
 			});
 	});
-var $elm$core$List$takeReverse = F3(
-	function (n, list, kept) {
-		takeReverse:
-		while (true) {
-			if (n <= 0) {
-				return kept;
-			} else {
-				if (!list.b) {
-					return kept;
-				} else {
-					var x = list.a;
-					var xs = list.b;
-					var $temp$n = n - 1,
-						$temp$list = xs,
-						$temp$kept = A2($elm$core$List$cons, x, kept);
-					n = $temp$n;
-					list = $temp$list;
-					kept = $temp$kept;
-					continue takeReverse;
-				}
-			}
-		}
-	});
-var $elm$core$List$takeTailRec = F2(
-	function (n, list) {
-		return $elm$core$List$reverse(
-			A3($elm$core$List$takeReverse, n, list, _List_Nil));
-	});
-var $elm$core$List$takeFast = F3(
-	function (ctr, n, list) {
-		if (n <= 0) {
-			return _List_Nil;
-		} else {
-			var _v0 = _Utils_Tuple2(n, list);
-			_v0$1:
-			while (true) {
-				_v0$5:
-				while (true) {
-					if (!_v0.b.b) {
-						return list;
-					} else {
-						if (_v0.b.b.b) {
-							switch (_v0.a) {
-								case 1:
-									break _v0$1;
-								case 2:
-									var _v2 = _v0.b;
-									var x = _v2.a;
-									var _v3 = _v2.b;
-									var y = _v3.a;
-									return _List_fromArray(
-										[x, y]);
-								case 3:
-									if (_v0.b.b.b.b) {
-										var _v4 = _v0.b;
-										var x = _v4.a;
-										var _v5 = _v4.b;
-										var y = _v5.a;
-										var _v6 = _v5.b;
-										var z = _v6.a;
-										return _List_fromArray(
-											[x, y, z]);
-									} else {
-										break _v0$5;
-									}
-								default:
-									if (_v0.b.b.b.b && _v0.b.b.b.b.b) {
-										var _v7 = _v0.b;
-										var x = _v7.a;
-										var _v8 = _v7.b;
-										var y = _v8.a;
-										var _v9 = _v8.b;
-										var z = _v9.a;
-										var _v10 = _v9.b;
-										var w = _v10.a;
-										var tl = _v10.b;
-										return (ctr > 1000) ? A2(
-											$elm$core$List$cons,
-											x,
-											A2(
-												$elm$core$List$cons,
-												y,
-												A2(
-													$elm$core$List$cons,
-													z,
-													A2(
-														$elm$core$List$cons,
-														w,
-														A2($elm$core$List$takeTailRec, n - 4, tl))))) : A2(
-											$elm$core$List$cons,
-											x,
-											A2(
-												$elm$core$List$cons,
-												y,
-												A2(
-													$elm$core$List$cons,
-													z,
-													A2(
-														$elm$core$List$cons,
-														w,
-														A3($elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
-									} else {
-										break _v0$5;
-									}
-							}
-						} else {
-							if (_v0.a === 1) {
-								break _v0$1;
-							} else {
-								break _v0$5;
-							}
-						}
-					}
-				}
-				return list;
-			}
-			var _v1 = _v0.b;
-			var x = _v1.a;
-			return _List_fromArray(
-				[x]);
-		}
-	});
-var $elm$core$List$take = F2(
-	function (n, list) {
-		return A3($elm$core$List$takeFast, 0, n, list);
-	});
-var $author$project$WordOrPhrase$addReviewTime = F2(
-	function (time, wop) {
+var $author$project$WordOrPhrase$addReviewTime = F3(
+	function (time, lessonId, wop) {
 		return _Utils_update(
 			wop,
 			{
 				reviewHistory: A2(
-					$elm$core$List$take,
-					3,
-					A2(
-						$elm$core$List$cons,
-						$elm$time$Time$posixToMillis(time),
-						wop.reviewHistory))
+					$elm$core$List$cons,
+					{
+						lessonId: $elm$core$Maybe$Just(lessonId),
+						timestamp: $elm$time$Time$posixToMillis(time)
+					},
+					wop.reviewHistory)
 			});
 	});
 var $elm$core$List$any = F2(
@@ -7531,6 +7406,132 @@ var $author$project$Main$saveLocalStorageToClipboard = _Platform_outgoingPort(
 	function ($) {
 		return $elm$json$Json$Encode$null;
 	});
+var $elm$core$List$takeReverse = F3(
+	function (n, list, kept) {
+		takeReverse:
+		while (true) {
+			if (n <= 0) {
+				return kept;
+			} else {
+				if (!list.b) {
+					return kept;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs,
+						$temp$kept = A2($elm$core$List$cons, x, kept);
+					n = $temp$n;
+					list = $temp$list;
+					kept = $temp$kept;
+					continue takeReverse;
+				}
+			}
+		}
+	});
+var $elm$core$List$takeTailRec = F2(
+	function (n, list) {
+		return $elm$core$List$reverse(
+			A3($elm$core$List$takeReverse, n, list, _List_Nil));
+	});
+var $elm$core$List$takeFast = F3(
+	function (ctr, n, list) {
+		if (n <= 0) {
+			return _List_Nil;
+		} else {
+			var _v0 = _Utils_Tuple2(n, list);
+			_v0$1:
+			while (true) {
+				_v0$5:
+				while (true) {
+					if (!_v0.b.b) {
+						return list;
+					} else {
+						if (_v0.b.b.b) {
+							switch (_v0.a) {
+								case 1:
+									break _v0$1;
+								case 2:
+									var _v2 = _v0.b;
+									var x = _v2.a;
+									var _v3 = _v2.b;
+									var y = _v3.a;
+									return _List_fromArray(
+										[x, y]);
+								case 3:
+									if (_v0.b.b.b.b) {
+										var _v4 = _v0.b;
+										var x = _v4.a;
+										var _v5 = _v4.b;
+										var y = _v5.a;
+										var _v6 = _v5.b;
+										var z = _v6.a;
+										return _List_fromArray(
+											[x, y, z]);
+									} else {
+										break _v0$5;
+									}
+								default:
+									if (_v0.b.b.b.b && _v0.b.b.b.b.b) {
+										var _v7 = _v0.b;
+										var x = _v7.a;
+										var _v8 = _v7.b;
+										var y = _v8.a;
+										var _v9 = _v8.b;
+										var z = _v9.a;
+										var _v10 = _v9.b;
+										var w = _v10.a;
+										var tl = _v10.b;
+										return (ctr > 1000) ? A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A2($elm$core$List$takeTailRec, n - 4, tl))))) : A2(
+											$elm$core$List$cons,
+											x,
+											A2(
+												$elm$core$List$cons,
+												y,
+												A2(
+													$elm$core$List$cons,
+													z,
+													A2(
+														$elm$core$List$cons,
+														w,
+														A3($elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
+									} else {
+										break _v0$5;
+									}
+							}
+						} else {
+							if (_v0.a === 1) {
+								break _v0$1;
+							} else {
+								break _v0$5;
+							}
+						}
+					}
+				}
+				return list;
+			}
+			var _v1 = _v0.b;
+			var x = _v1.a;
+			return _List_fromArray(
+				[x]);
+		}
+	});
+var $elm$core$List$take = F2(
+	function (n, list) {
+		return A3($elm$core$List$takeFast, 0, n, list);
+	});
 var $elm_community$list_extra$List$Extra$removeAt = F2(
 	function (index, l) {
 		if (index < 0) {
@@ -7734,7 +7735,21 @@ var $author$project$Main$storeNewWopFlashcards = _Platform_outgoingPort(
 												$elm$json$Json$Encode$string($.notes)),
 												_Utils_Tuple2(
 												'reviewHistory',
-												$elm$json$Json$Encode$list($elm$json$Json$Encode$int)($.reviewHistory)),
+												$elm$json$Json$Encode$list(
+													function ($) {
+														return $elm$json$Json$Encode$object(
+															_List_fromArray(
+																[
+																	_Utils_Tuple2(
+																	'lessonId',
+																	function ($) {
+																		return A3($elm$core$Maybe$destruct, $elm$json$Json$Encode$null, $elm$json$Json$Encode$string, $);
+																	}($.lessonId)),
+																	_Utils_Tuple2(
+																	'timestamp',
+																	$elm$json$Json$Encode$int($.timestamp))
+																]));
+													})($.reviewHistory)),
 												_Utils_Tuple2(
 												'romanization',
 												$elm$json$Json$Encode$string($.romanization)),
@@ -7764,7 +7779,21 @@ var $author$project$Main$storeNewWopFlashcards = _Platform_outgoingPort(
 												$elm$json$Json$Encode$string($.notes)),
 												_Utils_Tuple2(
 												'reviewHistory',
-												$elm$json$Json$Encode$list($elm$json$Json$Encode$int)($.reviewHistory)),
+												$elm$json$Json$Encode$list(
+													function ($) {
+														return $elm$json$Json$Encode$object(
+															_List_fromArray(
+																[
+																	_Utils_Tuple2(
+																	'lessonId',
+																	function ($) {
+																		return A3($elm$core$Maybe$destruct, $elm$json$Json$Encode$null, $elm$json$Json$Encode$string, $);
+																	}($.lessonId)),
+																	_Utils_Tuple2(
+																	'timestamp',
+																	$elm$json$Json$Encode$int($.timestamp))
+																]));
+													})($.reviewHistory)),
 												_Utils_Tuple2(
 												'romanization',
 												$elm$json$Json$Encode$string($.romanization)),
@@ -7793,7 +7822,21 @@ var $author$project$Main$storeNewWopFlashcards = _Platform_outgoingPort(
 											$elm$json$Json$Encode$string($.notes)),
 											_Utils_Tuple2(
 											'reviewHistory',
-											$elm$json$Json$Encode$list($elm$json$Json$Encode$int)($.reviewHistory)),
+											$elm$json$Json$Encode$list(
+												function ($) {
+													return $elm$json$Json$Encode$object(
+														_List_fromArray(
+															[
+																_Utils_Tuple2(
+																'lessonId',
+																function ($) {
+																	return A3($elm$core$Maybe$destruct, $elm$json$Json$Encode$null, $elm$json$Json$Encode$string, $);
+																}($.lessonId)),
+																_Utils_Tuple2(
+																'timestamp',
+																$elm$json$Json$Encode$int($.timestamp))
+															]));
+												})($.reviewHistory)),
 											_Utils_Tuple2(
 											'romanization',
 											$elm$json$Json$Encode$string($.romanization)),
@@ -7836,7 +7879,21 @@ var $author$project$Main$storeWops = _Platform_outgoingPort(
 									$elm$json$Json$Encode$string($.notes)),
 									_Utils_Tuple2(
 									'reviewHistory',
-									$elm$json$Json$Encode$list($elm$json$Json$Encode$int)($.reviewHistory)),
+									$elm$json$Json$Encode$list(
+										function ($) {
+											return $elm$json$Json$Encode$object(
+												_List_fromArray(
+													[
+														_Utils_Tuple2(
+														'lessonId',
+														function ($) {
+															return A3($elm$core$Maybe$destruct, $elm$json$Json$Encode$null, $elm$json$Json$Encode$string, $);
+														}($.lessonId)),
+														_Utils_Tuple2(
+														'timestamp',
+														$elm$json$Json$Encode$int($.timestamp))
+													]));
+										})($.reviewHistory)),
 									_Utils_Tuple2(
 									'romanization',
 									$elm$json$Json$Encode$string($.romanization)),
@@ -7959,7 +8016,7 @@ var $author$project$Main$update = F2(
 								return ((n >= 1) && (n <= 4)) ? $elm$core$Maybe$Just(
 									A2(
 										$author$project$Main$update,
-										$author$project$Main$SetSelectedWOPFamiliarityLevel(n),
+										A2($author$project$Main$SetSelectedWOPFamiliarityLevel, model.selectedWop, n),
 										model)) : $elm$core$Maybe$Nothing;
 							},
 							$elm$core$String$toInt(key))) : $author$project$Main$pure(model);
@@ -8138,8 +8195,9 @@ var $author$project$Main$update = F2(
 							model,
 							{newLessonText: '', newLessonTitle: '', selectedLesson: '', selectedWop: ''}));
 				case 'SelectWOP':
-					var word = msg.a;
-					var timestamp = msg.b;
+					var lessonId = msg.a;
+					var word = msg.b;
+					var timestamp = msg.c;
 					return A2(
 						$author$project$Main$impure,
 						_Utils_update(
@@ -8151,7 +8209,7 @@ var $author$project$Main$update = F2(
 									$elm$core$Dict$update,
 									word,
 									$elm$core$Maybe$map(
-										$author$project$WordOrPhrase$addReviewTime(timestamp)),
+										A2($author$project$WordOrPhrase$addReviewTime, timestamp, lessonId)),
 									model.wops)
 							}),
 						function (_v4) {
@@ -8218,7 +8276,8 @@ var $author$project$Main$update = F2(
 							},
 							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
 				case 'SetSelectedWOPFamiliarityLevel':
-					var familiarityLevel = msg.a;
+					var selectedWop = msg.a;
+					var familiarityLevel = msg.b;
 					return A2(
 						$author$project$Main$impure,
 						_Utils_update(
@@ -8226,7 +8285,7 @@ var $author$project$Main$update = F2(
 							{
 								wops: A3(
 									$author$project$WordOrPhrase$update,
-									model.selectedWop,
+									selectedWop,
 									$elm$core$Maybe$andThen(
 										$author$project$WordOrPhrase$setFamiliarityLevel(familiarityLevel)),
 									model.wops)
@@ -8400,7 +8459,9 @@ var $author$project$Main$update = F2(
 							wordsAndNonWordsInPhraseSegment);
 						if (canConstructPhrase) {
 							var $temp$msg = $author$project$Main$GetCurrentTimeAndThen(
-								$author$project$Main$SelectWOP(
+								A2(
+									$author$project$Main$SelectWOP,
+									model.selectedLesson,
 									A2(
 										$elm$core$String$join,
 										' ',
@@ -8446,7 +8507,7 @@ var $author$project$Main$update = F2(
 								$elm$core$Dict$update,
 								$author$project$WordOrPhrase$key(wop),
 								$elm$core$Maybe$map(
-									$author$project$WordOrPhrase$addReviewTime(timestamp)));
+									A2($author$project$WordOrPhrase$addReviewTime, timestamp, model.selectedLesson)));
 						},
 						model.wops,
 						lessonWops);
@@ -9514,7 +9575,13 @@ var $elm$core$List$minimum = function (list) {
 	}
 };
 var $author$project$WordOrPhrase$lastReviewedOn = function (wop) {
-	return $elm$core$List$minimum(wop.reviewHistory);
+	return $elm$core$List$minimum(
+		A2(
+			$elm$core$List$map,
+			function ($) {
+				return $.timestamp;
+			},
+			wop.reviewHistory));
 };
 var $author$project$DueForReview$wopsDueForReview = function (wops) {
 	return A2(
@@ -9543,16 +9610,13 @@ var $author$project$Main$lessonsView = function (model) {
 	};
 	var viewingFlashcards = $elm_community$maybe_extra$Maybe$Extra$isJust(model.lessonFlashcards);
 	var dueForReviewList = A2(
-		$elm$core$List$take,
-		50,
-		A2(
-			$elm$core$List$filter,
-			function (_v1) {
-				var familiarityLevel = _v1.familiarityLevel;
-				return familiarityLevel <= 2;
-			},
-			$author$project$DueForReview$wopsDueForReview(
-				$elm$core$Dict$values(model.wops))));
+		$elm$core$List$filter,
+		function (_v1) {
+			var familiarityLevel = _v1.familiarityLevel;
+			return familiarityLevel <= 2;
+		},
+		$author$project$DueForReview$wopsDueForReview(
+			$elm$core$Dict$values(model.wops)));
 	var lessonsDueForReview = A3($author$project$DueForReview$lessonsByReviewDensity, model.wops, model.lessons, dueForReviewList);
 	var buttonTitle = viewingFlashcards ? 'finish or cancel flashcards to change lesson' : '';
 	return A2(
@@ -10162,8 +10226,8 @@ var $elm$html$Html$Events$onMouseUp = function (msg) {
 		'mouseup',
 		$elm$json$Json$Decode$succeed(msg));
 };
-var $author$project$Main$displayWords = F2(
-	function (model, lessonText) {
+var $author$project$Main$displayWords = F3(
+	function (model, lessonText, lessonTitle) {
 		var displayWord = F4(
 			function (word, li, wi, partOfPhrase) {
 				return A2(
@@ -10189,7 +10253,7 @@ var $author$project$Main$displayWords = F2(
 									A2($author$project$WordOrPhrase$getFamiliarityLevel, word, model.wops)))),
 							$elm$html$Html$Events$onClick(
 							_Utils_eq(model.selectedWop, word) ? $author$project$Main$DeselectWOP : $author$project$Main$GetCurrentTimeAndThen(
-								$author$project$Main$SelectWOP(word))),
+								A2($author$project$Main$SelectWOP, word, lessonTitle))),
 							$elm$html$Html$Events$onMouseDown(
 							A3($author$project$Main$MouseDownOnWord, li, wi, word)),
 							$elm$html$Html$Events$onMouseUp(
@@ -10281,7 +10345,10 @@ var $author$project$Main$familiarityLevelSelectorView = function (wop) {
 							$elm$core$String$toLower(
 								$author$project$WordOrPhrase$displayFamiliarityLevel(n))),
 							$elm$html$Html$Events$onClick(
-							$author$project$Main$SetSelectedWOPFamiliarityLevel(n)),
+							A2(
+								$author$project$Main$SetSelectedWOPFamiliarityLevel,
+								$author$project$WordOrPhrase$key(wop),
+								n)),
 							$elm$html$Html$Attributes$title(
 							$author$project$WordOrPhrase$displayFamiliarityLevel(n))
 						]),
@@ -10423,16 +10490,6 @@ var $author$project$Main$lessonPrepFlashcardsView = F2(
 											$elm$html$Html$Attributes$class('sentence')
 										]),
 									sentenceView),
-									A2(
-									$elm$html$Html$div,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('romanization')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text(wop.romanization)
-										])),
 									$author$project$Main$familiarityLevelSelectorView(wop),
 									A2(
 									$elm$html$Html$div,
@@ -10791,7 +10848,7 @@ var $author$project$Main$selectedLessonView = F2(
 											$author$project$Main$selectedWordEdit(model),
 											$author$project$Main$lessonTranslationBox(model)
 										])),
-									A2($author$project$Main$displayWords, model, lessonText)
+									A3($author$project$Main$displayWords, model, lessonText, title)
 								]));
 					} else {
 						var flashcards = _v0.a;
@@ -10978,7 +11035,27 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 																								A2(
 																									$elm$json$Json$Decode$field,
 																									'reviewHistory',
-																									$elm$json$Json$Decode$list($elm$json$Json$Decode$int)));
+																									$elm$json$Json$Decode$list(
+																										A2(
+																											$elm$json$Json$Decode$andThen,
+																											function (timestamp) {
+																												return A2(
+																													$elm$json$Json$Decode$andThen,
+																													function (lessonId) {
+																														return $elm$json$Json$Decode$succeed(
+																															{lessonId: lessonId, timestamp: timestamp});
+																													},
+																													A2(
+																														$elm$json$Json$Decode$field,
+																														'lessonId',
+																														$elm$json$Json$Decode$oneOf(
+																															_List_fromArray(
+																																[
+																																	$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
+																																	A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, $elm$json$Json$Decode$string)
+																																]))));
+																											},
+																											A2($elm$json$Json$Decode$field, 'timestamp', $elm$json$Json$Decode$int)))));
 																						},
 																						A2($elm$json$Json$Decode$field, 'romanization', $elm$json$Json$Decode$string));
 																				},
@@ -11032,7 +11109,27 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 																						A2(
 																							$elm$json$Json$Decode$field,
 																							'reviewHistory',
-																							$elm$json$Json$Decode$list($elm$json$Json$Decode$int)));
+																							$elm$json$Json$Decode$list(
+																								A2(
+																									$elm$json$Json$Decode$andThen,
+																									function (timestamp) {
+																										return A2(
+																											$elm$json$Json$Decode$andThen,
+																											function (lessonId) {
+																												return $elm$json$Json$Decode$succeed(
+																													{lessonId: lessonId, timestamp: timestamp});
+																											},
+																											A2(
+																												$elm$json$Json$Decode$field,
+																												'lessonId',
+																												$elm$json$Json$Decode$oneOf(
+																													_List_fromArray(
+																														[
+																															$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
+																															A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, $elm$json$Json$Decode$string)
+																														]))));
+																									},
+																									A2($elm$json$Json$Decode$field, 'timestamp', $elm$json$Json$Decode$int)))));
 																				},
 																				A2($elm$json$Json$Decode$field, 'romanization', $elm$json$Json$Decode$string));
 																		},
@@ -11085,7 +11182,27 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 																			A2(
 																				$elm$json$Json$Decode$field,
 																				'reviewHistory',
-																				$elm$json$Json$Decode$list($elm$json$Json$Decode$int)));
+																				$elm$json$Json$Decode$list(
+																					A2(
+																						$elm$json$Json$Decode$andThen,
+																						function (timestamp) {
+																							return A2(
+																								$elm$json$Json$Decode$andThen,
+																								function (lessonId) {
+																									return $elm$json$Json$Decode$succeed(
+																										{lessonId: lessonId, timestamp: timestamp});
+																								},
+																								A2(
+																									$elm$json$Json$Decode$field,
+																									'lessonId',
+																									$elm$json$Json$Decode$oneOf(
+																										_List_fromArray(
+																											[
+																												$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
+																												A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, $elm$json$Json$Decode$string)
+																											]))));
+																						},
+																						A2($elm$json$Json$Decode$field, 'timestamp', $elm$json$Json$Decode$int)))));
 																	},
 																	A2($elm$json$Json$Decode$field, 'romanization', $elm$json$Json$Decode$string));
 															},
@@ -11154,7 +11271,27 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 															A2(
 																$elm$json$Json$Decode$field,
 																'reviewHistory',
-																$elm$json$Json$Decode$list($elm$json$Json$Decode$int)));
+																$elm$json$Json$Decode$list(
+																	A2(
+																		$elm$json$Json$Decode$andThen,
+																		function (timestamp) {
+																			return A2(
+																				$elm$json$Json$Decode$andThen,
+																				function (lessonId) {
+																					return $elm$json$Json$Decode$succeed(
+																						{lessonId: lessonId, timestamp: timestamp});
+																				},
+																				A2(
+																					$elm$json$Json$Decode$field,
+																					'lessonId',
+																					$elm$json$Json$Decode$oneOf(
+																						_List_fromArray(
+																							[
+																								$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
+																								A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, $elm$json$Json$Decode$string)
+																							]))));
+																		},
+																		A2($elm$json$Json$Decode$field, 'timestamp', $elm$json$Json$Decode$int)))));
 													},
 													A2($elm$json$Json$Decode$field, 'romanization', $elm$json$Json$Decode$string));
 											},
