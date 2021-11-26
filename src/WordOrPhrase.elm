@@ -85,6 +85,11 @@ makeWOP wordOrPhrase definition =
     { wordOrPhrase = wordOrPhrase, definitions = [ definition ], romanization = "", notes = "", tags = [], familiarityLevel = 1, reviewHistory = [] }
 
 
+intoDict : List WOP -> Dict String WOP
+intoDict wops =
+    wops |> List.map (\wop -> ( key wop, wop )) |> Dict.fromList
+
+
 setDefinition : Int -> String -> WOP -> WOP
 setDefinition defNumber definition wop =
     if defNumber == List.length wop.definitions then
@@ -117,6 +122,10 @@ setFamiliarityLevel level wop =
 
 
 {-| Currently truncates to 3 reviews: further reviews will push off the oldest one.
+
+NOTE: By the way this is designed and used, we're probably better off just storing the LAST review
+time, since our metric isn't very elaborate. It's not worth changing really, because the current methodology isn't harmful beyond being more complex, but we also don't really use previous review history. It's far more useful to have things like which lessons a wop was reviewed in, because _that_ can be used to offer more review variety. That's what we should ultimately move towards. Another great one is: when doing flashcard reviews, track that a word was reviewed in that context, and also which sentence it was reviewed under. Again, useful information for variety sake.
+
 -}
 addReviewTime : Posix -> WOP -> WOP
 addReviewTime time wop =
@@ -128,6 +137,13 @@ addReviewTime time wop =
 getReviewHistory : WOP -> List Posix
 getReviewHistory wop =
     wop.reviewHistory |> List.map Time.millisToPosix
+
+
+{-| absolute ms timestamp
+-}
+lastReviewedOn : WOP -> Maybe Int
+lastReviewedOn wop =
+    wop.reviewHistory |> List.minimum
 
 
 setTags : String -> WOP -> WOP

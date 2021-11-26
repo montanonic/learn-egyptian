@@ -5,6 +5,7 @@ import Browser.Events exposing (onKeyPress)
 import Debug exposing (toString)
 import Dict exposing (Dict)
 import Dict.Extra as DictE
+import DueForReview
 import Flashcard exposing (Flashcard)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -12,16 +13,19 @@ import Html.Events exposing (..)
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Lesson exposing (Lesson)
 import List.Extra as ListE
 import List.Zipper as Zipper exposing (Zipper)
 import Maybe.Extra as MaybeE
 import Random
 import Random.List as RandomList
 import Regex exposing (Regex)
+import Round
 import Set exposing (Set)
 import Task
 import Time exposing (Posix)
 import Utils
+import WordDisplay exposing (WordDisplayTypes(..))
 import WordOrPhrase as WOP exposing (WOP, update)
 
 
@@ -35,12 +39,6 @@ type alias Flags =
     , lessonTranslations : List ( String, String )
     , wops : List ( String, WOP )
     , newWopFlashcards : Maybe { before : List WOP, current : WOP, after : List WOP }
-    }
-
-
-type alias Lesson =
-    { text : String
-    , audioFileType : String
     }
 
 
@@ -297,6 +295,7 @@ type Msg
     | EditTranslationOfSelectedLesson String
     | MouseDownOnWord Int Int String -- used to start phrase creation
     | OpenPhraseCreationUI Int Int String
+    | MarkLessonAsReviewed Posix
       -- new flashcard stuff
     | NavigateToFlashcardPage -- open up the flashcard view
     | MakeNewWopFlashcardSet (Maybe (List WOP)) (Random.Generator (List WOP))
@@ -656,7 +655,7 @@ update msg model =
                             larger =
                                 Basics.max wordIndexStart wordIndexEnd
                         in
-                        markWordCharsFromNonWordChars line
+                        WordDisplay.markWordCharsFromNonWordChars line
                             |> List.drop smaller
                             |> List.take (larger - smaller + 1)
                             -- we need to filter AFTER the list manipulations because spaces alter the original indices of our words... things could be better, but this is the way it is with the code as it is.
@@ -702,6 +701,27 @@ update msg model =
             else
                 pure model
 
+        MarkLessonAsReviewed timestamp ->
+            let
+                lessonWops =
+                    Dict.get model.selectedLesson model.lessons
+                        |> Maybe.map .text
+                        |> Maybe.withDefault ""
+                        |> Lesson.getWops model.wops
+
+                {- TODO: Should add logic to not re-mark a word as reviewed in the lesson if it had already been interacted with by clicking -}
+                updatedWopReviews =
+                    List.foldl
+                        (\wop ->
+                            Dict.update
+                                (WOP.key wop)
+                                (Maybe.map (WOP.addReviewTime timestamp))
+                        )
+                        model.wops
+                        lessonWops
+            in
+            pure { model | wops = updatedWopReviews }
+
         NavigateToFlashcardPage ->
             pure { model | onFlashcardPage = True }
 
@@ -734,7 +754,7 @@ update msg model =
                     extractSentences lessonText
 
                 _ =
-                    getUnidentifiedWordsInLesson lessonText model.wops
+                    Lesson.getUnidentifiedWordsInLesson lessonText model.wops
                         |> List.map (\word -> WOP.makeWOP [ word ] "")
 
                 getSentencesForWop =
@@ -742,7 +762,7 @@ update msg model =
 
                 wopsWithSentence : List ( WOP, String )
                 wopsWithSentence =
-                    getWopsInLesson lessonText model.wops
+                    Lesson.getWops model.wops lessonText
                         |> List.filter (\{ familiarityLevel } -> familiarityLevel <= 2)
                         |> List.sortBy .familiarityLevel
                         -- show last words first for best spacing effect
@@ -827,29 +847,6 @@ extractSentences text =
         |> List.map .match
 
 
-{-| In order of first appearance, no duplicates.
--}
-getWordsInLesson : String -> List String
-getWordsInLesson lessonText =
-    getWordsFromString lessonText
-        |> List.map String.trim
-        |> List.filter (not << String.isEmpty)
-        |> ListE.unique
-
-
-getWopsInLesson : String -> Dict String WOP -> List WOP
-getWopsInLesson lessonText wops =
-    getWordsInLesson lessonText
-        |> List.filterMap (\word -> WOP.get word wops)
-
-
-getUnidentifiedWordsInLesson : String -> Dict String WOP -> List String
-getUnidentifiedWordsInLesson lessonText wops =
-    getWordsInLesson lessonText
-        -- keep only those not appearing in our existing dict
-        |> List.filter (\word -> WOP.get word wops |> MaybeE.isNothing)
-
-
 {-| Given a list of text/lesson sentences, show only those that contain the target wop. Currently
 the work of getting the sentences is offloaded to ports.
 -}
@@ -859,7 +856,7 @@ filterSentencesContainingWop sentences wop =
         (\sentence ->
             List.any
                 (WOP.tashkylEquivalent (WOP.key wop))
-                (getWordsFromString sentence)
+                (Lesson.getWords sentence)
         )
         sentences
 
@@ -1214,7 +1211,7 @@ getExampleSentenceForWop wop lessons wops =
             lessonContainingWord =
                 ListE.find
                     (\lesson ->
-                        markWordCharsFromNonWordChars lesson
+                        WordDisplay.markWordCharsFromNonWordChars lesson
                             |> List.any
                                 (\displayWord ->
                                     case displayWord of
@@ -1232,7 +1229,7 @@ getExampleSentenceForWop wop lessons wops =
                     (\lesson ->
                         let
                             ( beforeMatch, withMatch ) =
-                                markWordCharsFromNonWordChars lesson
+                                WordDisplay.markWordCharsFromNonWordChars lesson
                                     |> ListE.splitWhen
                                         (\displayWord ->
                                             case displayWord of
@@ -1389,6 +1386,14 @@ lessonsView model =
 
             else
                 ""
+
+        dueForReviewList =
+            DueForReview.wopsDueForReview (Dict.values model.wops)
+                |> List.filter (\{ familiarityLevel } -> familiarityLevel <= 2)
+                |> List.take 50
+
+        lessonsDueForReview =
+            DueForReview.lessonsByReviewDensity model.wops model.lessons dueForReviewList
     in
     div [ class "lessons-view" ]
         [ h3 [] [ text "select a lesson" ]
@@ -1400,11 +1405,30 @@ lessonsView model =
                     ++ " including: "
                     ++ String.join ", " (List.map wordsOfLevel [ 1, 2, 3, 4 ])
             ]
+        , div [ class "due-wops" ] []
         , div [ class "lesson-selector" ]
             (model.lessons
                 |> Dict.keys
                 |> List.map (\title -> button [ onClick <| SelectLesson title, disabled viewingFlashcards, Html.Attributes.title buttonTitle ] [ text title ])
             )
+        , div [ class "lesson-selector lessons-for-review" ]
+            [ p [] [ text "here's the top five lessons to review:" ]
+            , div []
+                (List.take 5 lessonsDueForReview
+                    |> List.map
+                        (\{ lessonTitle, densityRatio, totalDueInLesson } ->
+                            button
+                                [ onClick <| SelectLesson lessonTitle
+                                , disabled viewingFlashcards
+                                , Html.Attributes.title buttonTitle
+                                ]
+                                [ text lessonTitle
+                                , text <| " || ratio: " ++ Round.round 2 densityRatio
+                                , text <| " || due wops: " ++ String.fromInt totalDueInLesson
+                                ]
+                        )
+                )
+            ]
         ]
 
 
@@ -1429,6 +1453,7 @@ selectedLessonView model title =
 
           else
             span [] []
+        , button [ onClick <| GetCurrentTimeAndThen MarkLessonAsReviewed ] [ text "Mark Lesson as Reviewed" ]
         , case model.lessonFlashcards of
             Nothing ->
                 div [ class "lesson-words-and-lookup" ]
@@ -1455,7 +1480,7 @@ lessonPrepFlashcardsView model flashcards =
                         flashcard.data
 
                     sentenceView =
-                        markWordCharsFromNonWordChars sentence
+                        WordDisplay.markWordCharsFromNonWordChars sentence
                             |> List.map
                                 (\wdt ->
                                     case wdt of
@@ -1597,20 +1622,6 @@ familiarityLevelSelectorView wop =
         )
 
 
-{-| These are the different categories of meaning that our interactive word view has, each rendered
-differently.
-
-TODO: Maybe rename this to WordOrNonWord and create a second `WordDisplayTypes` that introduces
-phrases. Cleaner?
-
--}
-type WordDisplayTypes
-    = DisplayWord String
-    | DisplayNonWord String
-    | DisplayWordOfPhrase String -- temporary hack stand-in that just marks words that are part of a phrase differently, without actually showing the phrase connected
-    | DisplayPhrase (List ( String, Int )) -- each string in a phrase is considered a word, we keep the original indices because a Phrase is processed by replacing DisplayWords that are part of a phrase with just the DisplayPhrase construct. Hmmmmmmmmm, come to think of it, this totally fucks everything O_O, cuz our code depended on using DisplayWord. I'll sleep on this one.
-
-
 {-| turns the blob of text into a list of lines of data with no leading whitespace
 and only uniform spacing (excepting tabs, I don't think that is handled)
 -}
@@ -1639,81 +1650,6 @@ within it like words or sentences rather than creating a view to present to the 
 unsplitFromCleanLines : List String -> String
 unsplitFromCleanLines cleanLines =
     String.join "\n" cleanLines
-
-
-{-| without altering the spacing of the underlying text, list off words vs. non-words. it
-expects a line of text and doesn't support paragraphs simply because line spacing needs
-more manual handling in the HTML layout itself. So while I guess we could detect newlines
-here, it would muddle this code, and frankly it's easier to handle it outside.
-
-the importance of separating word from non-word as pure data is multitude, and allows us
-to do things like apply further processing to the words themselves by adding/removing
-tashkyl.
-
--}
-markWordCharsFromNonWordChars : String -> List WordDisplayTypes
-markWordCharsFromNonWordChars lineOfText =
-    let
-        rxString =
-            " *():.?؟!,”،=\\-"
-
-        nonWordDetectorRx =
-            Maybe.withDefault Regex.never <|
-                -- match all punctuation, then everything else
-                Regex.fromString ("([" ++ rxString ++ "]*)" ++ "([^" ++ rxString ++ "]*)")
-    in
-    List.concatMap
-        (\match ->
-            {- our rx yields two groups, thus two submatches. the first submatch will only
-               be non-word chars, the second will always be word chars. of course, either
-               might be empty for any given match because Kleene-* yielding 0 results is
-               still a successful match. remember the rx tries to match everything it can,
-               then stops, but Elm regex is global so after the rx stops matching, it will
-               retry again at the point it's currently at. this is why we get multiple
-               matches for each text (hence the outer iteration), and then the inner
-               matching is for each *instance* of the rx matching, of which two subgroups
-               are matched.
-            -}
-            case match.submatches of
-                [ mnonWordChars, mwordChars ] ->
-                    (case mnonWordChars of
-                        Just nonWordChars ->
-                            [ DisplayNonWord nonWordChars ]
-
-                        Nothing ->
-                            []
-                    )
-                        ++ (case mwordChars of
-                                Just wordChars ->
-                                    [ DisplayWord wordChars ]
-
-                                Nothing ->
-                                    []
-                           )
-
-                _ ->
-                    -- this branch shouldn't ever be reached anyways
-                    []
-        )
-        (Regex.find nonWordDetectorRx lineOfText)
-
-
-getWord : WordDisplayTypes -> Maybe String
-getWord wdt =
-    case wdt of
-        DisplayWord w ->
-            Just w
-
-        DisplayWordOfPhrase w ->
-            Just w
-
-        _ ->
-            Nothing
-
-
-getWordsFromString : String -> List String
-getWordsFromString str =
-    str |> markWordCharsFromNonWordChars |> List.filterMap getWord
 
 
 {-| This step should follow `markWordCharsFromNonWordChars`. It will mark words that belong to a
@@ -1861,7 +1797,7 @@ displayWords model lessonText =
             |> List.indexedMap
                 (\li line ->
                     p []
-                        (markWordCharsFromNonWordChars line
+                        (WordDisplay.markWordCharsFromNonWordChars line
                             |> markPhrases (WOP.allPhrases model.wops)
                             -- |> Debug.log "markedPhrases data!"
                             -- |> always (markWordCharsFromNonWordChars line)
