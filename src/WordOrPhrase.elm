@@ -275,11 +275,18 @@ splitOffTashkyl string =
     ( withoutTashkyl, justTashkyl )
 
 
-{-| Removes fathah, kasrah, and dammah from the word.
+{-| Removes fathah, kasrah, sukoon, and dammah from the word.
 -}
-removeFKD : String -> String
-removeFKD =
+removeTashkyl : String -> String
+removeTashkyl =
     splitOffTashkyl >> Tuple.first
+
+
+{-| Same as `remove tashkyl` but also removes shadda.
+-}
+removeAllTashkyl : String -> String
+removeAllTashkyl =
+    removeTashkyl >> String.replace "ّ" ""
 
 
 {-| Two words are tashkyl equivalent if their non-tashkyl forms are equal, and if either has no
@@ -303,7 +310,7 @@ as a key.
 -}
 get : String -> Dict String WOP -> Maybe WOP
 get wopKey =
-    Dict.get (removeFKD wopKey)
+    Dict.get (removeTashkyl wopKey)
 
 
 {-| Automatically removes fathah, kasrah, dammah, sukoon, from the WOP so that it can be properly looked up
@@ -311,7 +318,7 @@ as a key.
 -}
 update : String -> (Maybe WOP -> Maybe WOP) -> Dict String WOP -> Dict String WOP
 update wopKey =
-    Dict.update (removeFKD wopKey)
+    Dict.update (removeTashkyl wopKey)
 
 
 {-| Automatically removes fathah, kasrah, dammah, sukoon, from the WOP so that it can be properly looked up
@@ -319,7 +326,7 @@ as a key.
 -}
 insert : String -> WOP -> Dict String WOP -> Dict String WOP
 insert wopKey =
-    Dict.insert (removeFKD wopKey)
+    Dict.insert (removeTashkyl wopKey)
 
 
 {-| Automatically removes fathah, kasrah, dammah, sukoon, from the WOP so that it can be properly looked up
@@ -327,7 +334,7 @@ as a key.
 -}
 member : String -> Set String -> Bool
 member wopKey =
-    Set.member (removeFKD wopKey)
+    Set.member (removeTashkyl wopKey)
 
 
 listWopsOfLevel : Int -> Dict String WOP -> List WOP
@@ -341,3 +348,21 @@ getFamiliarityLevel wopKey wops =
         |> Maybe.map (\wop -> wop.familiarityLevel)
         -- this default shouldn't hit, so I pick an intentionally bad value
         |> Maybe.withDefault 0
+
+
+searchWop : String -> Dict String WOP -> List WOP
+searchWop wopKey wops =
+    let
+        charsWithoutTashkyl str =
+            removeAllTashkyl str |> String.toList
+    in
+    if String.isEmpty wopKey then
+        []
+
+    else
+        List.filter
+            (\( k, _ ) ->
+                ListE.isInfixOf (charsWithoutTashkyl wopKey) (charsWithoutTashkyl k)
+            )
+            (Dict.toList wops)
+            |> List.map Tuple.second

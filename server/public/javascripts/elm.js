@@ -5641,6 +5641,21 @@ var $elm$core$Dict$fromList = function (assocs) {
 		$elm$core$Dict$empty,
 		assocs);
 };
+var $author$project$WordOrPhrase$makeWOP = F2(
+	function (wordOrPhrase, definition) {
+		return {
+			definitions: _List_fromArray(
+				[definition]),
+			familiarityLevel: 1,
+			notes: '',
+			reviewHistory: _List_Nil,
+			romanization: '',
+			tags: _List_Nil,
+			wordOrPhrase: wordOrPhrase
+		};
+	});
+var $author$project$EnterNewWops$initWOP = A2($author$project$WordOrPhrase$makeWOP, _List_Nil, '');
+var $author$project$EnterNewWops$init = {createdWops: _List_Nil, newWop: $author$project$EnterNewWops$initWOP, viewingEnterNewWops: false};
 var $elm$core$Maybe$map = F2(
 	function (f, maybe) {
 		if (maybe.$ === 'Just') {
@@ -5667,6 +5682,7 @@ var $author$project$Main$init = function (_v0) {
 		{
 			drawInLesson: false,
 			drawRectangleKalimniBuffer: $elm$core$Maybe$Nothing,
+			enterNewWops: $author$project$EnterNewWops$init,
 			flashcardFlipped: false,
 			hoveredWord: '',
 			lastKalimniEvent: $elm$core$Maybe$Nothing,
@@ -6050,9 +6066,9 @@ var $author$project$Main$MakeNewWopFlashcardSet = F2(
 	function (a, b) {
 		return {$: 'MakeNewWopFlashcardSet', a: a, b: b};
 	});
-var $author$project$Main$SelectWOP = F3(
-	function (a, b, c) {
-		return {$: 'SelectWOP', a: a, b: b, c: c};
+var $author$project$Main$SelectWOP = F2(
+	function (a, b) {
+		return {$: 'SelectWOP', a: a, b: b};
 	});
 var $author$project$Main$SetSelectedWOPFamiliarityLevel = F2(
 	function (a, b) {
@@ -6159,84 +6175,6 @@ var $author$project$Utils$deconstructZipper = function (z) {
 		current: $wernerdegroot$listzipper$List$Zipper$current(z)
 	};
 };
-var $elm$core$List$drop = F2(
-	function (n, list) {
-		drop:
-		while (true) {
-			if (n <= 0) {
-				return list;
-			} else {
-				if (!list.b) {
-					return list;
-				} else {
-					var x = list.a;
-					var xs = list.b;
-					var $temp$n = n - 1,
-						$temp$list = xs;
-					n = $temp$n;
-					list = $temp$list;
-					continue drop;
-				}
-			}
-		}
-	});
-var $elm$http$Http$BadStatus_ = F2(
-	function (a, b) {
-		return {$: 'BadStatus_', a: a, b: b};
-	});
-var $elm$http$Http$BadUrl_ = function (a) {
-	return {$: 'BadUrl_', a: a};
-};
-var $elm$http$Http$GoodStatus_ = F2(
-	function (a, b) {
-		return {$: 'GoodStatus_', a: a, b: b};
-	});
-var $elm$http$Http$NetworkError_ = {$: 'NetworkError_'};
-var $elm$http$Http$Receiving = function (a) {
-	return {$: 'Receiving', a: a};
-};
-var $elm$http$Http$Sending = function (a) {
-	return {$: 'Sending', a: a};
-};
-var $elm$http$Http$Timeout_ = {$: 'Timeout_'};
-var $elm$core$Maybe$isJust = function (maybe) {
-	if (maybe.$ === 'Just') {
-		return true;
-	} else {
-		return false;
-	}
-};
-var $elm$core$Dict$get = F2(
-	function (targetKey, dict) {
-		get:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return $elm$core$Maybe$Nothing;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
-				switch (_v1.$) {
-					case 'LT':
-						var $temp$targetKey = targetKey,
-							$temp$dict = left;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-					case 'EQ':
-						return $elm$core$Maybe$Just(value);
-					default:
-						var $temp$targetKey = targetKey,
-							$temp$dict = right;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-				}
-			}
-		}
-	});
 var $elm$core$Dict$getMin = function (dict) {
 	getMin:
 	while (true) {
@@ -6597,6 +6535,95 @@ var $elm$core$Dict$remove = F2(
 		} else {
 			var x = _v0;
 			return x;
+		}
+	});
+var $elm$core$Dict$diff = F2(
+	function (t1, t2) {
+		return A3(
+			$elm$core$Dict$foldl,
+			F3(
+				function (k, v, t) {
+					return A2($elm$core$Dict$remove, k, t);
+				}),
+			t1,
+			t2);
+	});
+var $elm$core$List$drop = F2(
+	function (n, list) {
+		drop:
+		while (true) {
+			if (n <= 0) {
+				return list;
+			} else {
+				if (!list.b) {
+					return list;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs;
+					n = $temp$n;
+					list = $temp$list;
+					continue drop;
+				}
+			}
+		}
+	});
+var $elm$http$Http$BadStatus_ = F2(
+	function (a, b) {
+		return {$: 'BadStatus_', a: a, b: b};
+	});
+var $elm$http$Http$BadUrl_ = function (a) {
+	return {$: 'BadUrl_', a: a};
+};
+var $elm$http$Http$GoodStatus_ = F2(
+	function (a, b) {
+		return {$: 'GoodStatus_', a: a, b: b};
+	});
+var $elm$http$Http$NetworkError_ = {$: 'NetworkError_'};
+var $elm$http$Http$Receiving = function (a) {
+	return {$: 'Receiving', a: a};
+};
+var $elm$http$Http$Sending = function (a) {
+	return {$: 'Sending', a: a};
+};
+var $elm$http$Http$Timeout_ = {$: 'Timeout_'};
+var $elm$core$Maybe$isJust = function (maybe) {
+	if (maybe.$ === 'Just') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $elm$core$Dict$get = F2(
+	function (targetKey, dict) {
+		get:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
+				switch (_v1.$) {
+					case 'LT':
+						var $temp$targetKey = targetKey,
+							$temp$dict = left;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+					case 'EQ':
+						return $elm$core$Maybe$Just(value);
+					default:
+						var $temp$targetKey = targetKey,
+							$temp$dict = right;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+				}
+			}
 		}
 	});
 var $elm$core$Dict$update = F3(
@@ -7123,10 +7150,10 @@ var $elm$random$Random$generate = F2(
 			$elm$random$Random$Generate(
 				A2($elm$random$Random$map, tagger, generator)));
 	});
-var $author$project$WordOrPhrase$removeFKD = A2($elm$core$Basics$composeR, $author$project$WordOrPhrase$splitOffTashkyl, $elm$core$Tuple$first);
+var $author$project$WordOrPhrase$removeTashkyl = A2($elm$core$Basics$composeR, $author$project$WordOrPhrase$splitOffTashkyl, $elm$core$Tuple$first);
 var $author$project$WordOrPhrase$get = function (wopKey) {
 	return $elm$core$Dict$get(
-		$author$project$WordOrPhrase$removeFKD(wopKey));
+		$author$project$WordOrPhrase$removeTashkyl(wopKey));
 };
 var $elm$core$List$head = function (list) {
 	if (list.b) {
@@ -7168,7 +7195,7 @@ var $author$project$Lesson$getWops = F2(
 			},
 			$author$project$Lesson$getWords(lessonText));
 	});
-var $author$project$Main$impure = F2(
+var $author$project$Utils$impure = F2(
 	function (model, effect) {
 		return _Utils_Tuple2(
 			model,
@@ -7176,7 +7203,7 @@ var $author$project$Main$impure = F2(
 	});
 var $author$project$WordOrPhrase$insert = function (wopKey) {
 	return $elm$core$Dict$insert(
-		$author$project$WordOrPhrase$removeFKD(wopKey));
+		$author$project$WordOrPhrase$removeTashkyl(wopKey));
 };
 var $elm$http$Http$jsonBody = function (value) {
 	return A2(
@@ -7192,19 +7219,6 @@ var $elm$core$Debug$log = _Debug_log;
 var $author$project$Main$makeLesson = function (text) {
 	return {audioFileType: 'wav', text: text};
 };
-var $author$project$WordOrPhrase$makeWOP = F2(
-	function (wordOrPhrase, definition) {
-		return {
-			definitions: _List_fromArray(
-				[definition]),
-			familiarityLevel: 1,
-			notes: '',
-			reviewHistory: _List_Nil,
-			romanization: '',
-			tags: _List_Nil,
-			wordOrPhrase: wordOrPhrase
-		};
-	});
 var $author$project$Flashcard$makeflashcards = $elm$core$List$map(
 	function (x) {
 		return {data: x, history: _List_Nil};
@@ -7397,7 +7411,7 @@ var $elm$http$Http$post = function (r) {
 	return $elm$http$Http$request(
 		{body: r.body, expect: r.expect, headers: _List_Nil, method: 'POST', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
 };
-var $author$project$Main$pure = function (model) {
+var $author$project$Utils$pure = function (model) {
 	return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 };
 var $elm$json$Json$Encode$null = _Json_encodeNull;
@@ -7916,9 +7930,69 @@ var $elm_community$maybe_extra$Maybe$Extra$unwrap = F3(
 			return f(a);
 		}
 	});
+var $author$project$EnterNewWops$cleanUpWopKey = function (wop) {
+	return _Utils_update(
+		wop,
+		{
+			wordOrPhrase: A2(
+				$elm$core$List$filter,
+				A2($elm$core$Basics$composeL, $elm$core$Basics$not, $elm$core$String$isEmpty),
+				wop.wordOrPhrase)
+		});
+};
+var $author$project$EnterNewWops$setWopKey = F2(
+	function (wop, key) {
+		return _Utils_update(
+			wop,
+			{
+				wordOrPhrase: A2(
+					$elm$core$List$map,
+					$elm$core$String$trim,
+					A2($elm$core$String$split, ' ', key))
+			});
+	});
+var $author$project$EnterNewWops$wopNotEmpty = function (wop) {
+	return $elm$core$List$length(wop.wordOrPhrase) >= 1;
+};
+var $author$project$EnterNewWops$update = F2(
+	function (msg, model) {
+		switch (msg.$) {
+			case 'EditWOPKey':
+				var key = msg.a;
+				return _Utils_update(
+					model,
+					{
+						newWop: A2($author$project$EnterNewWops$setWopKey, model.newWop, key)
+					});
+			case 'EditWOPDefinition':
+				var def = msg.a;
+				return _Utils_update(
+					model,
+					{
+						newWop: A3($author$project$WordOrPhrase$setDefinition, 0, def, model.newWop)
+					});
+			case 'SaveNewWOP':
+				return $author$project$EnterNewWops$wopNotEmpty(model.newWop) ? _Utils_update(
+					model,
+					{
+						createdWops: A2(
+							$elm$core$List$cons,
+							$author$project$EnterNewWops$cleanUpWopKey(model.newWop),
+							model.createdWops),
+						newWop: $author$project$EnterNewWops$initWOP
+					}) : model;
+			default:
+				return model;
+		}
+	});
 var $author$project$WordOrPhrase$update = function (wopKey) {
 	return $elm$core$Dict$update(
-		$author$project$WordOrPhrase$removeFKD(wopKey));
+		$author$project$WordOrPhrase$removeTashkyl(wopKey));
+};
+var $author$project$EnterNewWops$viewPage = function (model) {
+	return _Utils_update(
+		model,
+		{viewingEnterNewWops: true});
 };
 var $author$project$Main$update = F2(
 	function (msg, model) {
@@ -7927,20 +8001,20 @@ var $author$project$Main$update = F2(
 			switch (msg.$) {
 				case 'Tick':
 					var posix = msg.a;
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{tick: posix}));
 				case 'GotKalimniEvent':
 					var kalimniEvent = msg.a;
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{
 								lastKalimniEvent: $elm$core$Maybe$Just(kalimniEvent)
 							}));
 				case 'ToggleDrawInLesson':
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						model.drawInLesson ? _Utils_update(
 							model,
 							{drawInLesson: !model.drawInLesson}) : _Utils_update(
@@ -7951,7 +8025,7 @@ var $author$project$Main$update = F2(
 						var _v1 = model.startingRectangleCoordinate;
 						if (_v1.$ === 'Just') {
 							var topLeft = _v1.a;
-							return $author$project$Main$pure(
+							return $author$project$Utils$pure(
 								A2(
 									$elm$core$Maybe$withDefault,
 									model,
@@ -7988,7 +8062,7 @@ var $author$project$Main$update = F2(
 										},
 										model.lastKalimniEvent)));
 						} else {
-							return $author$project$Main$pure(
+							return $author$project$Utils$pure(
 								_Utils_update(
 									model,
 									{
@@ -8002,13 +8076,52 @@ var $author$project$Main$update = F2(
 									}));
 						}
 					} else {
-						return $author$project$Main$pure(model);
+						return $author$project$Utils$pure(model);
 					}
+				case 'EnterNewWopsMsg':
+					var childMsg = msg.a;
+					if (childMsg.$ === 'GoBack') {
+						var newWops = model.enterNewWops.createdWops;
+						var mergedIntoWopDict = A3(
+							$elm$core$List$foldl,
+							F2(
+								function (wop, dict) {
+									return A3(
+										$author$project$WordOrPhrase$insert,
+										$author$project$WordOrPhrase$key(wop),
+										wop,
+										dict);
+								}),
+							model.wops,
+							newWops);
+						var diffFromOldDict = A2(
+							$elm$core$Debug$log,
+							'diff',
+							A2($elm$core$Dict$diff, mergedIntoWopDict, model.wops));
+						return $author$project$Utils$pure(
+							_Utils_update(
+								model,
+								{enterNewWops: $author$project$EnterNewWops$init, wops: mergedIntoWopDict}));
+					} else {
+						return $author$project$Utils$pure(
+							_Utils_update(
+								model,
+								{
+									enterNewWops: A2($author$project$EnterNewWops$update, childMsg, model.enterNewWops)
+								}));
+					}
+				case 'NavigateToEnterNewWops':
+					return $author$project$Utils$pure(
+						_Utils_update(
+							model,
+							{
+								enterNewWops: $author$project$EnterNewWops$viewPage(model.enterNewWops)
+							}));
 				case 'KeyPress':
 					var key = msg.a;
 					return ((!$elm$core$String$isEmpty(model.selectedWop)) && _Utils_eq(model.selectedWop, model.hoveredWord)) ? A3(
 						$elm_community$maybe_extra$Maybe$Extra$unwrap,
-						$author$project$Main$pure(model),
+						$author$project$Utils$pure(model),
 						$elm$core$Basics$identity,
 						A2(
 							$elm$core$Maybe$andThen,
@@ -8019,15 +8132,15 @@ var $author$project$Main$update = F2(
 										A2($author$project$Main$SetSelectedWOPFamiliarityLevel, model.selectedWop, n),
 										model)) : $elm$core$Maybe$Nothing;
 							},
-							$elm$core$String$toInt(key))) : $author$project$Main$pure(model);
+							$elm$core$String$toInt(key))) : $author$project$Utils$pure(model);
 				case 'WordHoverStart':
 					var word = msg.a;
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{hoveredWord: word}));
 				case 'WordHoverLeave':
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{hoveredWord: ''}));
@@ -8037,19 +8150,19 @@ var $author$project$Main$update = F2(
 						$author$project$Main$saveLocalStorageToClipboard(_Utils_Tuple0));
 				case 'ChangeNewLessonText':
 					var text = msg.a;
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{newLessonText: text}));
 				case 'ChangeNewLessonTitle':
 					var title = msg.a;
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{newLessonTitle: title}));
 				case 'CreateNewLesson':
 					return A2(
-						$author$project$Main$impure,
+						$author$project$Utils$impure,
 						_Utils_update(
 							model,
 							{
@@ -8068,9 +8181,9 @@ var $author$project$Main$update = F2(
 							},
 							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeLessons)));
 				case 'UpdateLesson':
-					var _v3 = msg.a;
-					var existingTitle = _v3.a;
-					var newTitle = _v3.b;
+					var _v4 = msg.a;
+					var existingTitle = _v4.a;
+					var newTitle = _v4.b;
 					var processTitleChange = function (m) {
 						return (!_Utils_eq(existingTitle, newTitle)) ? _Utils_update(
 							m,
@@ -8094,16 +8207,21 @@ var $author$project$Main$update = F2(
 											return A3($elm$core$Dict$insert, newTitle, et, model.lessonTranslations);
 										},
 										existingTranslation)),
-								lessons: A3(
-									$elm$core$Dict$update,
-									newTitle,
-									$elm$core$Maybe$map(
-										function (lesson) {
-											return _Utils_update(
+								lessons: function () {
+									var _v5 = A2($elm$core$Dict$get, existingTitle, model.lessons);
+									if (_v5.$ === 'Just') {
+										var lesson = _v5.a;
+										return A3(
+											$elm$core$Dict$insert,
+											newTitle,
+											_Utils_update(
 												lesson,
-												{text: model.newLessonText});
-										}),
-									model.lessons)
+												{text: model.newLessonText}),
+											model.lessons);
+									} else {
+										return model.lessons;
+									}
+								}()
 							}));
 					var updateAudioName = (!_Utils_eq(existingTitle, newTitle)) ? $elm$http$Http$post(
 						{
@@ -8147,7 +8265,7 @@ var $author$project$Main$update = F2(
 				case 'ChangeLessonAudioFileType':
 					var newFileType = msg.a;
 					return A2(
-						$author$project$Main$impure,
+						$author$project$Utils$impure,
 						_Utils_update(
 							model,
 							{
@@ -8169,10 +8287,10 @@ var $author$project$Main$update = F2(
 							},
 							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeLessons)));
 				case 'BackendAudioUpdated':
-					return $author$project$Main$pure(model);
+					return $author$project$Utils$pure(model);
 				case 'SelectLesson':
 					var title = msg.a;
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{
@@ -8190,38 +8308,38 @@ var $author$project$Main$update = F2(
 								selectedWop: ''
 							}));
 				case 'DeselectLesson':
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{newLessonText: '', newLessonTitle: '', selectedLesson: '', selectedWop: ''}));
 				case 'SelectWOP':
-					var lessonId = msg.a;
-					var word = msg.b;
-					var timestamp = msg.c;
+					var lessonId = msg.a.lessonId;
+					var wopKey = msg.a.wopKey;
+					var timestamp = msg.b;
 					return A2(
-						$author$project$Main$impure,
+						$author$project$Utils$impure,
 						_Utils_update(
 							model,
 							{
-								selectedWop: word,
+								selectedWop: wopKey,
 								selectedWopTagsBuffer: '',
 								wops: A3(
 									$elm$core$Dict$update,
-									word,
+									wopKey,
 									$elm$core$Maybe$map(
 										A2($author$project$WordOrPhrase$addReviewTime, timestamp, lessonId)),
 									model.wops)
 							}),
-						function (_v4) {
-							var selectedWop = _v4.selectedWop;
+						function (_v6) {
+							var selectedWop = _v6.selectedWop;
 							return $elm$core$Platform$Cmd$batch(
 								_List_fromArray(
 									[
 										$author$project$Main$storeWops(
 										$elm$core$Dict$toList(model.wops)),
 										function () {
-										var _v5 = A2($author$project$WordOrPhrase$get, selectedWop, model.wops);
-										if (_v5.$ === 'Just') {
+										var _v7 = A2($author$project$WordOrPhrase$get, selectedWop, model.wops);
+										if (_v7.$ === 'Just') {
 											return $elm$core$Platform$Cmd$none;
 										} else {
 											return $author$project$Main$autofocusId('newWopDefinition');
@@ -8230,7 +8348,7 @@ var $author$project$Main$update = F2(
 									]));
 						});
 				case 'DeselectWOP':
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{selectedWop: ''}));
@@ -8238,7 +8356,7 @@ var $author$project$Main$update = F2(
 					var defNumber = msg.a;
 					var definition = msg.b;
 					return A2(
-						$author$project$Main$impure,
+						$author$project$Utils$impure,
 						_Utils_update(
 							model,
 							{
@@ -8258,7 +8376,7 @@ var $author$project$Main$update = F2(
 				case 'EditSelectedWOPNotes':
 					var notes = msg.a;
 					return A2(
-						$author$project$Main$impure,
+						$author$project$Utils$impure,
 						_Utils_update(
 							model,
 							{
@@ -8279,7 +8397,7 @@ var $author$project$Main$update = F2(
 					var selectedWop = msg.a;
 					var familiarityLevel = msg.b;
 					return A2(
-						$author$project$Main$impure,
+						$author$project$Utils$impure,
 						_Utils_update(
 							model,
 							{
@@ -8299,7 +8417,7 @@ var $author$project$Main$update = F2(
 				case 'EditSelectedWOPRomanization':
 					var romanization = msg.a;
 					return A2(
-						$author$project$Main$impure,
+						$author$project$Utils$impure,
 						_Utils_update(
 							model,
 							{
@@ -8322,14 +8440,14 @@ var $author$project$Main$update = F2(
 							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
 				case 'EditSelectedWOPTagsBuffer':
 					var tagString = msg.a;
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{selectedWopTagsBuffer: tagString}));
 				case 'SetSelectedWOPTags':
 					var tagString = msg.a;
 					return A2(
-						$author$project$Main$impure,
+						$author$project$Utils$impure,
 						_Utils_update(
 							model,
 							{
@@ -8349,7 +8467,7 @@ var $author$project$Main$update = F2(
 							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
 				case 'EditSelectedNewWOPDefinition':
 					var definition = msg.a;
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{newWopDefinition: definition}));
@@ -8357,7 +8475,7 @@ var $author$project$Main$update = F2(
 					var wopKeyList = $author$project$WordOrPhrase$keyIsPhrase(model.selectedWop) ? A2($elm$core$String$split, ' ', model.selectedWop) : _List_fromArray(
 						[model.selectedWop]);
 					return A2(
-						$author$project$Main$impure,
+						$author$project$Utils$impure,
 						_Utils_update(
 							model,
 							{
@@ -8375,7 +8493,7 @@ var $author$project$Main$update = F2(
 							},
 							A2($elm$core$Basics$composeR, $elm$core$Dict$toList, $author$project$Main$storeWops)));
 				case 'AddTranslationToSelectedLesson':
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{
@@ -8384,7 +8502,7 @@ var $author$project$Main$update = F2(
 				case 'EditTranslationOfSelectedLesson':
 					var newTranslation = msg.a;
 					return A2(
-						$author$project$Main$impure,
+						$author$project$Utils$impure,
 						_Utils_update(
 							model,
 							{
@@ -8400,7 +8518,7 @@ var $author$project$Main$update = F2(
 					var lineIndex = msg.a;
 					var wordIndex = msg.b;
 					var word = msg.c;
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{
@@ -8409,9 +8527,9 @@ var $author$project$Main$update = F2(
 				case 'OpenPhraseCreationUI':
 					var lineIndexEnd = msg.a;
 					var wordIndexEnd = msg.b;
-					var _v6 = model.mouseDownWord;
-					var lineIndexStart = _v6.a;
-					var wordIndexStart = _v6.b;
+					var _v8 = model.mouseDownWord;
+					var lineIndexStart = _v8.a;
+					var wordIndexStart = _v8.b;
 					if ((!_Utils_eq(wordIndexEnd, wordIndexStart)) && _Utils_eq(lineIndexEnd, lineIndexStart)) {
 						var selectedLessonText = A2(
 							$elm$core$Maybe$withDefault,
@@ -8459,32 +8577,33 @@ var $author$project$Main$update = F2(
 							wordsAndNonWordsInPhraseSegment);
 						if (canConstructPhrase) {
 							var $temp$msg = $author$project$Main$GetCurrentTimeAndThen(
-								A2(
-									$author$project$Main$SelectWOP,
-									model.selectedLesson,
-									A2(
-										$elm$core$String$join,
-										' ',
-										A2(
-											$elm$core$List$map,
-											function (word) {
-												if (word.$ === 'DisplayWord') {
-													var w = word.a;
-													return w;
-												} else {
-													return '';
-												}
-											},
-											wordsAndNonWordsInPhraseSegment)))),
+								$author$project$Main$SelectWOP(
+									{
+										lessonId: model.selectedLesson,
+										wopKey: A2(
+											$elm$core$String$join,
+											' ',
+											A2(
+												$elm$core$List$map,
+												function (word) {
+													if (word.$ === 'DisplayWord') {
+														var w = word.a;
+														return w;
+													} else {
+														return '';
+													}
+												},
+												wordsAndNonWordsInPhraseSegment))
+									})),
 								$temp$model = model;
 							msg = $temp$msg;
 							model = $temp$model;
 							continue update;
 						} else {
-							return $author$project$Main$pure(model);
+							return $author$project$Utils$pure(model);
 						}
 					} else {
-						return $author$project$Main$pure(model);
+						return $author$project$Utils$pure(model);
 					}
 				case 'MarkLessonAsReviewed':
 					var timestamp = msg.a;
@@ -8511,12 +8630,12 @@ var $author$project$Main$update = F2(
 						},
 						model.wops,
 						lessonWops);
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{wops: updatedWopReviews}));
 				case 'NavigateToFlashcardPage':
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{onFlashcardPage: true}));
@@ -8526,7 +8645,7 @@ var $author$project$Main$update = F2(
 					if (maybeRandomizedWops.$ === 'Just') {
 						var wops = maybeRandomizedWops.a;
 						return A2(
-							$author$project$Main$impure,
+							$author$project$Utils$impure,
 							_Utils_update(
 								model,
 								{
@@ -8557,7 +8676,7 @@ var $author$project$Main$update = F2(
 					}
 				case 'NextFlashcard':
 					return A2(
-						$author$project$Main$impure,
+						$author$project$Utils$impure,
 						_Utils_update(
 							model,
 							{
@@ -8598,14 +8717,14 @@ var $author$project$Main$update = F2(
 								},
 								A2(
 									$elm$core$List$filter,
-									function (_v12) {
-										var familiarityLevel = _v12.familiarityLevel;
+									function (_v14) {
+										var familiarityLevel = _v14.familiarityLevel;
 										return familiarityLevel <= 2;
 									},
 									A2($author$project$Lesson$getWops, model.wops, lessonText)))));
 					var flashcards = $author$project$Flashcard$makeflashcards(wopsWithSentence);
-					var _v10 = $author$project$Main$extractSentences(lessonText);
-					var _v11 = A2(
+					var _v12 = $author$project$Main$extractSentences(lessonText);
+					var _v13 = A2(
 						$elm$core$List$map,
 						function (word) {
 							return A2(
@@ -8615,14 +8734,14 @@ var $author$project$Main$update = F2(
 								'');
 						},
 						A2($author$project$Lesson$getUnidentifiedWordsInLesson, lessonText, model.wops));
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{
 								lessonFlashcards: $elm$core$Maybe$Just(flashcards)
 							}));
 				case 'FlipLessonFlashcard':
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{flashcardFlipped: true}));
@@ -8638,7 +8757,7 @@ var $author$project$Main$update = F2(
 							A2($elm$core$Maybe$withDefault, _List_Nil, model.lessonFlashcards)),
 						_List_fromArray(
 							[updatedFlashcard]));
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{
@@ -8646,7 +8765,7 @@ var $author$project$Main$update = F2(
 								lessonFlashcards: $elm$core$Maybe$Just(moveToEnd)
 							}));
 				case 'FinishFlashcardSession':
-					return $author$project$Main$pure(
+					return $author$project$Utils$pure(
 						_Utils_update(
 							model,
 							{lessonFlashcards: $elm$core$Maybe$Nothing}));
@@ -8658,6 +8777,10 @@ var $author$project$Main$update = F2(
 			}
 		}
 	});
+var $author$project$Main$EnterNewWopsMsg = function (a) {
+	return {$: 'EnterNewWopsMsg', a: a};
+};
+var $author$project$Main$NavigateToEnterNewWops = {$: 'NavigateToEnterNewWops'};
 var $author$project$Main$NavigateToFlashcardPage = {$: 'NavigateToFlashcardPage'};
 var $author$project$Main$SaveDataModelToClipboard = {$: 'SaveDataModelToClipboard'};
 var $elm$html$Html$button = _VirtualDom_node('button');
@@ -9727,6 +9850,8 @@ var $author$project$Main$lessonsView = function (model) {
 					]))
 			]));
 };
+var $elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
+var $elm$html$Html$map = $elm$virtual_dom$VirtualDom$map;
 var $author$project$Main$ChangeLessonAudioFileType = function (a) {
 	return {$: 'ChangeLessonAudioFileType', a: a};
 };
@@ -10056,7 +10181,7 @@ var $elm_community$list_extra$List$Extra$last = function (items) {
 };
 var $author$project$WordOrPhrase$member = function (wopKey) {
 	return $elm$core$Set$member(
-		$author$project$WordOrPhrase$removeFKD(wopKey));
+		$author$project$WordOrPhrase$removeTashkyl(wopKey));
 };
 var $elm$core$List$sort = function (xs) {
 	return A2($elm$core$List$sortBy, $elm$core$Basics$identity, xs);
@@ -10252,8 +10377,9 @@ var $author$project$Main$displayWords = F3(
 								$author$project$WordOrPhrase$displayFamiliarityLevel(
 									A2($author$project$WordOrPhrase$getFamiliarityLevel, word, model.wops)))),
 							$elm$html$Html$Events$onClick(
-							_Utils_eq(model.selectedWop, word) ? $author$project$Main$DeselectWOP : $author$project$Main$GetCurrentTimeAndThen(
-								A2($author$project$Main$SelectWOP, word, lessonTitle))),
+							A2($author$project$WordOrPhrase$tashkylEquivalent, model.selectedWop, word) ? $author$project$Main$DeselectWOP : $author$project$Main$GetCurrentTimeAndThen(
+								$author$project$Main$SelectWOP(
+									{lessonId: lessonTitle, wopKey: word}))),
 							$elm$html$Html$Events$onMouseDown(
 							A3($author$project$Main$MouseDownOnWord, li, wi, word)),
 							$elm$html$Html$Events$onMouseUp(
@@ -10866,8 +10992,289 @@ var $author$project$Main$selectedLessonView = F2(
 				}()
 				]));
 	});
+var $author$project$EnterNewWops$EditWOPDefinition = function (a) {
+	return {$: 'EditWOPDefinition', a: a};
+};
+var $author$project$EnterNewWops$EditWOPKey = function (a) {
+	return {$: 'EditWOPKey', a: a};
+};
+var $author$project$EnterNewWops$GoBack = {$: 'GoBack'};
+var $author$project$EnterNewWops$SaveNewWOP = {$: 'SaveNewWOP'};
+var $elm$html$Html$ol = _VirtualDom_node('ol');
+var $elm_community$list_extra$List$Extra$isPrefixOf = F2(
+	function (prefix, list) {
+		isPrefixOf:
+		while (true) {
+			var _v0 = _Utils_Tuple2(prefix, list);
+			if (!_v0.a.b) {
+				return true;
+			} else {
+				if (!_v0.b.b) {
+					var _v1 = _v0.a;
+					return false;
+				} else {
+					var _v2 = _v0.a;
+					var p = _v2.a;
+					var ps = _v2.b;
+					var _v3 = _v0.b;
+					var x = _v3.a;
+					var xs = _v3.b;
+					if (_Utils_eq(p, x)) {
+						var $temp$prefix = ps,
+							$temp$list = xs;
+						prefix = $temp$prefix;
+						list = $temp$list;
+						continue isPrefixOf;
+					} else {
+						return false;
+					}
+				}
+			}
+		}
+	});
+var $elm_community$list_extra$List$Extra$isInfixOfHelp = F3(
+	function (infixHead, infixTail, list) {
+		isInfixOfHelp:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (_Utils_eq(x, infixHead) && A2($elm_community$list_extra$List$Extra$isPrefixOf, infixTail, xs)) {
+					return true;
+				} else {
+					var $temp$infixHead = infixHead,
+						$temp$infixTail = infixTail,
+						$temp$list = xs;
+					infixHead = $temp$infixHead;
+					infixTail = $temp$infixTail;
+					list = $temp$list;
+					continue isInfixOfHelp;
+				}
+			}
+		}
+	});
+var $elm_community$list_extra$List$Extra$isInfixOf = F2(
+	function (infixList, list) {
+		if (!infixList.b) {
+			return true;
+		} else {
+			var x = infixList.a;
+			var xs = infixList.b;
+			return A3($elm_community$list_extra$List$Extra$isInfixOfHelp, x, xs, list);
+		}
+	});
+var $elm$core$String$replace = F3(
+	function (before, after, string) {
+		return A2(
+			$elm$core$String$join,
+			after,
+			A2($elm$core$String$split, before, string));
+	});
+var $author$project$WordOrPhrase$removeAllTashkyl = A2(
+	$elm$core$Basics$composeR,
+	$author$project$WordOrPhrase$removeTashkyl,
+	A2($elm$core$String$replace, 'ّ', ''));
+var $author$project$WordOrPhrase$searchWop = F2(
+	function (wopKey, wops) {
+		var charsWithoutTashkyl = function (str) {
+			return $elm$core$String$toList(
+				$author$project$WordOrPhrase$removeAllTashkyl(str));
+		};
+		return $elm$core$String$isEmpty(wopKey) ? _List_Nil : A2(
+			$elm$core$List$map,
+			$elm$core$Tuple$second,
+			A2(
+				$elm$core$List$filter,
+				function (_v0) {
+					var k = _v0.a;
+					return A2(
+						$elm_community$list_extra$List$Extra$isInfixOf,
+						charsWithoutTashkyl(wopKey),
+						charsWithoutTashkyl(k));
+				},
+				$elm$core$Dict$toList(wops)));
+	});
+var $author$project$EnterNewWops$wopAlreadyExists = F2(
+	function (_v0, parent) {
+		var createdWops = _v0.createdWops;
+		var newWop = _v0.newWop;
+		return A2(
+			$elm$core$List$any,
+			$elm_community$maybe_extra$Maybe$Extra$isJust,
+			_List_fromArray(
+				[
+					A2(
+					$author$project$WordOrPhrase$get,
+					$author$project$WordOrPhrase$key(newWop),
+					$author$project$WordOrPhrase$intoDict(createdWops)),
+					A2(
+					$author$project$WordOrPhrase$get,
+					$author$project$WordOrPhrase$key(newWop),
+					parent.wops)
+				]));
+	});
+var $author$project$EnterNewWops$view = F2(
+	function (model, parent) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('enter-new-wops')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('input-container')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$input,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('egyptian'),
+									$elm$html$Html$Attributes$placeholder('egyptian'),
+									$elm$html$Html$Events$onInput($author$project$EnterNewWops$EditWOPKey),
+									$elm$html$Html$Attributes$value(
+									$author$project$WordOrPhrase$key(model.newWop))
+								]),
+							_List_Nil),
+							A2(
+							$elm$html$Html$input,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('english'),
+									$elm$html$Html$Attributes$placeholder('definition'),
+									$elm$html$Html$Events$onInput($author$project$EnterNewWops$EditWOPDefinition),
+									$elm$html$Html$Attributes$value(
+									A2($elm$core$String$join, '', model.newWop.definitions))
+								]),
+							_List_Nil)
+						])),
+					A2($author$project$EnterNewWops$wopAlreadyExists, model, parent) ? A2(
+					$elm$html$Html$p,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('this wop already exists!')
+						])) : A2(
+					$elm$html$Html$p,
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'visibility', 'hidden')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('nothing')
+						])),
+					A2(
+					$elm$html$Html$button,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('save-new-wop'),
+							$elm$html$Html$Events$onClick($author$project$EnterNewWops$SaveNewWOP),
+							$elm$html$Html$Attributes$disabled(
+							$elm$core$String$isEmpty(
+								$author$project$WordOrPhrase$key(model.newWop)) || (A2($author$project$EnterNewWops$wopAlreadyExists, model, parent) || $elm$core$String$isEmpty(
+								A2($elm$core$String$join, '', model.newWop.definitions))))
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Save New WOP')
+						])),
+					(!$elm$core$List$isEmpty(
+					A2(
+						$author$project$WordOrPhrase$searchWop,
+						$author$project$WordOrPhrase$key(model.newWop),
+						parent.wops))) ? A2(
+					$elm$html$Html$p,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('related wops: ')
+						])) : A2($elm$html$Html$p, _List_Nil, _List_Nil),
+					A2(
+					$elm$html$Html$div,
+					_List_Nil,
+					A2(
+						$elm$core$List$map,
+						function (wop) {
+							return A2(
+								$elm$html$Html$div,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(
+										$author$project$WordOrPhrase$key(wop) + (' : ' + A2($elm$core$String$join, ', ', wop.definitions)))
+									]));
+						},
+						A2(
+							$author$project$WordOrPhrase$searchWop,
+							$author$project$WordOrPhrase$key(model.newWop),
+							parent.wops))),
+					A2(
+					$elm$html$Html$p,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('new wops')
+						])),
+					A2(
+					$elm$html$Html$button,
+					_List_fromArray(
+						[
+							$elm$html$Html$Events$onClick($author$project$EnterNewWops$GoBack),
+							$elm$html$Html$Attributes$disabled(
+							$elm$core$List$isEmpty(model.createdWops))
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('commit new wops and go back')
+						])),
+					A2(
+					$elm$html$Html$ol,
+					_List_Nil,
+					A2(
+						$elm$core$List$map,
+						function (wop) {
+							return A2(
+								$elm$html$Html$p,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(
+										$author$project$WordOrPhrase$key(wop)),
+										$elm$html$Html$text(': '),
+										$elm$html$Html$text(
+										A2($elm$core$String$join, '', wop.definitions))
+									]));
+						},
+						model.createdWops))
+				]));
+	});
 var $author$project$Main$view = function (model) {
-	return model.onFlashcardPage ? $author$project$Main$flashcardView(model) : A2(
+	return model.onFlashcardPage ? $author$project$Main$flashcardView(model) : (model.enterNewWops.viewingEnterNewWops ? A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$h2,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Learn Egyptian'),
+						A2(
+						$elm$html$Html$map,
+						$author$project$Main$EnterNewWopsMsg,
+						A2($author$project$EnterNewWops$view, model.enterNewWops, model))
+					]))
+			])) : A2(
 		$elm$html$Html$div,
 		_List_Nil,
 		_List_fromArray(
@@ -10900,9 +11307,19 @@ var $author$project$Main$view = function (model) {
 					[
 						$elm$html$Html$text('Go to Flashcards Page')
 					])),
+				A2(
+				$elm$html$Html$button,
+				_List_fromArray(
+					[
+						$elm$html$Html$Events$onClick($author$project$Main$NavigateToEnterNewWops)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Go to Enter New Wops Page')
+					])),
 				$author$project$Main$lessonsView(model),
 				$elm$core$String$isEmpty(model.selectedLesson) ? A2($elm$html$Html$span, _List_Nil, _List_Nil) : A2($author$project$Main$selectedLessonView, model, model.selectedLesson)
-			]));
+			])));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(
 	{init: $author$project$Main$init, subscriptions: $author$project$Main$subscriptions, update: $author$project$Main$update, view: $author$project$Main$view});

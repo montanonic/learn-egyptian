@@ -256,3 +256,24 @@ body {
     font-size: 24px;
     color: gray;
 }
+
+/* enter new wops page */
+
+.enter-new-wops .input-container {
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+    column-gap: 4px;
+}
+
+.enter-new-wops p {
+    margin: 0;
+}
+
+.enter-new-wops .egyptian {
+    font-size: 36px;
+    direction: rtl;
+}
+
+.enter-new-wops .save-new-wop {
+    display: block;
+}

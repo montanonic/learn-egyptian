@@ -6,6 +6,7 @@ import Debug exposing (toString)
 import Dict exposing (Dict)
 import Dict.Extra as DictE
 import DueForReview
+import EnterNewWops
 import Flashcard exposing (Flashcard)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -24,7 +25,7 @@ import Round
 import Set exposing (Set)
 import Task
 import Time exposing (Posix)
-import Utils
+import Utils exposing (impure, pure)
 import WordDisplay exposing (WordDisplayTypes(..))
 import WordOrPhrase as WOP exposing (WOP, update)
 
@@ -223,6 +224,9 @@ type alias Model =
     , drawInLesson : Bool
     , drawRectangleKalimniBuffer : Maybe KalimniEvent
     , startingRectangleCoordinate : Maybe ( Float, Float )
+
+    -- enter new wops view
+    , enterNewWops : EnterNewWops.Model
     }
 
 
@@ -259,6 +263,9 @@ init { tick, lessons, wops, lessonTranslations, newWopFlashcards } =
       , drawInLesson = False
       , drawRectangleKalimniBuffer = Nothing
       , startingRectangleCoordinate = Nothing
+
+      -- enter new wops view
+      , enterNewWops = EnterNewWops.init
       }
     , Cmd.none
     )
@@ -281,7 +288,7 @@ type Msg
     | SelectLesson String
     | DeselectLesson -- useful in this development design at least, not a good long-term design
     | BackendAudioUpdated (Result Http.Error String)
-    | SelectWOP String String Posix -- lessonId, wopKey, timestamp
+    | SelectWOP { lessonId : String, wopKey : String } Posix
     | EditSelectedWOPDefinition Int String
     | EditSelectedWOPNotes String
     | SetSelectedWOPFamiliarityLevel String Int
@@ -308,6 +315,9 @@ type Msg
     | GotKalimniEvent KalimniEvent
     | ToggleDrawInLesson
     | LessonImageClick
+      -- enter new wops
+    | EnterNewWopsMsg EnterNewWops.Msg
+    | NavigateToEnterNewWops
       -- misc (currently uncategorized)
     | KeyPress String
     | WordHoverStart String
@@ -379,6 +389,36 @@ update msg model =
             else
                 pure model
 
+        -- Enter New Wops
+        EnterNewWopsMsg childMsg ->
+            case childMsg of
+                EnterNewWops.GoBack ->
+                    -- integrate new wops into system
+                    let
+                        newWops =
+                            model.enterNewWops.createdWops
+
+                        mergedIntoWopDict =
+                            List.foldl
+                                (\wop dict ->
+                                    WOP.insert (WOP.key wop) wop dict
+                                )
+                                model.wops
+                                newWops
+
+                        diffFromOldDict =
+                            Dict.diff mergedIntoWopDict model.wops
+                                |> Debug.log "diff"
+                    in
+                    pure { model | wops = mergedIntoWopDict, enterNewWops = EnterNewWops.init }
+
+                _ ->
+                    pure { model | enterNewWops = EnterNewWops.update childMsg model.enterNewWops }
+
+        NavigateToEnterNewWops ->
+            pure { model | enterNewWops = EnterNewWops.viewPage model.enterNewWops }
+
+        -- Misc
         KeyPress key ->
             {- handle pressing #'s 1 through 4 to change familiarity level -}
             if (not <| String.isEmpty model.selectedWop) && model.selectedWop == model.hoveredWord then
@@ -425,6 +465,8 @@ update msg model =
 
         {- BUG: When lesson title changes, the ordering of model updates leads to the active lesson
            being deselected. This is more of a problem with our conflation of viewing a lesson and editing a lesson, the sturucture isn't very well-conceived.
+
+           NOTE: The code is too convoluted here.
         -}
         UpdateLesson ( existingTitle, newTitle ) ->
             let
@@ -446,9 +488,12 @@ update msg model =
                 newModel =
                     { model
                         | lessons =
-                            Dict.update newTitle
-                                (Maybe.map (\lesson -> { lesson | text = model.newLessonText }))
-                                model.lessons
+                            case Dict.get existingTitle model.lessons of
+                                Just lesson ->
+                                    Dict.insert newTitle { lesson | text = model.newLessonText } model.lessons
+
+                                Nothing ->
+                                    model.lessons
                         , lessonTranslations =
                             existingTranslation
                                 |> Maybe.map (\et -> Dict.insert newTitle et model.lessonTranslations)
@@ -521,12 +566,12 @@ update msg model =
         DeselectLesson ->
             pure { model | selectedLesson = "", newLessonText = "", newLessonTitle = "", selectedWop = "" }
 
-        SelectWOP lessonId word timestamp ->
+        SelectWOP { lessonId, wopKey } timestamp ->
             impure
                 { model
-                    | selectedWop = word
+                    | selectedWop = wopKey
                     , selectedWopTagsBuffer = ""
-                    , wops = Dict.update word (Maybe.map (WOP.addReviewTime timestamp lessonId)) model.wops
+                    , wops = Dict.update wopKey (Maybe.map (WOP.addReviewTime timestamp lessonId)) model.wops
                 }
                 (\{ selectedWop } ->
                     Cmd.batch
@@ -679,19 +724,20 @@ update msg model =
                     update
                         (GetCurrentTimeAndThen
                             (SelectWOP
-                                model.selectedLesson
-                                (wordsAndNonWordsInPhraseSegment
-                                    |> List.map
-                                        (\word ->
-                                            case word of
-                                                DisplayWord w ->
-                                                    w
+                                { lessonId = model.selectedLesson
+                                , wopKey =
+                                    wordsAndNonWordsInPhraseSegment
+                                        |> List.map
+                                            (\word ->
+                                                case word of
+                                                    DisplayWord w ->
+                                                        w
 
-                                                _ ->
-                                                    ""
-                                        )
-                                    |> String.join " "
-                                )
+                                                    _ ->
+                                                        ""
+                                            )
+                                        |> String.join " "
+                                }
                             )
                         )
                         model
@@ -813,16 +859,6 @@ update msg model =
 
         GetCurrentTimeAndThen toMsg ->
             ( model, Task.perform toMsg Time.now )
-
-
-pure : Model -> ( Model, Cmd Msg )
-pure model =
-    ( model, Cmd.none )
-
-
-impure : Model -> (Model -> Cmd Msg) -> ( Model, Cmd Msg )
-impure model effect =
-    ( model, effect model )
 
 
 
@@ -1074,6 +1110,14 @@ view model =
     if model.onFlashcardPage then
         flashcardView model
 
+    else if model.enterNewWops.viewingEnterNewWops then
+        div []
+            [ h2 []
+                [ text "Learn Egyptian"
+                , Html.map EnterNewWopsMsg <| EnterNewWops.view model.enterNewWops model
+                ]
+            ]
+
     else
         div []
             [ h2 [] [ text "Learn Egyptian" ]
@@ -1084,6 +1128,7 @@ view model =
                 [ text "Save Data Model to Clipboard (4MB limit)" ]
             , newAndEditLessonView model
             , button [ onClick NavigateToFlashcardPage ] [ text "Go to Flashcards Page" ]
+            , button [ onClick NavigateToEnterNewWops ] [ text "Go to Enter New Wops Page" ]
             , lessonsView model
             , if String.isEmpty model.selectedLesson then
                 span [] []
@@ -1782,11 +1827,11 @@ displayWords model lessonText lessonTitle =
                     String.toLower <|
                         WOP.displayFamiliarityLevel (WOP.getFamiliarityLevel word model.wops)
                 , onClick
-                    (if model.selectedWop == word then
+                    (if WOP.tashkylEquivalent model.selectedWop word then
                         DeselectWOP
 
                      else
-                        GetCurrentTimeAndThen (SelectWOP word lessonTitle)
+                        GetCurrentTimeAndThen (SelectWOP { lessonId = lessonTitle, wopKey = word })
                     )
                 , onMouseDown (MouseDownOnWord li wi word)
                 , onMouseUp (OpenPhraseCreationUI li wi word)
