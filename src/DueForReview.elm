@@ -3,6 +3,7 @@ module DueForReview exposing (..)
 import Dict exposing (Dict)
 import Lesson exposing (Lesson)
 import Ordering
+import Time
 import WordOrPhrase as WOP exposing (WOP)
 
 
@@ -57,3 +58,57 @@ lessonsByReviewDensity allWops lessons dueWops =
                 |> Ordering.breakTiesWith (Ordering.byField .totalDueInLesson)
                 |> Ordering.reverse
             )
+
+
+{-| Give all wops, the current time, and all lessons, finds less well-known words that haven't been
+reviewed yet or not seen for longer, and returns the top 5 lessons containing the highest density of
+those words. There are a lot of arbitrary choices made in this function, it is highly subject to change.
+-}
+getLessonsDueForReview :
+    { a | wops : Dict String WOP, tick : Time.Posix, lessons : Dict String Lesson }
+    -> List LessonWithReviewDensity
+getLessonsDueForReview model =
+    let
+        oneDay =
+            24 * 60 * 60 * 1000
+
+        dueForReviewList =
+            {- TODO: The way this is calculated is just temporary. Once we have review data for most
+               words, we can move to a more useful calculation. or at least have two: one for SRS-style
+               it would be useful to review this again today, and then this more general review of
+               words that you haven't seen for the longest time, useful at least for earlier stage
+               vocabulary acquisition
+
+               TODO: as I have improved upon this, the functionality should be integrated into the
+               wopsDueForReview function eventually.
+            -}
+            wopsDueForReview (Dict.values model.wops)
+                |> List.filter (\{ familiarityLevel } -> familiarityLevel <= 2)
+                |> List.filter
+                    (\wop ->
+                        Maybe.map
+                            (\lastReviewed ->
+                                if wop.familiarityLevel == 1 then
+                                    -- for level 1 keep only those reviewed more than 24 hours ago,
+                                    -- otherwise don't need to review again
+                                    (Time.posixToMillis model.tick - lastReviewed) > oneDay
+
+                                else
+                                    -- for level 2, we can wait at least 4 days before reviewing
+                                    -- again.
+                                    (Time.posixToMillis model.tick - lastReviewed) > 4 * oneDay
+                            )
+                            (WOP.lastReviewedOn wop)
+                            -- any missing a review date are up for review
+                            |> Maybe.withDefault True
+                    )
+                {- among other things, this limit helps the performance cost of calculating the next step of
+                   this with the lesson lookup. turns out that doing a search for every due word in every
+                   lesson isn't cheap!
+
+                   the other thing it does is since wops come in order of reviewed longest ago, it
+                   prioritizes those wops over other perhaps more recently reviewed ones. is this the algo we want? who knows. it's how it works right now though.
+                -}
+                |> List.take 100
+    in
+    lessonsByReviewDensity model.wops model.lessons dueForReviewList

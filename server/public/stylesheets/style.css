@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;450;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;450;500;550&display=swap');
 
 * {
     box-sizing: border-box;
@@ -67,6 +67,11 @@ body {
     overflow-y: scroll;
     direction: rtl;
     /* max-height: 750px; */
+    /* these don't seem to do anything */
+    /* -webkit-text-stroke: 1 px transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-smooth: always; */
     padding-bottom: 40%;
     font-size: 40px;
     font-weight: 500;
@@ -76,8 +81,9 @@ body {
 .displayed-words p {
     display: flex;
     flex-wrap: wrap;
-    margin-top: 0;
-    margin-bottom: 10px;
+    margin: 0 2px;
+    /* margin-top: 0; */
+    margin-bottom: 40px;
     /* this is necessary for punctuation to appear in the correct spot */
     align-items: center;
 }

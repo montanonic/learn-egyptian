@@ -213,6 +213,7 @@ type alias Model =
     , newWopDefinition : String
     , mouseDownWord : ( Int, Int, String ) -- line index (which line), word index (which word within line)
     , hoveredWord : String
+    , lessonsDueForReview : List DueForReview.LessonWithReviewDensity
 
     -- new flashcard impl
     , onFlashcardPage : Bool
@@ -246,6 +247,7 @@ init { tick, lessons, wops, lessonTranslations, newWopFlashcards } =
       , newWopDefinition = ""
       , mouseDownWord = ( 0, 0, "" )
       , hoveredWord = ""
+      , lessonsDueForReview = []
 
       -- new flashcard impl
       , onFlashcardPage = False
@@ -269,6 +271,7 @@ init { tick, lessons, wops, lessonTranslations, newWopFlashcards } =
       -- enter new wops view
       , enterNewWops = EnterNewWops.init
       }
+        |> (\m -> { m | lessonsDueForReview = DueForReview.getLessonsDueForReview m })
     , Cmd.none
     )
 
@@ -332,11 +335,23 @@ type Msg
 -- the "Send" button. Check out index.html to see the corresponding
 -- JS where this is piped into a WebSocket.
 --
+-- update : Msg -> Model -> ( Model, Cmd Msg )
+-- update msg premodel =
+--     let
+--         ( mainModel, cmd ) =
+--             mainUpdate msg premodel
+--         -- after all main
+--         postUpdate model =
+--             model
+--     in
+--     ( postUpdate mainModel, cmd )
 
 
+{-| The primary part of the update loop.
+-}
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
+    (case msg of
         Tick posix ->
             pure { model | tick = posix }
 
@@ -407,10 +422,6 @@ update msg model =
                                 )
                                 model.wops
                                 newWops
-
-                        diffFromOldDict =
-                            Dict.diff mergedIntoWopDict model.wops
-                                |> Debug.log "diff"
                     in
                     pure { model | wops = mergedIntoWopDict, enterNewWops = EnterNewWops.init }
 
@@ -575,7 +586,7 @@ update msg model =
                     , selectedWopTagsBuffer = ""
                     , wops =
                         WOP.update wopKey
-                            (Maybe.map (WOP.addReviewTime (Debug.log "timestamp" timestamp) lessonId))
+                            (Maybe.map (WOP.addReviewTime timestamp lessonId))
                             model.wops
                 }
                 (\newModel ->
@@ -864,6 +875,21 @@ update msg model =
 
         GetCurrentTimeAndThen toMsg ->
             ( model, Task.perform toMsg Time.now )
+    )
+        -- POST UPDATE
+        |> Tuple.mapFirst
+            (\updatedModel ->
+                let
+                    updateLessonsDueForReview ({ wops, lessons } as um) =
+                        if wops /= model.wops || lessons /= model.lessons then
+                            { um | lessonsDueForReview = DueForReview.getLessonsDueForReview um }
+
+                        else
+                            um
+                in
+                updatedModel
+                    |> updateLessonsDueForReview
+            )
 
 
 
@@ -1437,48 +1463,6 @@ lessonsView model =
 
             else
                 ""
-
-        oneDay =
-            24 * 60 * 60 * 1000
-
-        dueForReviewList =
-            {- TODO: The way this is calculated is just temporary. Once we have review data for most
-               words, we can move to a more useful calculation. or at least have two: one for SRS-style
-               it would be useful to review this again today, and then this more general review of
-               words that you haven't seen for the longest time, useful at least for earlier stage
-               vocabulary acquisition
-
-               TODO: as I have improved upon this, the functionality should be integrated into the
-               wopsDueForReview function eventually.
-            -}
-            DueForReview.wopsDueForReview (Dict.values model.wops)
-                |> List.filter (\{ familiarityLevel } -> familiarityLevel <= 2)
-                |> List.filter
-                    (\wop ->
-                        Maybe.map
-                            (\lastReviewed ->
-                                if wop.familiarityLevel == 1 then
-                                    -- for level 1 keep only those reviewed more than 24 hours ago,
-                                    -- otherwise don't need to review again
-                                    (Time.posixToMillis model.tick - lastReviewed) > oneDay
-
-                                else
-                                    -- for level 2, we can wait at least 4 days before reviewing
-                                    -- again.
-                                    (Time.posixToMillis model.tick - lastReviewed) > 4 * oneDay
-                            )
-                            (WOP.lastReviewedOn wop)
-                            -- any missing a review date are up for review
-                            |> Maybe.withDefault True
-                    )
-                {- among other things, this limit helps the performance cost of calculating the next
-                   step of this with the lesson lookup. turns out that doing a search for every due
-                   word in every lesson isn't cheap! in the future, it would be prudent to improve this.
-                -}
-                |> List.take 100
-
-        lessonsDueForReview =
-            DueForReview.lessonsByReviewDensity model.wops model.lessons dueForReviewList
     in
     div [ class "lessons-view" ]
         [ h3 [] [ text "select a lesson" ]
@@ -1497,9 +1481,9 @@ lessonsView model =
                 |> List.map (\title -> button [ onClick <| SelectLesson title, disabled viewingFlashcards, Html.Attributes.title buttonTitle ] [ text title ])
             )
         , div [ class "lesson-selector lessons-for-review" ]
-            [ p [] [ text "here's the top five lessons to review:" ]
+            [ p [] [ text "here's the top ten lessons to review:" ]
             , div []
-                (List.take 5 lessonsDueForReview
+                (List.take 10 model.lessonsDueForReview
                     |> List.map
                         (\{ lessonTitle, densityRatio, totalDueInLesson } ->
                             button
