@@ -115,8 +115,10 @@ subscriptions { drawInLesson } =
            manually fire a Time.now command, and thread the result into the computation. because
            that type of book-keeping feels tedious, and such a precise resolution doesn't seem to be
            important for now, I stick with a 100ms tick.
+
+           UPDATE: jk I pick whatever tick I want
         -}
-        -- , Time.every 100 Tick
+        , Time.every 1000 Tick
         ]
 
 
@@ -571,13 +573,16 @@ update msg model =
                 { model
                     | selectedWop = wopKey
                     , selectedWopTagsBuffer = ""
-                    , wops = Dict.update wopKey (Maybe.map (WOP.addReviewTime timestamp lessonId)) model.wops
+                    , wops =
+                        WOP.update wopKey
+                            (Maybe.map (WOP.addReviewTime (Debug.log "timestamp" timestamp) lessonId))
+                            model.wops
                 }
-                (\{ selectedWop } ->
+                (\newModel ->
                     Cmd.batch
-                        [ model.wops |> Dict.toList |> storeWops
+                        [ newModel.wops |> Dict.toList |> storeWops
                         , -- autofocus the definition field if the word is not known
-                          case WOP.get selectedWop model.wops of
+                          case WOP.get newModel.selectedWop newModel.wops of
                             Just _ ->
                                 Cmd.none
 
@@ -1433,10 +1438,44 @@ lessonsView model =
             else
                 ""
 
+        oneDay =
+            24 * 60 * 60 * 1000
+
         dueForReviewList =
-            {- TODO: The way this is calculated is just temporary. Once we have review data for most words, we can move to a more useful calculation. or at least have two: one for SRS-style it would be useful to review this again today, and then this more general review of words that you haven't seen for the longest time, useful at least for earlier stage vocabulary acquisition -}
+            {- TODO: The way this is calculated is just temporary. Once we have review data for most
+               words, we can move to a more useful calculation. or at least have two: one for SRS-style
+               it would be useful to review this again today, and then this more general review of
+               words that you haven't seen for the longest time, useful at least for earlier stage
+               vocabulary acquisition
+
+               TODO: as I have improved upon this, the functionality should be integrated into the
+               wopsDueForReview function eventually.
+            -}
             DueForReview.wopsDueForReview (Dict.values model.wops)
                 |> List.filter (\{ familiarityLevel } -> familiarityLevel <= 2)
+                |> List.filter
+                    (\wop ->
+                        Maybe.map
+                            (\lastReviewed ->
+                                if wop.familiarityLevel == 1 then
+                                    -- for level 1 keep only those reviewed more than 24 hours ago,
+                                    -- otherwise don't need to review again
+                                    (Time.posixToMillis model.tick - lastReviewed) > oneDay
+
+                                else
+                                    -- for level 2, we can wait at least 4 days before reviewing
+                                    -- again.
+                                    (Time.posixToMillis model.tick - lastReviewed) > 4 * oneDay
+                            )
+                            (WOP.lastReviewedOn wop)
+                            -- any missing a review date are up for review
+                            |> Maybe.withDefault True
+                    )
+                {- among other things, this limit helps the performance cost of calculating the next
+                   step of this with the lesson lookup. turns out that doing a search for every due
+                   word in every lesson isn't cheap! in the future, it would be prudent to improve this.
+                -}
+                |> List.take 100
 
         lessonsDueForReview =
             DueForReview.lessonsByReviewDensity model.wops model.lessons dueForReviewList

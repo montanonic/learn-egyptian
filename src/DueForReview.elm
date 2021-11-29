@@ -17,6 +17,7 @@ wopsDueForReview : List WOP -> List WOP
 wopsDueForReview wops =
     wops
         |> List.map (\wop -> ( wop, WOP.lastReviewedOn wop |> Maybe.withDefault 0 ))
+        -- smaller review time is longer ago
         |> List.sortBy Tuple.second
         |> List.map Tuple.first
 

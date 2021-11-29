@@ -4358,6 +4358,52 @@ function _Browser_load(url)
 
 
 
+function _Time_now(millisToPosix)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(millisToPosix(Date.now())));
+	});
+}
+
+var _Time_setInterval = F2(function(interval, task)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var id = setInterval(function() { _Scheduler_rawSpawn(task); }, interval);
+		return function() { clearInterval(id); };
+	});
+});
+
+function _Time_here()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(
+			A2($elm$time$Time$customZone, -(new Date().getTimezoneOffset()), _List_Nil)
+		));
+	});
+}
+
+
+function _Time_getZoneName()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		try
+		{
+			var name = $elm$time$Time$Name(Intl.DateTimeFormat().resolvedOptions().timeZone);
+		}
+		catch (e)
+		{
+			var name = $elm$time$Time$Offset(new Date().getTimezoneOffset());
+		}
+		callback(_Scheduler_succeed(name));
+	});
+}
+
+
+
 // SEND REQUEST
 
 var _Http_toTask = F3(function(router, toTask, request)
@@ -4668,52 +4714,6 @@ var _Bitwise_shiftRightZfBy = F2(function(offset, a)
 {
 	return a >>> offset;
 });
-
-
-
-function _Time_now(millisToPosix)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		callback(_Scheduler_succeed(millisToPosix(Date.now())));
-	});
-}
-
-var _Time_setInterval = F2(function(interval, task)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		var id = setInterval(function() { _Scheduler_rawSpawn(task); }, interval);
-		return function() { clearInterval(id); };
-	});
-});
-
-function _Time_here()
-{
-	return _Scheduler_binding(function(callback)
-	{
-		callback(_Scheduler_succeed(
-			A2($elm$time$Time$customZone, -(new Date().getTimezoneOffset()), _List_Nil)
-		));
-	});
-}
-
-
-function _Time_getZoneName()
-{
-	return _Scheduler_binding(function(callback)
-	{
-		try
-		{
-			var name = $elm$time$Time$Name(Intl.DateTimeFormat().resolvedOptions().timeZone);
-		}
-		catch (e)
-		{
-			var name = $elm$time$Time$Offset(new Date().getTimezoneOffset());
-		}
-		callback(_Scheduler_succeed(name));
-	});
-}
 var $elm$core$Maybe$Just = function (a) {
 	return {$: 'Just', a: a};
 };
@@ -5722,42 +5722,72 @@ var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Main$GotKalimniEvent = function (a) {
 	return {$: 'GotKalimniEvent', a: a};
 };
+var $author$project$Main$Tick = function (a) {
+	return {$: 'Tick', a: a};
+};
 var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $author$project$Main$KeyPress = function (a) {
-	return {$: 'KeyPress', a: a};
-};
-var $author$project$Main$keyDecoder = A2(
-	$elm$json$Json$Decode$map,
-	$author$project$Main$KeyPress,
-	A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string));
-var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
-var $elm$browser$Browser$Events$Document = {$: 'Document'};
-var $elm$browser$Browser$Events$MySub = F3(
-	function (a, b, c) {
-		return {$: 'MySub', a: a, b: b, c: c};
+var $elm$time$Time$Every = F2(
+	function (a, b) {
+		return {$: 'Every', a: a, b: b};
 	});
-var $elm$browser$Browser$Events$State = F2(
-	function (subs, pids) {
-		return {pids: pids, subs: subs};
+var $elm$time$Time$State = F2(
+	function (taggers, processes) {
+		return {processes: processes, taggers: taggers};
 	});
-var $elm$browser$Browser$Events$init = $elm$core$Task$succeed(
-	A2($elm$browser$Browser$Events$State, _List_Nil, $elm$core$Dict$empty));
-var $elm$browser$Browser$Events$nodeToKey = function (node) {
-	if (node.$ === 'Document') {
-		return 'd_';
-	} else {
-		return 'w_';
-	}
-};
-var $elm$browser$Browser$Events$addKey = function (sub) {
-	var node = sub.a;
-	var name = sub.b;
-	return _Utils_Tuple2(
-		_Utils_ap(
-			$elm$browser$Browser$Events$nodeToKey(node),
-			name),
-		sub);
-};
+var $elm$time$Time$init = $elm$core$Task$succeed(
+	A2($elm$time$Time$State, $elm$core$Dict$empty, $elm$core$Dict$empty));
+var $elm$core$Dict$get = F2(
+	function (targetKey, dict) {
+		get:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
+				switch (_v1.$) {
+					case 'LT':
+						var $temp$targetKey = targetKey,
+							$temp$dict = left;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+					case 'EQ':
+						return $elm$core$Maybe$Just(value);
+					default:
+						var $temp$targetKey = targetKey,
+							$temp$dict = right;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+				}
+			}
+		}
+	});
+var $elm$time$Time$addMySub = F2(
+	function (_v0, state) {
+		var interval = _v0.a;
+		var tagger = _v0.b;
+		var _v1 = A2($elm$core$Dict$get, interval, state);
+		if (_v1.$ === 'Nothing') {
+			return A3(
+				$elm$core$Dict$insert,
+				interval,
+				_List_fromArray(
+					[tagger]),
+				state);
+		} else {
+			var taggers = _v1.a;
+			return A3(
+				$elm$core$Dict$insert,
+				interval,
+				A2($elm$core$List$cons, tagger, taggers),
+				state);
+		}
+	});
 var $elm$core$Process$kill = _Scheduler_kill;
 var $elm$core$Dict$foldl = F3(
 	function (func, acc, dict) {
@@ -5845,11 +5875,196 @@ var $elm$core$Dict$merge = F6(
 			intermediateResult,
 			leftovers);
 	});
+var $elm$core$Platform$sendToSelf = _Platform_sendToSelf;
+var $elm$time$Time$Name = function (a) {
+	return {$: 'Name', a: a};
+};
+var $elm$time$Time$Offset = function (a) {
+	return {$: 'Offset', a: a};
+};
+var $elm$time$Time$Zone = F2(
+	function (a, b) {
+		return {$: 'Zone', a: a, b: b};
+	});
+var $elm$time$Time$customZone = $elm$time$Time$Zone;
+var $elm$time$Time$setInterval = _Time_setInterval;
+var $elm$core$Process$spawn = _Scheduler_spawn;
+var $elm$time$Time$spawnHelp = F3(
+	function (router, intervals, processes) {
+		if (!intervals.b) {
+			return $elm$core$Task$succeed(processes);
+		} else {
+			var interval = intervals.a;
+			var rest = intervals.b;
+			var spawnTimer = $elm$core$Process$spawn(
+				A2(
+					$elm$time$Time$setInterval,
+					interval,
+					A2($elm$core$Platform$sendToSelf, router, interval)));
+			var spawnRest = function (id) {
+				return A3(
+					$elm$time$Time$spawnHelp,
+					router,
+					rest,
+					A3($elm$core$Dict$insert, interval, id, processes));
+			};
+			return A2($elm$core$Task$andThen, spawnRest, spawnTimer);
+		}
+	});
+var $elm$time$Time$onEffects = F3(
+	function (router, subs, _v0) {
+		var processes = _v0.processes;
+		var rightStep = F3(
+			function (_v6, id, _v7) {
+				var spawns = _v7.a;
+				var existing = _v7.b;
+				var kills = _v7.c;
+				return _Utils_Tuple3(
+					spawns,
+					existing,
+					A2(
+						$elm$core$Task$andThen,
+						function (_v5) {
+							return kills;
+						},
+						$elm$core$Process$kill(id)));
+			});
+		var newTaggers = A3($elm$core$List$foldl, $elm$time$Time$addMySub, $elm$core$Dict$empty, subs);
+		var leftStep = F3(
+			function (interval, taggers, _v4) {
+				var spawns = _v4.a;
+				var existing = _v4.b;
+				var kills = _v4.c;
+				return _Utils_Tuple3(
+					A2($elm$core$List$cons, interval, spawns),
+					existing,
+					kills);
+			});
+		var bothStep = F4(
+			function (interval, taggers, id, _v3) {
+				var spawns = _v3.a;
+				var existing = _v3.b;
+				var kills = _v3.c;
+				return _Utils_Tuple3(
+					spawns,
+					A3($elm$core$Dict$insert, interval, id, existing),
+					kills);
+			});
+		var _v1 = A6(
+			$elm$core$Dict$merge,
+			leftStep,
+			bothStep,
+			rightStep,
+			newTaggers,
+			processes,
+			_Utils_Tuple3(
+				_List_Nil,
+				$elm$core$Dict$empty,
+				$elm$core$Task$succeed(_Utils_Tuple0)));
+		var spawnList = _v1.a;
+		var existingDict = _v1.b;
+		var killTask = _v1.c;
+		return A2(
+			$elm$core$Task$andThen,
+			function (newProcesses) {
+				return $elm$core$Task$succeed(
+					A2($elm$time$Time$State, newTaggers, newProcesses));
+			},
+			A2(
+				$elm$core$Task$andThen,
+				function (_v2) {
+					return A3($elm$time$Time$spawnHelp, router, spawnList, existingDict);
+				},
+				killTask));
+	});
+var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
+var $elm$time$Time$onSelfMsg = F3(
+	function (router, interval, state) {
+		var _v0 = A2($elm$core$Dict$get, interval, state.taggers);
+		if (_v0.$ === 'Nothing') {
+			return $elm$core$Task$succeed(state);
+		} else {
+			var taggers = _v0.a;
+			var tellTaggers = function (time) {
+				return $elm$core$Task$sequence(
+					A2(
+						$elm$core$List$map,
+						function (tagger) {
+							return A2(
+								$elm$core$Platform$sendToApp,
+								router,
+								tagger(time));
+						},
+						taggers));
+			};
+			return A2(
+				$elm$core$Task$andThen,
+				function (_v1) {
+					return $elm$core$Task$succeed(state);
+				},
+				A2($elm$core$Task$andThen, tellTaggers, $elm$time$Time$now));
+		}
+	});
+var $elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
+var $elm$time$Time$subMap = F2(
+	function (f, _v0) {
+		var interval = _v0.a;
+		var tagger = _v0.b;
+		return A2(
+			$elm$time$Time$Every,
+			interval,
+			A2($elm$core$Basics$composeL, f, tagger));
+	});
+_Platform_effectManagers['Time'] = _Platform_createManager($elm$time$Time$init, $elm$time$Time$onEffects, $elm$time$Time$onSelfMsg, 0, $elm$time$Time$subMap);
+var $elm$time$Time$subscription = _Platform_leaf('Time');
+var $elm$time$Time$every = F2(
+	function (interval, tagger) {
+		return $elm$time$Time$subscription(
+			A2($elm$time$Time$Every, interval, tagger));
+	});
+var $author$project$Main$KeyPress = function (a) {
+	return {$: 'KeyPress', a: a};
+};
+var $author$project$Main$keyDecoder = A2(
+	$elm$json$Json$Decode$map,
+	$author$project$Main$KeyPress,
+	A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string));
+var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
+var $elm$browser$Browser$Events$Document = {$: 'Document'};
+var $elm$browser$Browser$Events$MySub = F3(
+	function (a, b, c) {
+		return {$: 'MySub', a: a, b: b, c: c};
+	});
+var $elm$browser$Browser$Events$State = F2(
+	function (subs, pids) {
+		return {pids: pids, subs: subs};
+	});
+var $elm$browser$Browser$Events$init = $elm$core$Task$succeed(
+	A2($elm$browser$Browser$Events$State, _List_Nil, $elm$core$Dict$empty));
+var $elm$browser$Browser$Events$nodeToKey = function (node) {
+	if (node.$ === 'Document') {
+		return 'd_';
+	} else {
+		return 'w_';
+	}
+};
+var $elm$browser$Browser$Events$addKey = function (sub) {
+	var node = sub.a;
+	var name = sub.b;
+	return _Utils_Tuple2(
+		_Utils_ap(
+			$elm$browser$Browser$Events$nodeToKey(node),
+			name),
+		sub);
+};
 var $elm$browser$Browser$Events$Event = F2(
 	function (key, event) {
 		return {event: event, key: key};
 	});
-var $elm$core$Platform$sendToSelf = _Platform_sendToSelf;
 var $elm$browser$Browser$Events$spawn = F3(
 	function (router, key, _v0) {
 		var node = _v0.a;
@@ -6050,7 +6265,8 @@ var $author$project$Main$subscriptions = function (_v0) {
 		_List_fromArray(
 			[
 				$elm$browser$Browser$Events$onKeyPress($author$project$Main$keyDecoder),
-				drawInLesson ? $author$project$Main$receiveKalimniEvents($author$project$Main$GotKalimniEvent) : $elm$core$Platform$Sub$none
+				drawInLesson ? $author$project$Main$receiveKalimniEvents($author$project$Main$GotKalimniEvent) : $elm$core$Platform$Sub$none,
+				A2($elm$time$Time$every, 1000, $author$project$Main$Tick)
 			]));
 };
 var $author$project$Main$BackendAudioUpdated = function (a) {
@@ -6092,18 +6308,90 @@ var $author$project$Flashcard$addHistoryEntry = F3(
 					flashcard.history)
 			});
 	});
+var $elm$core$List$partition = F2(
+	function (pred, list) {
+		var step = F2(
+			function (x, _v0) {
+				var trues = _v0.a;
+				var falses = _v0.b;
+				return pred(x) ? _Utils_Tuple2(
+					A2($elm$core$List$cons, x, trues),
+					falses) : _Utils_Tuple2(
+					trues,
+					A2($elm$core$List$cons, x, falses));
+			});
+		return A3(
+			$elm$core$List$foldr,
+			step,
+			_Utils_Tuple2(_List_Nil, _List_Nil),
+			list);
+	});
+var $elm_community$list_extra$List$Extra$gatherWith = F2(
+	function (testFn, list) {
+		var helper = F2(
+			function (scattered, gathered) {
+				helper:
+				while (true) {
+					if (!scattered.b) {
+						return $elm$core$List$reverse(gathered);
+					} else {
+						var toGather = scattered.a;
+						var population = scattered.b;
+						var _v1 = A2(
+							$elm$core$List$partition,
+							testFn(toGather),
+							population);
+						var gathering = _v1.a;
+						var remaining = _v1.b;
+						var $temp$scattered = remaining,
+							$temp$gathered = A2(
+							$elm$core$List$cons,
+							_Utils_Tuple2(toGather, gathering),
+							gathered);
+						scattered = $temp$scattered;
+						gathered = $temp$gathered;
+						continue helper;
+					}
+				}
+			});
+		return A2(helper, list, _List_Nil);
+	});
+var $elm_community$list_extra$List$Extra$gatherEqualsBy = F2(
+	function (extract, list) {
+		return A2(
+			$elm_community$list_extra$List$Extra$gatherWith,
+			F2(
+				function (a, b) {
+					return _Utils_eq(
+						extract(a),
+						extract(b));
+				}),
+			list);
+	});
 var $author$project$WordOrPhrase$addReviewTime = F3(
 	function (time, lessonId, wop) {
+		var cleanupExcessInformation = function (history) {
+			return A2(
+				$elm$core$List$map,
+				$elm$core$Tuple$first,
+				A2(
+					$elm_community$list_extra$List$Extra$gatherEqualsBy,
+					function ($) {
+						return $.lessonId;
+					},
+					history));
+		};
 		return _Utils_update(
 			wop,
 			{
-				reviewHistory: A2(
-					$elm$core$List$cons,
-					{
-						lessonId: $elm$core$Maybe$Just(lessonId),
-						timestamp: $elm$time$Time$posixToMillis(time)
-					},
-					wop.reviewHistory)
+				reviewHistory: cleanupExcessInformation(
+					A2(
+						$elm$core$List$cons,
+						{
+							lessonId: $elm$core$Maybe$Just(lessonId),
+							timestamp: $elm$time$Time$posixToMillis(time)
+						},
+						wop.reviewHistory))
 			});
 	});
 var $elm$core$List$any = F2(
@@ -6126,11 +6414,6 @@ var $elm$core$List$any = F2(
 				}
 			}
 		}
-	});
-var $elm$core$Basics$composeL = F3(
-	function (g, f, x) {
-		return g(
-			f(x));
 	});
 var $elm$core$Basics$not = _Basics_not;
 var $elm$core$List$all = F2(
@@ -6595,37 +6878,6 @@ var $elm$core$Maybe$isJust = function (maybe) {
 		return false;
 	}
 };
-var $elm$core$Dict$get = F2(
-	function (targetKey, dict) {
-		get:
-		while (true) {
-			if (dict.$ === 'RBEmpty_elm_builtin') {
-				return $elm$core$Maybe$Nothing;
-			} else {
-				var key = dict.b;
-				var value = dict.c;
-				var left = dict.d;
-				var right = dict.e;
-				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
-				switch (_v1.$) {
-					case 'LT':
-						var $temp$targetKey = targetKey,
-							$temp$dict = left;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-					case 'EQ':
-						return $elm$core$Maybe$Just(value);
-					default:
-						var $temp$targetKey = targetKey,
-							$temp$dict = right;
-						targetKey = $temp$targetKey;
-						dict = $temp$dict;
-						continue get;
-				}
-			}
-		}
-	});
 var $elm$core$Dict$update = F3(
 	function (targetKey, alter, dictionary) {
 		var _v0 = alter(
@@ -7073,18 +7325,6 @@ var $elm$random$Random$initialSeed = function (x) {
 	return $elm$random$Random$next(
 		A2($elm$random$Random$Seed, state2, incr));
 };
-var $elm$time$Time$Name = function (a) {
-	return {$: 'Name', a: a};
-};
-var $elm$time$Time$Offset = function (a) {
-	return {$: 'Offset', a: a};
-};
-var $elm$time$Time$Zone = F2(
-	function (a, b) {
-		return {$: 'Zone', a: a, b: b};
-	});
-var $elm$time$Time$customZone = $elm$time$Time$Zone;
-var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
 var $elm$random$Random$init = A2(
 	$elm$core$Task$andThen,
 	function (time) {
@@ -7267,7 +7507,6 @@ var $elm$http$Http$State = F2(
 	});
 var $elm$http$Http$init = $elm$core$Task$succeed(
 	A2($elm$http$Http$State, $elm$core$Dict$empty, _List_Nil));
-var $elm$core$Process$spawn = _Scheduler_spawn;
 var $elm$http$Http$updateReqs = F3(
 	function (router, cmds, reqs) {
 		updateReqs:
@@ -8324,22 +8563,24 @@ var $author$project$Main$update = F2(
 								selectedWop: wopKey,
 								selectedWopTagsBuffer: '',
 								wops: A3(
-									$elm$core$Dict$update,
+									$author$project$WordOrPhrase$update,
 									wopKey,
 									$elm$core$Maybe$map(
-										A2($author$project$WordOrPhrase$addReviewTime, timestamp, lessonId)),
+										A2(
+											$author$project$WordOrPhrase$addReviewTime,
+											A2($elm$core$Debug$log, 'timestamp', timestamp),
+											lessonId)),
 									model.wops)
 							}),
-						function (_v6) {
-							var selectedWop = _v6.selectedWop;
+						function (newModel) {
 							return $elm$core$Platform$Cmd$batch(
 								_List_fromArray(
 									[
 										$author$project$Main$storeWops(
-										$elm$core$Dict$toList(model.wops)),
+										$elm$core$Dict$toList(newModel.wops)),
 										function () {
-										var _v7 = A2($author$project$WordOrPhrase$get, selectedWop, model.wops);
-										if (_v7.$ === 'Just') {
+										var _v6 = A2($author$project$WordOrPhrase$get, newModel.selectedWop, newModel.wops);
+										if (_v6.$ === 'Just') {
 											return $elm$core$Platform$Cmd$none;
 										} else {
 											return $author$project$Main$autofocusId('newWopDefinition');
@@ -8527,9 +8768,9 @@ var $author$project$Main$update = F2(
 				case 'OpenPhraseCreationUI':
 					var lineIndexEnd = msg.a;
 					var wordIndexEnd = msg.b;
-					var _v8 = model.mouseDownWord;
-					var lineIndexStart = _v8.a;
-					var wordIndexStart = _v8.b;
+					var _v7 = model.mouseDownWord;
+					var lineIndexStart = _v7.a;
+					var wordIndexStart = _v7.b;
 					if ((!_Utils_eq(wordIndexEnd, wordIndexStart)) && _Utils_eq(lineIndexEnd, lineIndexStart)) {
 						var selectedLessonText = A2(
 							$elm$core$Maybe$withDefault,
@@ -8717,14 +8958,14 @@ var $author$project$Main$update = F2(
 								},
 								A2(
 									$elm$core$List$filter,
-									function (_v14) {
-										var familiarityLevel = _v14.familiarityLevel;
+									function (_v13) {
+										var familiarityLevel = _v13.familiarityLevel;
 										return familiarityLevel <= 2;
 									},
 									A2($author$project$Lesson$getWops, model.wops, lessonText)))));
 					var flashcards = $author$project$Flashcard$makeflashcards(wopsWithSentence);
-					var _v12 = $author$project$Main$extractSentences(lessonText);
-					var _v13 = A2(
+					var _v11 = $author$project$Main$extractSentences(lessonText);
+					var _v12 = A2(
 						$elm$core$List$map,
 						function (word) {
 							return A2(
@@ -9353,6 +9594,25 @@ var $elm_community$maybe_extra$Maybe$Extra$isJust = function (m) {
 		return true;
 	}
 };
+var $elm$core$List$maximum = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(
+			A3($elm$core$List$foldl, $elm$core$Basics$max, x, xs));
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $author$project$WordOrPhrase$lastReviewedOn = function (wop) {
+	return $elm$core$List$maximum(
+		A2(
+			$elm$core$List$map,
+			function ($) {
+				return $.timestamp;
+			},
+			wop.reviewHistory));
+};
 var $matthewsj$elm_ordering$Ordering$breakTiesWith = F4(
 	function (tiebreaker, mainOrdering, x, y) {
 		var _v0 = A2(mainOrdering, x, y);
@@ -9380,7 +9640,8 @@ var $author$project$WordOrPhrase$intoDict = function (wops) {
 			$elm$core$List$map,
 			function (wop) {
 				return _Utils_Tuple2(
-					$author$project$WordOrPhrase$key(wop),
+					$author$project$WordOrPhrase$removeTashkyl(
+						$author$project$WordOrPhrase$key(wop)),
 					wop);
 			},
 			wops));
@@ -9687,25 +9948,6 @@ var $elm$core$Dict$size = function (dict) {
 	return A2($elm$core$Dict$sizeHelp, 0, dict);
 };
 var $elm$html$Html$Attributes$title = $elm$html$Html$Attributes$stringProperty('title');
-var $elm$core$List$minimum = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(
-			A3($elm$core$List$foldl, $elm$core$Basics$min, x, xs));
-	} else {
-		return $elm$core$Maybe$Nothing;
-	}
-};
-var $author$project$WordOrPhrase$lastReviewedOn = function (wop) {
-	return $elm$core$List$minimum(
-		A2(
-			$elm$core$List$map,
-			function ($) {
-				return $.timestamp;
-			},
-			wop.reviewHistory));
-};
 var $author$project$DueForReview$wopsDueForReview = function (wops) {
 	return A2(
 		$elm$core$List$map,
@@ -9732,14 +9974,35 @@ var $author$project$Main$lessonsView = function (model) {
 				A2($author$project$WordOrPhrase$listWopsOfLevel, n, model.wops))) + (' ' + $author$project$WordOrPhrase$displayFamiliarityLevel(n));
 	};
 	var viewingFlashcards = $elm_community$maybe_extra$Maybe$Extra$isJust(model.lessonFlashcards);
+	var oneDay = ((24 * 60) * 60) * 1000;
 	var dueForReviewList = A2(
-		$elm$core$List$filter,
-		function (_v1) {
-			var familiarityLevel = _v1.familiarityLevel;
-			return familiarityLevel <= 2;
-		},
-		$author$project$DueForReview$wopsDueForReview(
-			$elm$core$Dict$values(model.wops)));
+		$elm$core$List$take,
+		100,
+		A2(
+			$elm$core$List$filter,
+			function (wop) {
+				return A2(
+					$elm$core$Maybe$withDefault,
+					true,
+					A2(
+						$elm$core$Maybe$map,
+						function (lastReviewed) {
+							return (wop.familiarityLevel === 1) ? (_Utils_cmp(
+								$elm$time$Time$posixToMillis(model.tick) - lastReviewed,
+								oneDay) > 0) : (_Utils_cmp(
+								$elm$time$Time$posixToMillis(model.tick) - lastReviewed,
+								4 * oneDay) > 0);
+						},
+						$author$project$WordOrPhrase$lastReviewedOn(wop)));
+			},
+			A2(
+				$elm$core$List$filter,
+				function (_v1) {
+					var familiarityLevel = _v1.familiarityLevel;
+					return familiarityLevel <= 2;
+				},
+				$author$project$DueForReview$wopsDueForReview(
+					$elm$core$Dict$values(model.wops)))));
 	var lessonsDueForReview = A3($author$project$DueForReview$lessonsByReviewDensity, model.wops, model.lessons, dueForReviewList);
 	var buttonTitle = viewingFlashcards ? 'finish or cancel flashcards to change lesson' : '';
 	return A2(

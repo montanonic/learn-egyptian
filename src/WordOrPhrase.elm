@@ -8,6 +8,15 @@ import Time exposing (Posix)
 
 
 
+{- TODO: so it seems that there's a good argument to move this data type into a singleton type
+   rather than an alias and to keep construction and destructuring module-private: it is becoming too
+   easy to fail to maintain invariants with this data type, and by forcing all interactions to occur in
+   this module, I can avoid the seemingly constant slipup of doing a Dict.get on the wops structure,
+   rather than the get function in this module which properly detashkylizes. In other words: I think
+   this should be made an opaque type soon.
+
+   Really though just the Dict needs to be made opaque. But more secure is to just have a WOP.wopView function which returns a record of convenient wop fields but, being a distinct data type, cannot be used to modify a WOP in any way. Then we can pass WopViews around everywhere without messing things up.
+-}
 {- What is the real difference between a word an a phrase in terms of how it's used in a language?
 
    They are in many ways one-in-the-same, and I can see why LingQ would just call these lingqs.
@@ -97,7 +106,7 @@ makeWOP wordOrPhrase definition =
 
 intoDict : List WOP -> Dict String WOP
 intoDict wops =
-    wops |> List.map (\wop -> ( key wop, wop )) |> Dict.fromList
+    wops |> List.map (\wop -> ( key wop |> removeTashkyl, wop )) |> Dict.fromList
 
 
 setDefinition : Int -> String -> WOP -> WOP
@@ -131,27 +140,25 @@ setFamiliarityLevel level wop =
         Nothing
 
 
-{-| NOTE: By the way this is designed and used, we're probably better off just storing the LAST
-review time, since our metric isn't very elaborate. It's not worth changing really, because the
-current methodology isn't harmful beyond being more complex, but we also don't really use previous
-review history. It's far more useful to have things like which lessons a wop was reviewed in,
-because _that_ can be used to offer more review variety. That's what we should ultimately move
-towards. Another great one is: when doing flashcard reviews, track that a word was reviewed in that
-context, and also which sentence it was reviewed under. Again, useful information for variety sake.
-
-FOLLOWUP NOTE: Storing the review history also tied to which lesson a wop was reviewed in would be useful for showing the word in unique contexts for future reviews and in general ensuring we get sentence variety for a single wop. I think storing such data is useful, so I'm going to do so.
-
+{-| It's currently not really important to know how often a word was viewed, but rather just to know
+when the last time it was reviewed and for which lessons. Thus this function discards any extra reviews.
 -}
 addReviewTime : Posix -> String -> WOP -> WOP
 addReviewTime time lessonId wop =
-    { wop | reviewHistory = { timestamp = Time.posixToMillis time, lessonId = Just lessonId } :: wop.reviewHistory }
+    let
+        cleanupExcessInformation history =
+            ListE.gatherEqualsBy .lessonId history
+                -- keep only the most recent entry per lesson
+                |> List.map Tuple.first
+    in
+    { wop | reviewHistory = { timestamp = Time.posixToMillis time, lessonId = Just lessonId } :: wop.reviewHistory |> cleanupExcessInformation }
 
 
 {-| absolute ms timestamp
 -}
 lastReviewedOn : WOP -> Maybe Int
 lastReviewedOn wop =
-    wop.reviewHistory |> List.map .timestamp |> List.minimum
+    wop.reviewHistory |> List.map .timestamp |> List.maximum
 
 
 setTags : String -> WOP -> WOP
