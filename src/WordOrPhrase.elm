@@ -260,11 +260,12 @@ allPhrases dict =
 -}
 
 
-{-| Specifically just fathah, kasrah, dammah, and sukoon. Not shaddah (or sukoon).
+{-| I'm deciding to remove _all_ tashkyl from stored words. Word disambiguation, if any, will happen
+after the initial lookup.
 -}
 tashkylSet : Set Char
 tashkylSet =
-    Set.fromList [ 'َ', 'ِ', 'ُ', 'ْ' ]
+    Set.fromList [ 'َ', 'ِ', 'ُ', 'ْ', 'ّ' ]
 
 
 splitOffTashkyl : String -> ( String, List Char )
@@ -287,13 +288,6 @@ splitOffTashkyl string =
 removeTashkyl : String -> String
 removeTashkyl =
     splitOffTashkyl >> Tuple.first
-
-
-{-| Same as `remove tashkyl` but also removes shadda.
--}
-removeAllTashkyl : String -> String
-removeAllTashkyl =
-    removeTashkyl >> String.replace "ّ" ""
 
 
 {-| Two words are tashkyl equivalent if their non-tashkyl forms are equal, and if either has no
@@ -361,7 +355,7 @@ searchWop : String -> Dict String WOP -> List WOP
 searchWop wopKey wops =
     let
         charsWithoutTashkyl str =
-            removeAllTashkyl str |> String.toList
+            removeTashkyl str |> String.toList
     in
     if String.isEmpty wopKey then
         []

@@ -7246,7 +7246,8 @@ var $author$project$WordOrPhrase$tashkylSet = $elm$core$Set$fromList(
 			_Utils_chr('َ'),
 			_Utils_chr('ِ'),
 			_Utils_chr('ُ'),
-			_Utils_chr('ْ')
+			_Utils_chr('ْ'),
+			_Utils_chr('ّ')
 		]));
 var $elm$core$String$foldr = _String_foldr;
 var $elm$core$String$toList = function (string) {
@@ -11328,22 +11329,11 @@ var $elm_community$list_extra$List$Extra$isInfixOf = F2(
 			return A3($elm_community$list_extra$List$Extra$isInfixOfHelp, x, xs, list);
 		}
 	});
-var $elm$core$String$replace = F3(
-	function (before, after, string) {
-		return A2(
-			$elm$core$String$join,
-			after,
-			A2($elm$core$String$split, before, string));
-	});
-var $author$project$WordOrPhrase$removeAllTashkyl = A2(
-	$elm$core$Basics$composeR,
-	$author$project$WordOrPhrase$removeTashkyl,
-	A2($elm$core$String$replace, 'ّ', ''));
 var $author$project$WordOrPhrase$searchWop = F2(
 	function (wopKey, wops) {
 		var charsWithoutTashkyl = function (str) {
 			return $elm$core$String$toList(
-				$author$project$WordOrPhrase$removeAllTashkyl(str));
+				$author$project$WordOrPhrase$removeTashkyl(str));
 		};
 		return $elm$core$String$isEmpty(wopKey) ? _List_Nil : A2(
 			$elm$core$List$map,
