@@ -351,6 +351,8 @@ getFamiliarityLevel wopKey wops =
         |> Maybe.withDefault 0
 
 
+{-| Prioritizes words that begin the same.
+-}
 searchWop : String -> Dict String WOP -> List WOP
 searchWop wopKey wops =
     let
@@ -367,3 +369,12 @@ searchWop wopKey wops =
             )
             (Dict.toList wops)
             |> List.map Tuple.second
+            |> List.sortBy
+                (\wop ->
+                    -- matches that are also prefixes should go first (spelling word from beginning)
+                    if ListE.isPrefixOf (charsWithoutTashkyl wopKey) (charsWithoutTashkyl (key wop)) then
+                        0
+
+                    else
+                        1
+                )

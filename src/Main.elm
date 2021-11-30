@@ -827,7 +827,6 @@ update msg model =
                 wopsWithSentence =
                     Lesson.getWops model.wops lessonText
                         |> List.filter (\{ familiarityLevel } -> familiarityLevel <= 2)
-                        |> List.sortBy .familiarityLevel
                         -- show last words first for best spacing effect
                         |> List.reverse
                         |> List.indexedMap
@@ -1143,10 +1142,8 @@ view model =
 
     else if model.enterNewWops.viewingEnterNewWops then
         div []
-            [ h2 []
-                [ text "Learn Egyptian"
-                , Html.map EnterNewWopsMsg <| EnterNewWops.view model.enterNewWops model
-                ]
+            [ h2 [] [ text "Learn Egyptian" ]
+            , Html.map EnterNewWopsMsg <| EnterNewWops.view model.enterNewWops model
             ]
 
     else
@@ -1480,9 +1477,9 @@ lessonsView model =
                 |> Dict.keys
                 |> List.map (\title -> button [ onClick <| SelectLesson title, disabled viewingFlashcards, Html.Attributes.title buttonTitle ] [ text title ])
             )
-        , div [ class "lesson-selector lessons-for-review" ]
+        , div [ class "lessons-for-review" ]
             [ p [] [ text "here's the top ten lessons to review:" ]
-            , div []
+            , div [ class "lesson-selector" ]
                 (List.take 10 model.lessonsDueForReview
                     |> List.map
                         (\{ lessonTitle, densityRatio, totalDueInLesson } ->

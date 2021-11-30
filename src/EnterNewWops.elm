@@ -103,10 +103,13 @@ view model parent =
 
           else
             p [] []
-        , div []
+        , div [ class "list" ]
             (List.map
                 (\wop ->
-                    div [] [ text <| WOP.key wop ++ " : " ++ String.join ", " wop.definitions ]
+                    div []
+                        [ span [ class "egyptian" ] [ text <| WOP.key wop ]
+                        , text <| " : " ++ String.join ", " wop.definitions
+                        ]
                 )
                 (WOP.searchWop (WOP.key model.newWop) parent.wops)
             )

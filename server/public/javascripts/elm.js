@@ -9124,17 +9124,12 @@ var $author$project$Main$update = F2(
 								}),
 							$elm$core$List$reverse(
 								A2(
-									$elm$core$List$sortBy,
-									function ($) {
-										return $.familiarityLevel;
+									$elm$core$List$filter,
+									function (_v13) {
+										var familiarityLevel = _v13.familiarityLevel;
+										return familiarityLevel <= 2;
 									},
-									A2(
-										$elm$core$List$filter,
-										function (_v13) {
-											var familiarityLevel = _v13.familiarityLevel;
-											return familiarityLevel <= 2;
-										},
-										A2($author$project$Lesson$getWops, model.wops, lessonText)))));
+									A2($author$project$Lesson$getWops, model.wops, lessonText))));
 						var flashcards = $author$project$Flashcard$makeflashcards(wopsWithSentence);
 						var _v11 = $author$project$Main$extractSentences(lessonText);
 						var _v12 = A2(
@@ -10072,7 +10067,7 @@ var $author$project$Main$lessonsView = function (model) {
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('lesson-selector lessons-for-review')
+						$elm$html$Html$Attributes$class('lessons-for-review')
 					]),
 				_List_fromArray(
 					[
@@ -10085,7 +10080,10 @@ var $author$project$Main$lessonsView = function (model) {
 							])),
 						A2(
 						$elm$html$Html$div,
-						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('lesson-selector')
+							]),
 						A2(
 							$elm$core$List$map,
 							function (_v0) {
@@ -11336,18 +11334,27 @@ var $author$project$WordOrPhrase$searchWop = F2(
 				$author$project$WordOrPhrase$removeTashkyl(str));
 		};
 		return $elm$core$String$isEmpty(wopKey) ? _List_Nil : A2(
-			$elm$core$List$map,
-			$elm$core$Tuple$second,
+			$elm$core$List$sortBy,
+			function (wop) {
+				return A2(
+					$elm_community$list_extra$List$Extra$isPrefixOf,
+					charsWithoutTashkyl(wopKey),
+					charsWithoutTashkyl(
+						$author$project$WordOrPhrase$key(wop))) ? 0 : 1;
+			},
 			A2(
-				$elm$core$List$filter,
-				function (_v0) {
-					var k = _v0.a;
-					return A2(
-						$elm_community$list_extra$List$Extra$isInfixOf,
-						charsWithoutTashkyl(wopKey),
-						charsWithoutTashkyl(k));
-				},
-				$elm$core$Dict$toList(wops)));
+				$elm$core$List$map,
+				$elm$core$Tuple$second,
+				A2(
+					$elm$core$List$filter,
+					function (_v0) {
+						var k = _v0.a;
+						return A2(
+							$elm_community$list_extra$List$Extra$isInfixOf,
+							charsWithoutTashkyl(wopKey),
+							charsWithoutTashkyl(k));
+					},
+					$elm$core$Dict$toList(wops))));
 	});
 var $author$project$EnterNewWops$wopAlreadyExists = F2(
 	function (_v0, parent) {
@@ -11453,7 +11460,10 @@ var $author$project$EnterNewWops$view = F2(
 						])) : A2($elm$html$Html$p, _List_Nil, _List_Nil),
 					A2(
 					$elm$html$Html$div,
-					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('list')
+						]),
 					A2(
 						$elm$core$List$map,
 						function (wop) {
@@ -11462,8 +11472,19 @@ var $author$project$EnterNewWops$view = F2(
 								_List_Nil,
 								_List_fromArray(
 									[
+										A2(
+										$elm$html$Html$span,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('egyptian')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(
+												$author$project$WordOrPhrase$key(wop))
+											])),
 										$elm$html$Html$text(
-										$author$project$WordOrPhrase$key(wop) + (' : ' + A2($elm$core$String$join, ', ', wop.definitions)))
+										' : ' + A2($elm$core$String$join, ', ', wop.definitions))
 									]));
 						},
 						A2(
@@ -11521,12 +11542,12 @@ var $author$project$Main$view = function (model) {
 				_List_Nil,
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Learn Egyptian'),
-						A2(
-						$elm$html$Html$map,
-						$author$project$Main$EnterNewWopsMsg,
-						A2($author$project$EnterNewWops$view, model.enterNewWops, model))
-					]))
+						$elm$html$Html$text('Learn Egyptian')
+					])),
+				A2(
+				$elm$html$Html$map,
+				$author$project$Main$EnterNewWopsMsg,
+				A2($author$project$EnterNewWops$view, model.enterNewWops, model))
 			])) : A2(
 		$elm$html$Html$div,
 		_List_Nil,

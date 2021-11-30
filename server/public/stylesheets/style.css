@@ -6,18 +6,79 @@
 
 :root {
     --main-bg-color: rgb(11, 55, 70);
-    --primary-text-color: whitesmoke;
-    --new-word-bg: rgb(149, 204, 174);
-    --recognized-word-bg: rgb(110, 161, 144);
+    /* --primary-text-color: whitesmoke; ORIGINAL */
+    --primary-text-color: rgb(215, 182, 182);
+    /* --new-word-bg: rgb(149, 204, 174); ORIGINAL */
+    /* --new-word-bg: rgb(112, 147, 128); */
+    --new-word-bg: rgb(93, 112, 106);
+    /* --new-word-color: rgb(12, 37, 46); ORIGINAL */
+    --new-word-color: rgb(32, 36, 34);
+    /* --new-word-color: rgb(2, 2, 2); */
+
+    /* --recognized-word-bg: rgb(110, 161, 144); ORIGINAL */
+    /* --recognized-word-bg: rgb(93, 112, 106); */
+    --recognized-word-bg: rgb(97, 97, 105);
+    --recognized-word-color: var(--new-word-color);
     --familiar-word-bg: rgb(31, 76, 85);
-    --familiar-word-color: rgb(241, 235, 235);
-    /* --recognized-word-bg: rgb(121, 174, 153);
-    --familiar-word-bg: rgb(94, 144, 132); */
+    /* --familiar-word-color: rgb(241, 235, 235); ORIGINAL */
+    /* --familiar-word-color: rgb(231, 211, 211); */
+    /* --familiar-word-color: rgb(93, 170, 225); */
+    /* --familiar-word-color: rgb(17, 157, 211); */
+    --familiar-word-color: var(--primary-text-color);
     --learned-word-bg: inherit;
-    --learned-word-color: var(--primary-text-color);
+    --learned-word-color: var(--familiar-word-color);
+    --box-outline-green: rgb(23, 109, 95);
 }
 
 body {
+    background-color: var(--main-bg-color);
+    color: var(--primary-text-color);
+}
+
+input {
+    background-color: var(--main-bg-color);
+    color: var(--primary-text-color);
+    border: 2px solid var(--box-outline-green);
+    margin: 1px 0;
+    padding: 4px;
+    width: auto;
+    overflow: visible;
+}
+
+button {
+    /* reset button START */
+    border: none;
+    margin: 0;
+    padding: 0;
+    width: auto;
+    overflow: visible;
+
+    background: transparent;
+    text-align: inherit;
+    outline: none;
+
+    /* inherit font & color from ancestor */
+    color: inherit;
+    font: inherit;
+
+    /* Normalize `line-height`. Cannot be changed from `normal` in Firefox 4+. */
+    line-height: normal;
+
+    /* Corrects font smoothing for webkit */
+    -webkit-font-smoothing: inherit;
+    -moz-osx-font-smoothing: inherit;
+
+    /* Corrects inability to style clickable `input` types in iOS */
+    -webkit-appearance: none;
+    /* reset button END */
+
+    border: 1px solid var(--box-outline-green);
+    padding: 4px;
+    color: var(--primary-text-color);
+    background-color: var(--familiar-word-bg);
+}
+
+textarea {
     background-color: var(--main-bg-color);
     color: var(--primary-text-color);
 }
@@ -52,9 +113,10 @@ body {
     max-width: 1400px;
 }
 
-.lesson-selector {
+.lessons-view .lesson-selector {
     display: flex;
     flex-wrap: wrap;
+    gap: 4px;
 }
 
 .displayed-words {
@@ -73,7 +135,7 @@ body {
     -moz-osx-font-smoothing: grayscale;
     font-smooth: always; */
     padding-bottom: 40%;
-    font-size: 40px;
+    font-size: 36px;
     font-weight: 500;
     font-family: 'Noto Naskh Arabic', serif;
 }
@@ -97,7 +159,7 @@ body {
     margin-bottom: 4px;
     /* margin-right: 6px; */
     display: inline-block;
-    padding: 0px 2px;
+    padding: 2px 2px;
     /* padding: 8px 4px; */
     cursor: pointer;
     background-color: violet;
@@ -111,10 +173,12 @@ body {
 }
 
 .word.new {
+    color: var(--new-word-color);
     background-color: var(--new-word-bg);
 }
 
 .word.recognized {
+    color: var(--recognized-word-color);
     background-color: var(--recognized-word-bg);
 }
 
@@ -157,7 +221,7 @@ body {
 
 .selected-word-edit input.romanization {
     margin-top: 10px;
-    background-color: pink;
+    background-color: rgb(72, 62, 87);
 }
 
 .selected-word-edit .primary-definition {
@@ -187,10 +251,12 @@ body {
 }
 
 .familiarity-level-selector button.selected.new {
+    color: var(--new-word-color);
     background-color: var(--new-word-bg);
 }
 
 .familiarity-level-selector button.selected.recognized {
+    color: var(--recognized-word-color);
     background-color: var(--recognized-word-bg);
 }
 
@@ -207,7 +273,7 @@ body {
 .lesson-words-and-lookup {
     display: grid;
     grid-template-columns: 1fr 3fr;
-    border: solid rgb(23, 109, 95);
+    border: solid var(--box-outline-green);
     height: 800px;
     /* ensure the left bar doesn't move our window around */
 }
@@ -275,10 +341,20 @@ body {
 
 /* enter new wops page */
 
+.enter-new-wops {
+    font-family: 'Noto Naskh Arabic', serif;
+    font-size: 24px;
+}
+
 .enter-new-wops .input-container {
     display: grid;
     grid-template-columns: 1fr 3fr;
     column-gap: 4px;
+}
+
+.enter-new-wops input {
+    font-size: inherit;
+    font-family: 'Noto Naskh Arabic', serif;
 }
 
 .enter-new-wops p {
@@ -286,7 +362,8 @@ body {
 }
 
 .enter-new-wops .egyptian {
-    font-size: 36px;
+    font-size: 44px;
+    font-weight: 450;
     direction: rtl;
 }
 
