@@ -5,9 +5,10 @@
 }
 
 :root {
-    --main-bg-color: rgb(11, 55, 70);
+    --main-bg-color: rgb(16, 50, 61);
     /* --primary-text-color: whitesmoke; ORIGINAL */
-    --primary-text-color: rgb(215, 182, 182);
+    /* --primary-text-color: rgb(215, 182, 182); */
+    --primary-text-color: rgb(223, 211, 211);
     /* --new-word-bg: rgb(149, 204, 174); ORIGINAL */
     /* --new-word-bg: rgb(112, 147, 128); */
     --new-word-bg: rgb(93, 112, 106);
@@ -25,6 +26,7 @@
     /* --familiar-word-color: rgb(93, 170, 225); */
     /* --familiar-word-color: rgb(17, 157, 211); */
     --familiar-word-color: var(--primary-text-color);
+    --learned-word-bg: rgba(12, 90, 105, 0.253);
     --learned-word-bg: inherit;
     --learned-word-color: var(--familiar-word-color);
     --box-outline-green: rgb(23, 109, 95);
@@ -74,10 +76,11 @@ button {
     -webkit-appearance: none;
     /* reset button END */
 
-    border: 1px solid var(--box-outline-green);
+    cursor: pointer;
+    border: 1px outset rgb(157, 169, 175);
     padding: 4px;
-    color: var(--primary-text-color);
-    background-color: var(--familiar-word-bg);
+    color: rgb(26, 24, 24);
+    background-color: rgb(109, 109, 114);
 }
 
 textarea {
@@ -138,7 +141,7 @@ textarea {
     font-smooth: always; */
     padding-bottom: 40%;
     font-size: 36px;
-    font-weight: 500;
+    font-weight: 400;
     font-family: 'Noto Naskh Arabic', serif;
 }
 
@@ -164,7 +167,7 @@ textarea {
     padding: 2px 2px;
     /* padding: 8px 4px; */
     cursor: pointer;
-    background-color: violet;
+    background-color: rgb(72, 151, 204);
     border: 2px solid var(--main-bg-color);
     border-radius: 2px;
     transition: all 300ms, color 100ms;
