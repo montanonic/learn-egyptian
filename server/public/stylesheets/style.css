@@ -11,22 +11,24 @@
     --primary-text-color: rgb(223, 211, 211);
     /* --new-word-bg: rgb(149, 204, 174); ORIGINAL */
     /* --new-word-bg: rgb(112, 147, 128); */
-    --new-word-bg: rgb(93, 112, 106);
+    /* --new-word-bg: rgb(93, 112, 106); */
+    --new-word-bg: rgb(90, 134, 120);
     /* --new-word-color: rgb(12, 37, 46); ORIGINAL */
     --new-word-color: rgb(32, 36, 34);
     /* --new-word-color: rgb(2, 2, 2); */
 
     /* --recognized-word-bg: rgb(110, 161, 144); ORIGINAL */
     /* --recognized-word-bg: rgb(93, 112, 106); */
-    --recognized-word-bg: rgb(97, 97, 105);
+    /* --recognized-word-bg: rgb(97, 97, 105); */
+    --recognized-word-bg: rgb(93, 108, 110);
     --recognized-word-color: var(--new-word-color);
-    --familiar-word-bg: rgb(31, 76, 85);
+    /* --familiar-word-bg: rgb(31, 76, 85); ORIGINAL */
+    --familiar-word-bg: rgb(23, 66, 75);
     /* --familiar-word-color: rgb(241, 235, 235); ORIGINAL */
     /* --familiar-word-color: rgb(231, 211, 211); */
     /* --familiar-word-color: rgb(93, 170, 225); */
     /* --familiar-word-color: rgb(17, 157, 211); */
     --familiar-word-color: var(--primary-text-color);
-    --learned-word-bg: rgba(12, 90, 105, 0.253);
     --learned-word-bg: inherit;
     --learned-word-color: var(--familiar-word-color);
     --box-outline-green: rgb(23, 109, 95);
