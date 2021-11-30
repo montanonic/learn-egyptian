@@ -28,6 +28,8 @@
     --learned-word-bg: inherit;
     --learned-word-color: var(--familiar-word-color);
     --box-outline-green: rgb(23, 109, 95);
+    --selected-word-color: var(--new-word-color);
+    --selected-word-bg: rgb(118, 148, 146);
 }
 
 body {
@@ -198,9 +200,9 @@ textarea {
 }
 
 .displayed-words .word:hover, .displayed-words .word.selected {
-    color: rgb(187, 239, 255);
-    background-color: rgb(116, 77, 134);
-    border: 2px solid rgb(116, 77, 134);
+    color: var(--new-word-color);
+    background-color: rgb(118, 148, 146);
+    border: 2px solid rgb(118, 148, 146);
     transition: all 300ms, color 100ms;
 }
 
@@ -225,10 +227,10 @@ textarea {
 }
 
 .selected-word-edit .primary-definition {
-    color: rgb(60, 66, 70);
     font-size: 26px;
     font-weight: bold;
-    background-color: rgb(149, 204, 174);
+    color: var(--selected-word-color);
+    background-color: var(--selected-word-bg);
 }
 
 .selected-word-tags-edit {
