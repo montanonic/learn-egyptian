@@ -11203,13 +11203,22 @@ var $author$project$Main$selectedLessonView = F2(
 							$elm$html$Html$text('Title: ' + title)
 						])),
 					A2(
-					$elm$html$Html$audio,
+					$elm$html$Html$div,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$controls(true),
-							$elm$html$Html$Attributes$src('http://localhost:3000/audio/' + (title + ('.' + lessonAudioType)))
+							$elm$html$Html$Attributes$class('audio-container')
 						]),
-					_List_Nil),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$audio,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$controls(true),
+									$elm$html$Html$Attributes$src('http://localhost:3000/audio/' + (title + ('.' + lessonAudioType)))
+								]),
+							_List_Nil)
+						])),
 					$elm_community$maybe_extra$Maybe$Extra$isNothing(model.lessonFlashcards) ? A2(
 					$elm$html$Html$button,
 					_List_fromArray(

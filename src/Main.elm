@@ -1512,7 +1512,7 @@ selectedLessonView model title =
     in
     div [ class "selected-lesson-view" ]
         [ h2 [] [ text <| "Title: " ++ title ]
-        , audio [ controls True, src <| "http://localhost:3000/audio/" ++ title ++ "." ++ lessonAudioType ] []
+        , div [ class "audio-container" ] [ audio [ controls True, src <| "http://localhost:3000/audio/" ++ title ++ "." ++ lessonAudioType ] [] ]
         , if MaybeE.isNothing model.lessonFlashcards then
             button [ onClick (PrepareForLessonWithFlashcards lessonText) ]
                 [ text "Prepare for Lesson with Flashcards" ]

@@ -405,3 +405,35 @@ textarea {
 .enter-new-wops .save-new-wop {
     display: block;
 }
+
+/* audio */
+
+
+.audio-container audio {
+    width: 100%;
+}
+
+.audio-container audio::-webkit-media-controls-panel {
+    background-color: var(--nb-cyber-yellow);
+    color: black;
+}
+
+/* scrollbar */
+
+::-webkit-scrollbar {
+    background-color: var(--nb-vivid-orange);
+}
+
+::-webkit-scrollbar-track {
+    background-color: var(--nb-vivid-orange);
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--nb-chrome-yellow);
+    border: inset 2px var(--nb-vivid-orange);
+    border-radius: 10px;
+}
+
+::-webkit-resizer {
+    background-color: var(--nb-cyber-yellow);
+}
