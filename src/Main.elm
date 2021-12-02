@@ -1634,7 +1634,12 @@ selectedWordEdit model =
          else
             case WOP.get model.selectedWop model.wops of
                 Just wop ->
-                    p [ class "primary-definition" ] [ text <| model.selectedWop ++ " = ", text <| String.join " || " wop.definitions ]
+                    p [ class "primary-definition" ]
+                        [ span [ class "egyptian" ] [ text <| model.selectedWop ]
+                        , text <|
+                            " = "
+                                ++ String.join " || " wop.definitions
+                        ]
                         :: List.indexedMap
                             (\i def ->
                                 input
@@ -1666,7 +1671,7 @@ selectedWordEdit model =
                            ]
 
                 Nothing ->
-                    [ p [ class "primary-definition" ] [ text <| model.selectedWop ]
+                    [ p [ class "primary-definition" ] [ span [ class "egyptian" ] [ text <| model.selectedWop ] ]
                     , input [ id "newWopDefinition", placeholder "add a definition", onInput EditSelectedNewWOPDefinition, value model.newWopDefinition ] []
                     , button [ onClick SaveSelectedNewWOP, disabled (String.isEmpty model.newWopDefinition) ] [ text "Save New Word" ]
                     ]
@@ -1678,7 +1683,7 @@ familiarityLevelSelectorView wop =
     div [ class "familiarity-level-selector" ]
         (List.map
             (\n ->
-                button
+                div
                     [ classList [ ( "selected", wop.familiarityLevel == n ) ]
                     , class <| String.toLower <| WOP.displayFamiliarityLevel n
                     , onClick <| SetSelectedWOPFamiliarityLevel (WOP.key wop) n

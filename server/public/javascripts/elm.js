@@ -10719,7 +10719,7 @@ var $author$project$Main$familiarityLevelSelectorView = function (wop) {
 			$elm$core$List$map,
 			function (n) {
 				return A2(
-					$elm$html$Html$button,
+					$elm$html$Html$div,
 					_List_fromArray(
 						[
 							$elm$html$Html$Attributes$classList(
@@ -11053,9 +11053,18 @@ var $author$project$Main$selectedWordEdit = function (model) {
 								]),
 							_List_fromArray(
 								[
-									$elm$html$Html$text(model.selectedWop + ' = '),
+									A2(
+									$elm$html$Html$span,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('egyptian')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text(model.selectedWop)
+										])),
 									$elm$html$Html$text(
-									A2($elm$core$String$join, ' || ', wop.definitions))
+									' = ' + A2($elm$core$String$join, ' || ', wop.definitions))
 								])),
 						_Utils_ap(
 							A2(
@@ -11113,7 +11122,16 @@ var $author$project$Main$selectedWordEdit = function (model) {
 								]),
 							_List_fromArray(
 								[
-									$elm$html$Html$text(model.selectedWop)
+									A2(
+									$elm$html$Html$span,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('egyptian')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text(model.selectedWop)
+										]))
 								])),
 							A2(
 							$elm$html$Html$input,

@@ -252,9 +252,16 @@ textarea {
 
 .selected-word-edit .primary-definition {
     font-size: 26px;
-    font-weight: bold;
+    font-family: 'Noto Naskh Arabic', serif;
     color: var(--selected-word-color);
     background-color: var(--selected-word-bg);
+    margin-top: 0;
+    padding: 4px 0;
+}
+
+.selected-word-edit .primary-definition .egyptian {
+    font-size: 40px;
+    font-weight: 550;
 }
 
 .selected-word-tags-edit {
@@ -267,36 +274,39 @@ textarea {
     justify-content: center;
 }
 
-.familiarity-level-selector button {
+.familiarity-level-selector div {
     font-size: 16px;
     border: 1px solid var(--primary-text-color);
     cursor: pointer;
     margin: 0 2px;
+    background-color: var(--nb-philippine-orange);
     color: var(--primary-text-color);
     font-weight: bold;
+    width: 20px;
 }
 
-.familiarity-level-selector button.selected.new {
+.familiarity-level-selector div.selected.new {
     color: var(--new-word-color);
     background-color: var(--new-word-bg);
 }
 
-.familiarity-level-selector button.selected.recognized {
+.familiarity-level-selector div.selected.recognized {
     color: var(--recognized-word-color);
     background-color: var(--recognized-word-bg);
 }
 
-.familiarity-level-selector button.selected.familiar {
+.familiarity-level-selector div.selected.familiar {
     color: var(--familiar-word-color);
     background-color: var(--familiar-word-bg);
 }
 
-.familiarity-level-selector button.selected.learned {
+.familiarity-level-selector div.selected.learned {
     color: var(--learned-word-color);
     background-color: var(--learned-word-bg);
 }
 
 .lesson-words-and-lookup {
+    overflow: hidden;
     display: grid;
     grid-template-columns: 1fr 3fr;
     border: solid var(--box-outline-green);
@@ -362,7 +372,6 @@ textarea {
 .flashcard-view .romanization {
     margin-top: 16px;
     font-size: 24px;
-    color: gray;
 }
 
 /* enter new wops page */
