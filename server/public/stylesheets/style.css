@@ -60,7 +60,7 @@
 }
 
 body {
-    background-color: var(--main-bg-color);
+    background-color: var(--nb-chrome-yellow);
     color: var(--primary-text-color);
 }
 
@@ -168,6 +168,7 @@ textarea {
     font-size: 36px;
     font-weight: 400;
     font-family: 'Noto Naskh Arabic', serif;
+    background-color: var(--main-bg-color);
 }
 
 .displayed-words p {
