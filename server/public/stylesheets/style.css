@@ -5,35 +5,58 @@
 }
 
 :root {
-    --main-bg-color: rgb(16, 50, 61);
-    /* --primary-text-color: whitesmoke; ORIGINAL */
-    /* --primary-text-color: rgb(215, 182, 182); */
-    --primary-text-color: rgb(223, 211, 211);
-    /* --new-word-bg: rgb(149, 204, 174); ORIGINAL */
-    /* --new-word-bg: rgb(112, 147, 128); */
-    /* --new-word-bg: rgb(93, 112, 106); */
-    --new-word-bg: rgb(90, 134, 120);
-    /* --new-word-color: rgb(12, 37, 46); ORIGINAL */
-    --new-word-color: rgb(32, 36, 34);
-    /* --new-word-color: rgb(2, 2, 2); */
+    /* green is accent color, not ideal reading color; peach/orange/yellow = good colors */
 
-    /* --recognized-word-bg: rgb(110, 161, 144); ORIGINAL */
-    /* --recognized-word-bg: rgb(93, 112, 106); */
-    /* --recognized-word-bg: rgb(97, 97, 105); */
-    --recognized-word-bg: rgb(93, 108, 110);
+    /* against black = 7.21 contrast */
+    --nb-islamic-green: #03B000;
+
+    /* against chartreuse = 7.23 contrast; does not conflict with other colors */
+    --nb-dark-green: #005E00;
+
+    /* against black = 7.0 contrast; either orange is fine as long as they're not used in the same logical areas */
+    --nb-vivid-orange: #FF6200;
+
+    /* against black = 7.53 contrast; doesn't color-blind clash with darkest-chartreuse, whereas vivid orange does */
+    --nb-philippine-orange: #FF6F00;
+
+    /* against black = 7.15 contrast; this color is nice cuz it doesn't clash with anything except islamic green and vivid orange (for color-blind friendliness), but is fine with philippine-orange */
+    --nb-darkest-chartreuse: #949E00;
+
+    /* against black 7.81 contrast; a more distinctive color than dark-chartreuse, but clashes color-blindness-wise with oranges and greens */
+    --nb-light-gold: #B39E00;
+
+    /* against black = 11.0 contrast */
+    --nb-chrome-yellow: #FFAA00;
+
+    /* against black = 14.47 contrast */
+    --nb-cyber-yellow: #FFD200;
+
+    /* against black = 18.8 contrast */
+    --nb-chartreuse: #EAFF00;
+
+    --main-bg-color: var(--nb-chartreuse);
+
+    --primary-text-color: black;
+
+    --unknown-word-bg: var(--nb-philippine-orange);
+
+    --new-word-bg: var(--nb-darkest-chartreuse);
+    --new-word-color: var(--primary-text-color);
+
+    --recognized-word-bg: var(--nb-chrome-yellow);
     --recognized-word-color: var(--new-word-color);
-    /* --familiar-word-bg: rgb(31, 76, 85); ORIGINAL */
-    --familiar-word-bg: rgb(23, 66, 75);
-    /* --familiar-word-color: rgb(241, 235, 235); ORIGINAL */
-    /* --familiar-word-color: rgb(231, 211, 211); */
-    /* --familiar-word-color: rgb(93, 170, 225); */
-    /* --familiar-word-color: rgb(17, 157, 211); */
+
+    --familiar-word-bg: var(--nb-cyber-yellow);
     --familiar-word-color: var(--primary-text-color);
-    --learned-word-bg: inherit;
-    --learned-word-color: var(--familiar-word-color);
-    --box-outline-green: rgb(23, 109, 95);
-    --selected-word-color: var(--new-word-color);
-    --selected-word-bg: rgb(118, 148, 146);
+
+    /* aka blend into background */
+    --learned-word-bg: var(--nb-chartreuse);
+    --learned-word-color: var(--primary-text-color);
+
+    --selected-word-bg: var(--nb-dark-green);
+    --selected-word-color: yellow;
+
+    --box-outline-green: var(--nb-vivid-orange);
 }
 
 body {
@@ -79,10 +102,10 @@ button {
     /* reset button END */
 
     cursor: pointer;
-    border: 1px outset rgb(157, 169, 175);
+    border: 1px outset var(--nb-islamic-green);
     padding: 4px;
-    color: rgb(26, 24, 24);
-    background-color: rgb(109, 109, 114);
+    color: var(--primary-text-color);
+    background-color: var(--nb-islamic-green);
 }
 
 textarea {
@@ -169,14 +192,10 @@ textarea {
     padding: 2px 2px;
     /* padding: 8px 4px; */
     cursor: pointer;
-    background-color: rgb(72, 151, 204);
+    background-color: var(--unknown-word-bg);
     border: 2px solid var(--main-bg-color);
     border-radius: 2px;
     transition: all 300ms, color 100ms;
-}
-
-.word {
-    color: rgb(12, 37, 46);
 }
 
 .word.new {
@@ -201,19 +220,19 @@ textarea {
 
 .displayed-words .word.part-of-phrase {
     /* HACK: temporary styling fix */
-    outline: solid 1px rgb(196, 161, 98);
+    outline: solid 1px var(--nb-islamic-green);
 }
 
 .displayed-words .word:hover, .displayed-words .word.selected {
-    color: var(--new-word-color);
-    background-color: rgb(118, 148, 146);
-    border: 2px solid rgb(118, 148, 146);
+    color: var(--selected-word-color);
+    background-color: var(--selected-word-bg);
+    border: 2px solid var(--selected-word-bg);
     transition: all 300ms, color 100ms;
 }
 
 .selected-word-edit-and-lesson-translation {
     direction: ltr;
-    background-color: rgb(16, 73, 92);
+    /* background-color: rgb(16, 73, 92); */
     margin: 8px 4px;
     border-radius: 10px;
     text-align: center;
@@ -228,7 +247,7 @@ textarea {
 
 .selected-word-edit input.romanization {
     margin-top: 10px;
-    background-color: rgb(72, 62, 87);
+    background-color: var(--nb-cyber-yellow);
 }
 
 .selected-word-edit .primary-definition {
@@ -239,7 +258,7 @@ textarea {
 }
 
 .selected-word-tags-edit {
-    background-color: rgba(36, 24, 24, 0.507);
+    /* background-color: rgba(36, 24, 24, 0.507); */
     margin: 0 20px;
 }
 
@@ -250,10 +269,10 @@ textarea {
 
 .familiarity-level-selector button {
     font-size: 16px;
-    border: 1px solid black;
+    border: 1px solid var(--primary-text-color);
     cursor: pointer;
     margin: 0 2px;
-    color: rgb(12, 37, 46);
+    color: var(--primary-text-color);
     font-weight: bold;
 }
 
@@ -286,7 +305,7 @@ textarea {
 }
 
 .lesson-translation-box {
-    background-color: rgb(20, 67, 83);
+    background-color: var(--nb-cyber-yellow);
     display: flex;
     align-items: center;
     border-radius: 10px;
