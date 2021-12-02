@@ -5879,7 +5879,8 @@ var $elm$core$Maybe$withDefault = F2(
 		}
 	});
 var $author$project$WordDisplay$markWordCharsFromNonWordChars = function (lineOfText) {
-	var rxString = ' *():.?؟!,”،=\\-';
+	var arabicNumerals = '٠١٢٣٤٥٦٧٨٩';
+	var rxString = ' *():.?؟!,”،=\\-' + arabicNumerals;
 	var nonWordDetectorRx = A2(
 		$elm$core$Maybe$withDefault,
 		$elm$regex$Regex$never,

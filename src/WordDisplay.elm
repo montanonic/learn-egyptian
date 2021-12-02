@@ -37,7 +37,10 @@ markWordCharsFromNonWordChars : String -> List WordDisplayTypes
 markWordCharsFromNonWordChars lineOfText =
     let
         rxString =
-            " *():.?؟!,”،=\\-"
+            " *():.?؟!,”،=\\-" ++ arabicNumerals
+
+        arabicNumerals =
+            "٠١٢٣٤٥٦٧٨٩"
 
         nonWordDetectorRx =
             Maybe.withDefault Regex.never <|
